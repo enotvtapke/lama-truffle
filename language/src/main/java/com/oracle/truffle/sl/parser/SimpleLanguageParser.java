@@ -1,45 +1,4 @@
-/*
- * Copyright (c) 2012, 2025, Oracle and/or its affiliates. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * The Universal Permissive License (UPL), Version 1.0
- *
- * Subject to the condition set forth below, permission is hereby granted to any
- * person obtaining a copy of this software, associated documentation and/or
- * data (collectively the "Software"), free of charge and under any and all
- * copyright rights in the Software, and any and all patent rights owned or
- * freely licensable by each licensor hereunder covering either (i) the
- * unmodified Software as contributed to or provided by such licensor, or (ii)
- * the Larger Works (as defined below), to deal in both
- *
- * (a) the Software, and
- *
- * (b) any piece of software and/or hardware listed in the lrgrwrks.txt file if
- * one is included with the Software each a "Larger Work" to which the Software
- * is contributed by such licensors),
- *
- * without restriction, including without limitation the rights to copy, create
- * derivative works of, display, perform, and distribute the Software and make,
- * use, sell, offer for sale, import, export, have made, and have sold the
- * Software and the Larger Work(s), and to sublicense the foregoing rights on
- * either these or other terms.
- *
- * This license is subject to the following condition:
- *
- * The above copyright notice and either this complete permission notice or at a
- * minimum a reference to the UPL must be included in all copies or substantial
- * portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-// Checkstyle: stop
-//@formatter:off
+// Generated from language/src/main/java/com/oracle/truffle/sl/parser/SimpleLanguage.g4 by ANTLR 4.13.2
 package com.oracle.truffle.sl.parser;
 
 // DO NOT MODIFY - generated from SimpleLanguage.g4 using "mx create-sl-parser"
@@ -53,7 +12,7 @@ import java.util.List;
 import java.util.Iterator;
 import java.util.ArrayList;
 
-@SuppressWarnings({"all", "this-escape"})
+@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 public class SimpleLanguageParser extends Parser {
 	static { RuntimeMetaData.checkVersion("4.13.2", RuntimeMetaData.VERSION); }
 
@@ -241,7 +200,7 @@ public class SimpleLanguageParser extends Parser {
 			setState(46);
 			match(IDENTIFIER);
 			setState(47);
-			_localctx.s = match(T__1);
+			((FunctionContext)_localctx).s = match(T__1);
 			setState(56);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
@@ -271,7 +230,7 @@ public class SimpleLanguageParser extends Parser {
 			setState(58);
 			match(T__3);
 			setState(59);
-			_localctx.body = block();
+			((FunctionContext)_localctx).body = block();
 			}
 		}
 		catch (RecognitionException re) {
@@ -314,7 +273,7 @@ public class SimpleLanguageParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(61);
-			_localctx.s = match(T__4);
+			((BlockContext)_localctx).s = match(T__4);
 			setState(65);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
@@ -330,7 +289,7 @@ public class SimpleLanguageParser extends Parser {
 				_la = _input.LA(1);
 			}
 			setState(68);
-			_localctx.e = match(T__5);
+			((BlockContext)_localctx).e = match(T__5);
 			}
 		}
 		catch (RecognitionException re) {
@@ -473,7 +432,7 @@ public class SimpleLanguageParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(79);
-			_localctx.b = match(T__6);
+			((Break_statementContext)_localctx).b = match(T__6);
 			setState(80);
 			match(T__7);
 			}
@@ -510,7 +469,7 @@ public class SimpleLanguageParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(82);
-			_localctx.c = match(T__8);
+			((Continue_statementContext)_localctx).c = match(T__8);
 			setState(83);
 			match(T__7);
 			}
@@ -586,7 +545,7 @@ public class SimpleLanguageParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(88);
-			_localctx.d = match(T__9);
+			((Debugger_statementContext)_localctx).d = match(T__9);
 			setState(89);
 			match(T__7);
 			}
@@ -631,15 +590,15 @@ public class SimpleLanguageParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(91);
-			_localctx.w = match(T__10);
+			((While_statementContext)_localctx).w = match(T__10);
 			setState(92);
 			match(T__1);
 			setState(93);
-			_localctx.condition = expression();
+			((While_statementContext)_localctx).condition = expression();
 			setState(94);
 			match(T__3);
 			setState(95);
-			_localctx.body = block();
+			((While_statementContext)_localctx).body = block();
 			}
 		}
 		catch (RecognitionException re) {
@@ -687,15 +646,15 @@ public class SimpleLanguageParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(97);
-			_localctx.i = match(T__11);
+			((If_statementContext)_localctx).i = match(T__11);
 			setState(98);
 			match(T__1);
 			setState(99);
-			_localctx.condition = expression();
+			((If_statementContext)_localctx).condition = expression();
 			setState(100);
 			match(T__3);
 			setState(101);
-			_localctx.then = block();
+			((If_statementContext)_localctx).then = block();
 			setState(104);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
@@ -704,7 +663,7 @@ public class SimpleLanguageParser extends Parser {
 				setState(102);
 				match(T__12);
 				setState(103);
-				_localctx.alt = block();
+				((If_statementContext)_localctx).alt = block();
 				}
 			}
 
@@ -746,7 +705,7 @@ public class SimpleLanguageParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(106);
-			_localctx.r = match(T__13);
+			((Return_statementContext)_localctx).r = match(T__13);
 			setState(108);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
