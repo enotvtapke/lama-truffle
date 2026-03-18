@@ -64,49 +64,52 @@ definition
 
 variableDefinition : '(' VAR | PUBLIC ')' variableDefinitionSequence ;
 
-
 variableDefinitionSequence : variableDefinitionItem ( ',' variableDefinitionItem )*;
 
-variableDefinitionItem : LIDENT ( '=' basicExpression )?;
+variableDefinitionItem : LIDENT ( '=' binaryExpression )?;
 functionDefinition : PUBLIC? FUN LIDENT '(' functionArguments ')' functionBody;
 functionArguments : ( LIDENT ( ',' LIDENT )* )?;
 functionBody : '{' scopeExpression '}';
 
-//---
-
-expression : basicExpression ( ';' basicExpression )*;
-basicExpression : binaryExpression;
+expression : binaryExpression ( ';' binaryExpression )*;
 binaryExpression
-    : binaryOperand INFIX binaryOperand
-    | binaryOperand
+    : '-'? postfixExpression                                               # DecimalExpr
+    | '(' binaryExpression ')'                                             # ParenExpr
+    | binaryExpression op=('*' | '/' | '%') binaryExpression               # MulDivModExpr
+    | binaryExpression op=('+' | '-') binaryExpression                     # AddSubExpr
+    | binaryExpression op=('==' | '!=' | '<=' | '<' | '>=' | '>') binaryExpression # CompExpr
+    | binaryExpression op='&&' binaryExpression                            # AndExpr
+    | binaryExpression op='!!' binaryExpression                            # OrExpr
+    | <assoc=right> binaryExpression op=':' binaryExpression               # ListConsExpr
+    | <assoc=right> binaryExpression op=':=' binaryExpression              # AssignExpr
     ;
-binaryOperand
-    : binaryExpression
-    | '-'? postfixExpression;
+
 postfixExpression
     : primary
     | postfixExpression '(' ( expression ( ',' expression )* )? ')'
-    | postfixExpression expression?;
+    | postfixExpression '[' expression ']'
+    ;
 
 primary
-    : DECIMAL |
-    STRING |
-    CHAR |
-    LIDENT |
-    TRUE |
-    FALSE |
-    FUN '(' functionArguments ')' functionBody |
-    SKIP |
-    '(' scopeExpression ')' |
-    listExpression |
-    arrayExpression |
-    sExpression |
-    ifExpression |
-    whileDoExpression |
-    doWhileExpression |
-    forExpression |
-    caseExpression |
-    letExpression;
+    : DECIMAL
+    | STRING 
+    | CHAR
+    | LIDENT
+    | TRUE
+    | FALSE
+    | FUN '(' functionArguments ')' functionBody
+    | LAMA_SKIP
+    | '(' scopeExpression ')'
+    | listExpression
+    | arrayExpression
+    | sExpression
+    | ifExpression
+    | whileDoExpression
+    | doWhileExpression
+    | forExpression
+    | caseExpression
+    | letExpression
+    ;
 
 arrayExpression : '[' (  expression ( ',' expression )* )? ']';
 listExpression : '{' ( expression ( ',' expression )* )? '}';
