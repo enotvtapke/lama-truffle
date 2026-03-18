@@ -48,6 +48,7 @@ module org.graalvm.sl {
   exports com.oracle.truffle.sl to org.graalvm.sl.test;
   exports com.oracle.truffle.sl.runtime to org.graalvm.sl.test;
   exports com.oracle.truffle.sl.builtins to org.graalvm.sl.test;
+  exports com.oracle.truffle.sl.parser.lama to org.graalvm.sl.test;
   provides  com.oracle.truffle.api.provider.TruffleLanguageProvider with
     com.oracle.truffle.sl.SLLanguageProvider;
 }

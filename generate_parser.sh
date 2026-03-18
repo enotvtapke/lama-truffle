@@ -41,4 +41,4 @@
 #
 
 curl -O https://www.antlr.org/download/antlr-4.13.2-complete.jar
-$JAVA_HOME/bin/java -cp antlr-4.13.2-complete.jar org.antlr.v4.Tool -package com.oracle.truffle.sl.parser.lama -no-listener -visitor language/src/main/java/com/oracle/truffle/sl/parser/lama/LamaParser.g4
+$JAVA_HOME/bin/java -cp antlr-4.13.2-complete.jar org.antlr.v4.Tool -package com.oracle.truffle.sl.parser.lama -no-listener -visitor language/src/main/java/com/oracle/truffle/sl/parser/lama/Lama.g4

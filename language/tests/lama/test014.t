@@ -1,0 +1,32 @@
+  $ ../src/Driver.exe -runtime ../runtime -I ../stdlib/x64 -i test014.lama < test014.input
+   > 1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1

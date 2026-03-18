@@ -45,12 +45,15 @@ open module org.graalvm.sl.test {
   requires junit;
   requires org.graalvm.truffle;
   requires org.graalvm.sl;
+  requires org.antlr.antlr4.runtime;
+  requires truffle.tck;
+  requires hamcrest.core;
   exports com.oracle.truffle.sl.test;
-  
-  provides com.oracle.truffle.api.provider.TruffleLanguageProvider 
+
+  provides com.oracle.truffle.api.provider.TruffleLanguageProvider
       with com.oracle.truffle.sl.test.SLParseInContextTestEvalLangProvider;
 
-  provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider 
+  provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider
       with com.oracle.truffle.sl.test.SLInstrumentTestEarlyReturnInstrumentProvider,
            com.oracle.truffle.sl.test.SLInstrumentTestEnvironmentHandlerInstrumentProvider,
            com.oracle.truffle.sl.test.SLInstrumentTestIncreaseArgOnErrorInstrumentProvider,
