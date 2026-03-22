@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,19 +38,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-module org.graalvm.sl {
-  requires java.base;
-  requires java.logging;
-  requires jdk.unsupported;
-  requires org.antlr.antlr4.runtime;
-  requires org.graalvm.polyglot;
-  requires org.graalvm.truffle;
-  requires org.graalvm.collections;
-  exports com.oracle.truffle.sl to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.lama to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.runtime to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.builtins to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.parser.lama to org.graalvm.sl.test;
-  provides  com.oracle.truffle.api.provider.TruffleLanguageProvider with
-    com.oracle.truffle.sl.SLLanguageProvider;
-}
+package com.oracle.truffle.sl.nodes.lama;
+
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.ImplicitCast;
+import com.oracle.truffle.api.dsl.TypeCast;
+import com.oracle.truffle.api.dsl.TypeCheck;
+import com.oracle.truffle.api.dsl.TypeSystem;
+import com.oracle.truffle.api.strings.TruffleString;
+import com.oracle.truffle.sl.SLLanguage;
+import com.oracle.truffle.sl.nodes.SLTypesGen;
+import com.oracle.truffle.sl.runtime.SLBigInteger;
+import com.oracle.truffle.sl.runtime.SLNull;
+
+import java.math.BigInteger;
+
+/**
+ * The type system of SL, as explained in {@link SLLanguage}. Based on the {@link TypeSystem}
+ * annotation, the Truffle DSL generates the subclass {@link SLTypesGen} with type test and type
+ * conversion methods for some types. In this class, we only cover types where the automatically
+ * generated ones would not be sufficient.
+ */
+@TypeSystem({long.class, TruffleString.class})
+public abstract class LamaTypes { }

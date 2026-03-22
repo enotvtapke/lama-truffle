@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,19 +38,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-module org.graalvm.sl {
-  requires java.base;
-  requires java.logging;
-  requires jdk.unsupported;
-  requires org.antlr.antlr4.runtime;
-  requires org.graalvm.polyglot;
-  requires org.graalvm.truffle;
-  requires org.graalvm.collections;
-  exports com.oracle.truffle.sl to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.lama to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.runtime to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.builtins to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.parser.lama to org.graalvm.sl.test;
-  provides  com.oracle.truffle.api.provider.TruffleLanguageProvider with
-    com.oracle.truffle.sl.SLLanguageProvider;
+package com.oracle.truffle.sl.lama;
+
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.sl.SLLanguage;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+
+public final class LamaFileDetector implements TruffleFile.FileTypeDetector {
+
+    @Override
+    public String findMimeType(TruffleFile file) throws IOException {
+        String name = file.getName();
+        if (name != null && name.endsWith(".lama")) {
+            return SLLanguage.MIME_TYPE;
+        }
+        return null;
+    }
+
+    @Override
+    public Charset findEncoding(TruffleFile file) throws IOException {
+        return null;
+    }
 }

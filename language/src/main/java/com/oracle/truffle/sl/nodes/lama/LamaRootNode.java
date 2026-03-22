@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,19 +38,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-module org.graalvm.sl {
-  requires java.base;
-  requires java.logging;
-  requires jdk.unsupported;
-  requires org.antlr.antlr4.runtime;
-  requires org.graalvm.polyglot;
-  requires org.graalvm.truffle;
-  requires org.graalvm.collections;
-  exports com.oracle.truffle.sl to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.lama to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.runtime to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.builtins to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.parser.lama to org.graalvm.sl.test;
-  provides  com.oracle.truffle.api.provider.TruffleLanguageProvider with
-    com.oracle.truffle.sl.SLLanguageProvider;
+package com.oracle.truffle.sl.nodes.lama;
+
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.SourceSection;
+import com.oracle.truffle.api.strings.TruffleString;
+import com.oracle.truffle.sl.SLLanguage;
+import com.oracle.truffle.sl.nodes.SLExpressionNode;
+
+public final class LamaRootNode extends RootNode {
+
+    @Child private LamaExpressionNode body;
+
+    private final SourceSection sourceSection;
+    private final TruffleString name;
+
+    public LamaRootNode(SLLanguage language, FrameDescriptor frameDescriptor, LamaExpressionNode body, SourceSection sourceSection, TruffleString name) {
+        super(language, frameDescriptor);
+        this.body = body;
+        this.sourceSection = sourceSection;
+        this.name = name;
+    }
+
+    @Override
+    public SourceSection getSourceSection() {
+        return sourceSection;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return body.executeGeneric(frame);
+    }
+
+    @Override
+    public String getName() {
+        return name.toJavaStringUncached();
+    }
 }

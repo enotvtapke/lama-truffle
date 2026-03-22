@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,19 +38,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-module org.graalvm.sl {
-  requires java.base;
-  requires java.logging;
-  requires jdk.unsupported;
-  requires org.antlr.antlr4.runtime;
-  requires org.graalvm.polyglot;
-  requires org.graalvm.truffle;
-  requires org.graalvm.collections;
-  exports com.oracle.truffle.sl to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.lama to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.runtime to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.builtins to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.parser.lama to org.graalvm.sl.test;
-  provides  com.oracle.truffle.api.provider.TruffleLanguageProvider with
-    com.oracle.truffle.sl.SLLanguageProvider;
+package com.oracle.truffle.sl.nodes.lama.expression;
+
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.oracle.truffle.sl.nodes.SLExpressionNode;
+import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
+
+/**
+ * Constant literal for a primitive {@code long} value. The unboxed value can be returned when the
+ * parent expects a long value and calls {@link LamaLongLiteralNode#executeLong}. In the generic case,
+ * the primitive value is automatically boxed by Java.
+ */
+@NodeInfo(shortName = "const")
+public final class LamaLongLiteralNode extends LamaExpressionNode {
+
+    private final long value;
+
+    public LamaLongLiteralNode(long value) {
+        this.value = value;
+    }
+
+    @Override
+    public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
+        return value;
+    }
+
+    @Override
+    public Object executeGeneric(VirtualFrame frame) {
+        return value;
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0
@@ -38,19 +38,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-module org.graalvm.sl {
-  requires java.base;
-  requires java.logging;
-  requires jdk.unsupported;
-  requires org.antlr.antlr4.runtime;
-  requires org.graalvm.polyglot;
-  requires org.graalvm.truffle;
-  requires org.graalvm.collections;
-  exports com.oracle.truffle.sl to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.lama to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.runtime to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.builtins to org.graalvm.sl.test;
-  exports com.oracle.truffle.sl.parser.lama to org.graalvm.sl.test;
-  provides  com.oracle.truffle.api.provider.TruffleLanguageProvider with
-    com.oracle.truffle.sl.SLLanguageProvider;
+package com.oracle.truffle.sl.nodes.lama.expression;
+
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
+
+@NodeChild("valueNode")
+public abstract class WriteLocalVariableNode extends LamaExpressionNode {
+    private final int slot;
+
+    protected WriteLocalVariableNode(int slot) {
+        this.slot = slot;
+    }
+
+    @Specialization(guards = "isLongOrIllegal(frame)")
+    protected long writeLong(VirtualFrame frame, long value) {
+        frame.getFrameDescriptor().setSlotKind(slot, FrameSlotKind.Long);
+
+        frame.setLong(slot, value);
+        return value;
+    }
+
+    @Specialization(replaces = {"writeLong"})
+    protected Object write(VirtualFrame frame, Object value) {
+        frame.getFrameDescriptor().setSlotKind(slot, FrameSlotKind.Object);
+
+        frame.setObject(slot, value);
+        return value;
+    }
+
+    protected boolean isLongOrIllegal(VirtualFrame frame) {
+        final FrameSlotKind kind = frame.getFrameDescriptor().getSlotKind(slot);
+        return kind == FrameSlotKind.Long || kind == FrameSlotKind.Illegal;
+    }
 }
