@@ -42,22 +42,22 @@ package com.oracle.truffle.sl.nodes.lama;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.api.strings.TruffleString;
-import com.oracle.truffle.sl.SLLanguage;
-import com.oracle.truffle.sl.nodes.SLExpressionNode;
+import com.oracle.truffle.sl.LamaLanguage;
 
 public final class LamaRootNode extends RootNode {
 
-    @Child private LamaExpressionNode body;
+    @Children private final LamaExpressionNode[] bodyNodes;
 
     private final SourceSection sourceSection;
     private final TruffleString name;
 
-    public LamaRootNode(SLLanguage language, FrameDescriptor frameDescriptor, LamaExpressionNode body, SourceSection sourceSection, TruffleString name) {
+    public LamaRootNode(LamaLanguage language, FrameDescriptor frameDescriptor, LamaExpressionNode[] bodyNodes, SourceSection sourceSection, TruffleString name) {
         super(language, frameDescriptor);
-        this.body = body;
+        this.bodyNodes = bodyNodes;
         this.sourceSection = sourceSection;
         this.name = name;
     }
@@ -67,9 +67,14 @@ public final class LamaRootNode extends RootNode {
         return sourceSection;
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        return body.executeGeneric(frame);
+        Object result = 0L;
+        for (LamaExpressionNode node : bodyNodes) {
+            result = node.executeGeneric(frame);
+        }
+        return result;
     }
 
     @Override

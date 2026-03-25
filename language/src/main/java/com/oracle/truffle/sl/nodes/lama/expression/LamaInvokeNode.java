@@ -37,7 +37,7 @@ public final class LamaInvokeNode extends LamaExpressionNode {
         CompilerAsserts.compilationConstant(argumentNodes.length);
 
         Object[] argumentValues = new Object[argumentNodes.length];
-        for (int i = 1; i < argumentNodes.length; i++) {
+        for (int i = 0; i < argumentNodes.length; i++) {
             argumentValues[i] = argumentNodes[i].executeGeneric(frame);
         }
 
