@@ -4,7 +4,7 @@ import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
 
-public abstract class WriteNode extends LamaBuiltinNode {
+public abstract class WriteBuiltinNode extends LamaBuiltinNode {
     @Specialization
     public long doWrite(long arg, @Bind LamaContext context) {
         context.getOutput().println(arg);
