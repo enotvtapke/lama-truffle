@@ -8,20 +8,19 @@ import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 
-// TODO Probably now writes to variables from current module won't be seen by other modules. Boxing can be used to resolve
 @NodeChild("valueNode")
 public abstract class WriteModuleVariableNode extends LamaExpressionNode {
     private final TruffleString variableName;
-    protected final DynamicObject localScope;
+    protected final DynamicObject scope;
 
-    protected WriteModuleVariableNode(TruffleString variableName, DynamicObject localScope) {
+    protected WriteModuleVariableNode(TruffleString variableName, DynamicObject scope) {
         this.variableName = variableName;
-        this.localScope = localScope;
+        this.scope = scope;
     }
 
     @Specialization
-    public Object writeObject(Object valueNode, @CachedLibrary("localScope") DynamicObjectLibrary dynamicObjects) {
-        dynamicObjects.put(localScope, variableName, valueNode);
+    public Object writeObject(Object valueNode, @CachedLibrary("scope") DynamicObjectLibrary dynamicObjects) {
+        dynamicObjects.put(scope, variableName, valueNode);
         return valueNode;
     }
 }

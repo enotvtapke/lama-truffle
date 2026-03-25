@@ -10,16 +10,16 @@ import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 
 public abstract class ReadModuleVariableNode extends LamaExpressionNode {
     private final TruffleString variableName;
-    protected final DynamicObject localScope;
+    protected final DynamicObject scope;
 
-    protected ReadModuleVariableNode(TruffleString variableName, DynamicObject localScope) {
+    protected ReadModuleVariableNode(TruffleString variableName, DynamicObject scope) {
         this.variableName = variableName;
-        this.localScope = localScope;
+        this.scope = scope;
     }
 
     @Specialization
-    public Object readObject(@CachedLibrary("localScope") DynamicObjectLibrary dynamicObjects) {
-        Object value = dynamicObjects.getOrDefault(localScope, variableName, null);
+    public Object readObject(@CachedLibrary("scope") DynamicObjectLibrary dynamicObjects) {
+        Object value = dynamicObjects.getOrDefault(scope, variableName, null);
 
         if (value == null) {
             CompilerDirectives.transferToInterpreter();
