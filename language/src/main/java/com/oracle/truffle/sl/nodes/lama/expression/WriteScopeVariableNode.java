@@ -1,28 +1,31 @@
 package com.oracle.truffle.sl.nodes.lama.expression;
 
+import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 
-public abstract class ReadClosureVariableNode extends LamaExpressionNode {
+@NodeChild("valueNode")
+public abstract class WriteScopeVariableNode extends LamaExpressionNode {
     private final int slotIndex;
     private final int lexicalDepth;
 
-    protected ReadClosureVariableNode(int slotIndex, int lexicalDepth) {
+    protected WriteScopeVariableNode(int slotIndex, int lexicalDepth) {
         this.slotIndex = slotIndex;
         this.lexicalDepth = lexicalDepth;
     }
 
     @Specialization
-    protected Object readObject(VirtualFrame frame) {
-        return getTargetFrame(frame).getValue(slotIndex);
+    protected Object readObject(VirtualFrame frame, Object valueNode) {
+        getTargetFrame(frame).setObject(slotIndex, valueNode);
+        return valueNode;
     }
 
     @ExplodeLoop
-    protected MaterializedFrame getTargetFrame(VirtualFrame frame) {
-        MaterializedFrame target = (MaterializedFrame) frame.getArguments()[0];
+    protected VirtualFrame getTargetFrame(VirtualFrame frame) {
+        VirtualFrame target = frame;
 
         for (int i = 0; i < lexicalDepth; i++) {
             target = (MaterializedFrame) target.getArguments()[0];

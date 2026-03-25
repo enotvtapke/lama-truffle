@@ -5,7 +5,6 @@ import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -15,7 +14,8 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 import com.oracle.truffle.sl.nodes.lama.expression.LamaInvokeNodeFactory.LamaDispatchNodeGen;
 import com.oracle.truffle.sl.runtime.lama.LamaFunction;
-import com.oracle.truffle.sl.runtime.lama.LamaModuleObject;
+
+import static com.oracle.truffle.sl.runtime.lama.Utils.packScopeIntoArguments;
 
 @NodeInfo(shortName = "invoke")
 public final class LamaInvokeNode extends LamaExpressionNode {
@@ -37,7 +37,7 @@ public final class LamaInvokeNode extends LamaExpressionNode {
         CompilerAsserts.compilationConstant(argumentNodes.length);
 
         Object[] argumentValues = new Object[argumentNodes.length];
-        for (int i = 1; i < argumentNodes.length; i++) {
+        for (int i = 0; i < argumentNodes.length; i++) {
             argumentValues[i] = argumentNodes[i].executeGeneric(frame);
         }
 
@@ -57,7 +57,7 @@ public final class LamaInvokeNode extends LamaExpressionNode {
                 Object[] arguments,
                 @Cached("function.callTarget") CallTarget cachedTarget,
                 @Cached("create(cachedTarget)") DirectCallNode callNode) {
-            return callNode.call(packScopeIntoArguments(function.lexicalScope, arguments));
+            return callNode.call(packScopeIntoArguments(arguments, function.lexicalScope));
         }
 
         @Specialization(replaces = "doDirect")
@@ -65,7 +65,7 @@ public final class LamaInvokeNode extends LamaExpressionNode {
                 LamaFunction function,
                 Object[] arguments,
                 @Cached IndirectCallNode callNode) {
-            return callNode.call(function.callTarget, packScopeIntoArguments(function.lexicalScope, arguments));
+            return callNode.call(function.callTarget, packScopeIntoArguments(arguments, function.lexicalScope));
         }
 
         @Fallback
@@ -75,13 +75,6 @@ public final class LamaInvokeNode extends LamaExpressionNode {
             } catch (ArityException | UnsupportedTypeException | UnsupportedMessageException e) {
                 throw new RuntimeException("TypeError: Target is not callable.", e);
             }
-        }
-
-        private static Object[] packScopeIntoArguments(MaterializedFrame scope, Object[] userArgs) {
-            Object[] newArgs = new Object[userArgs.length + 1];
-            newArgs[0] = scope;
-            System.arraycopy(userArgs, 0, newArgs, 1, userArgs.length);
-            return newArgs;
         }
     }
 }

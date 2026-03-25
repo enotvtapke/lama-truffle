@@ -7,6 +7,8 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 
+import static com.oracle.truffle.sl.runtime.lama.Utils.packScopeIntoArguments;
+
 @ExportLibrary(InteropLibrary.class)
 public final class LamaFunction implements TruffleObject {
     public final CallTarget callTarget;
@@ -24,15 +26,8 @@ public final class LamaFunction implements TruffleObject {
 
     @ExportMessage
     public Object execute(Object[] arguments) {
-        Object[] argsWithScope = packScopeIntoArguments(arguments);
+        Object[] argsWithScope = packScopeIntoArguments(arguments, lexicalScope);
 
         return this.callTarget.call(argsWithScope);
-    }
-
-    private Object[] packScopeIntoArguments(Object[] userArgs) {
-        Object[] newArgs = new Object[userArgs.length + 1];
-        newArgs[0] = lexicalScope;
-        System.arraycopy(userArgs, 0, newArgs, 1, userArgs.length);
-        return newArgs;
     }
 }

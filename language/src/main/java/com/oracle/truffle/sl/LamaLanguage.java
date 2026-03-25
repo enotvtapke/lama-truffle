@@ -11,13 +11,12 @@ import com.oracle.truffle.api.instrumentation.StandardTags.RootBodyTag;
 import com.oracle.truffle.api.instrumentation.StandardTags.RootTag;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.sl.lama.LamaFileDetector;
-import com.oracle.truffle.sl.nodes.lama.LamaExecRootNode;
-import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
-import com.oracle.truffle.sl.nodes.lama.LamaModuleRootNode;
-import com.oracle.truffle.sl.parser.lama.LamaNodeParser;
+import com.oracle.truffle.sl.parser.lama.LamaTranslator;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
-import com.oracle.truffle.sl.runtime.lama.LamaModuleObject;
+
+import static com.oracle.truffle.sl.runtime.lama.Utils.stripFileExtension;
 
 
 @TruffleLanguage.Registration(id = LamaLanguage.ID, name = "Lama", defaultMimeType = LamaLanguage.MIME_TYPE, characterMimeTypes = LamaLanguage.MIME_TYPE, contextPolicy = ContextPolicy.SHARED, fileTypeDetectors = LamaFileDetector.class,
@@ -30,7 +29,9 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
 
     public static final String ID = "lama";
     public static final String MIME_TYPE = "application/x-lama";
-    public static final String MODULE_MIME_TYPE = "application/x-lama-module";
+    public static final Source BUILTIN_SOURCE = Source.newBuilder(SLLanguage.ID, "", "Lama builtin").build();
+    public static final TruffleString.Encoding STRING_ENCODING = TruffleString.Encoding.UTF_16;
+    public static final String ANONYMOUS_FUN_NAME = "<anonymous>";
 
     @Override
     protected LamaContext createContext(Env env) {
@@ -40,14 +41,9 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
     @Override
     protected CallTarget parse(ParsingRequest request) throws Exception {
         Source source = request.getSource();
-        LamaModuleObject moduleObject = new LamaModuleObject();
-        LamaExpressionNode[] targets = new LamaNodeParser(this, source, moduleObject).parseLama();
-
-        boolean isModule = MODULE_MIME_TYPE.equals(source.getMimeType());
-        if (isModule) {
-            return new LamaModuleRootNode(this, targets, source.createSection(0, source.getLength()), moduleObject).getCallTarget();
-        }
-        return new LamaExecRootNode(this, targets, source.createSection(0, source.getLength())).getCallTarget();
+        String moduleName = stripFileExtension(source.getName());
+        var root = new LamaTranslator(moduleName, this, source).parseLama();
+        return root.getCallTarget();
     }
 
     private static final LanguageReference<LamaLanguage> REFERENCE = LanguageReference.create(LamaLanguage.class);

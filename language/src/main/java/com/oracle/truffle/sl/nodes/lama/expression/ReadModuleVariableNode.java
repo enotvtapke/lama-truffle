@@ -1,31 +1,29 @@
 package com.oracle.truffle.sl.nodes.lama.expression;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
-import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
+import com.oracle.truffle.sl.runtime.lama.LamaContext;
 
 public abstract class ReadModuleVariableNode extends LamaExpressionNode {
-    private final TruffleString variableName;
-    protected final DynamicObject localScope;
+    private final String variableName;
+    private final String currentModule;
 
-    protected ReadModuleVariableNode(TruffleString variableName, DynamicObject localScope) {
+    protected ReadModuleVariableNode(String variableName, String currentModule) {
         this.variableName = variableName;
-        this.localScope = localScope;
+        this.currentModule = currentModule;
     }
 
     @Specialization
-    public Object readObject(@CachedLibrary("localScope") DynamicObjectLibrary dynamicObjects) {
-        Object value = dynamicObjects.getOrDefault(localScope, variableName, null);
-
-        if (value == null) {
-            CompilerDirectives.transferToInterpreter();
-            throw new RuntimeException("Undefined module variable: " + variableName.toJavaStringUncached());
-        }
-
-        return value;
+    public Object readObject(
+            @CachedLibrary(limit = "3") DynamicObjectLibrary dynamicObjects,
+            @Bind LamaContext context,
+            @Cached("context.findModuleDeclaringVariable(currentModule, variableName)") DynamicObject module
+    ) {
+        return dynamicObjects.getOrDefault(module, variableName, null);
     }
 }

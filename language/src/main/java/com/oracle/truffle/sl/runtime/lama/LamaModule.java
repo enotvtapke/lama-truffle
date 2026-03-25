@@ -10,15 +10,19 @@ import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.object.Shape;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @ExportLibrary(InteropLibrary.class)
-public class LamaModuleObject implements TruffleObject {
+public class LamaModule implements TruffleObject {
     private static final Shape EXPORTS_SHAPE = Shape.newBuilder().build();
     private static final Shape IMPORTS_SHAPE = Shape.newBuilder().build();
+    public final List<String> imports = new ArrayList<>();
 
     public final DynamicObject exports;
     public final DynamicObject locals;
 
-    public LamaModuleObject() {
+    public LamaModule() {
         this.exports = new DynamicObject(EXPORTS_SHAPE) {};
         this.locals = new DynamicObject(IMPORTS_SHAPE) {};
     }

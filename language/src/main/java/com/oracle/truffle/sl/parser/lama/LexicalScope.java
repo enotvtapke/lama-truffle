@@ -2,6 +2,8 @@ package com.oracle.truffle.sl.parser.lama;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.sl.parser.lama.VariableRef.LocalVariable;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,15 +31,17 @@ public class LexicalScope {
         return frameBuilder.build();
     }
 
-    public VariableResolution resolveVariable(String name, int currentDepth) {
-        if (variables.containsKey(name)) {
-            return new VariableResolution(variables.get(name), currentDepth);
-        }
+    public VariableRef resolveVariable(String name) {
+        var scope = this;
+        var depth = 0;
 
-        if (parent != null) {
-            return parent.resolveVariable(name, currentDepth + 1);
+        while (!scope.variables.containsKey(name)) {
+            scope = scope.parent;
+            depth++;
+            if (scope == null) {
+                return null;
+            }
         }
-
-        return null;
+        return new LocalVariable(scope.variables.get(name), depth);
     }
 }

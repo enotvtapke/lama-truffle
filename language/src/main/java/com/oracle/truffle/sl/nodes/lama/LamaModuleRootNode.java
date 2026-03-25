@@ -1,23 +1,27 @@
 package com.oracle.truffle.sl.nodes.lama;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.LamaLanguage;
-import com.oracle.truffle.sl.runtime.lama.LamaModuleObject;
+import com.oracle.truffle.sl.nodes.lama.builtin.LamaImportNode;
+import com.oracle.truffle.sl.runtime.lama.LamaContext;
+
+import static com.oracle.truffle.sl.runtime.lama.Utils.stripFileExtension;
 
 public final class LamaModuleRootNode extends RootNode {
 
-    @Children private final LamaExpressionNode[] expressions;
-    private final SourceSection sourceSection;
-    private final LamaModuleObject module;
+    @Child private LamaExpressionNode body;
+    @Children private final LamaImportNode[] imports;
+    @CompilationFinal private final SourceSection sourceSection;
 
-    public LamaModuleRootNode(LamaLanguage language, LamaExpressionNode[] expressions, SourceSection sourceSection, LamaModuleObject module) {
+    public LamaModuleRootNode(LamaLanguage language, LamaExpressionNode body, LamaImportNode[] imports, SourceSection sourceSection) {
         super(language, new FrameDescriptor());
-        this.expressions = expressions;
+        this.body = body;
+        this.imports = imports;
         this.sourceSection = sourceSection;
-        this.module = module;
     }
 
     @Override
@@ -27,10 +31,16 @@ public final class LamaModuleRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        for (var expression : expressions){
-            expression.executeGeneric(frame);
+        LamaContext context = LamaContext.get(this);
+        String moduleName = stripFileExtension(getName());
+        var module = context.registerModule(moduleName);
+        for (var lamaImport : imports) {
+            module.imports.add(lamaImport.moduleName);
+            lamaImport.executeGeneric(frame);
         }
-        return module;
+        var result = body.executeGeneric(frame);
+        context.markEvaluated(moduleName);
+        return result;
     }
 
     @Override

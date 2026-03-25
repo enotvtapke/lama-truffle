@@ -44,27 +44,20 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import com.oracle.truffle.api.strings.TruffleString;
-import com.oracle.truffle.sl.SLLanguage;
-import com.oracle.truffle.sl.nodes.SLExpressionNode;
+import com.oracle.truffle.sl.LamaLanguage;
 
 public final class LamaRootNode extends RootNode {
 
     @Child private LamaExpressionNode body;
 
     private final SourceSection sourceSection;
-    private final TruffleString name;
+    private final String name;
 
-    public LamaRootNode(SLLanguage language, FrameDescriptor frameDescriptor, LamaExpressionNode body, SourceSection sourceSection, TruffleString name) {
+    public LamaRootNode(LamaLanguage language, FrameDescriptor frameDescriptor, LamaExpressionNode body, SourceSection sourceSection, String name) {
         super(language, frameDescriptor);
         this.body = body;
         this.sourceSection = sourceSection;
         this.name = name;
-    }
-
-    @Override
-    public SourceSection getSourceSection() {
-        return sourceSection;
     }
 
     @Override
@@ -73,7 +66,12 @@ public final class LamaRootNode extends RootNode {
     }
 
     @Override
+    public SourceSection getSourceSection() {
+        return sourceSection;
+    }
+
+    @Override
     public String getName() {
-        return name.toJavaStringUncached();
+        return name;
     }
 }
