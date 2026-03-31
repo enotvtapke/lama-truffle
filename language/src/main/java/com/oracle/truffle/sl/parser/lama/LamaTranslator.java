@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static com.oracle.truffle.sl.LamaLanguage.ANONYMOUS_FUN_NAME;
 
@@ -67,6 +68,10 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
 
     private LamaBlockNode toBlock(List<LamaExpressionNode> expressions) {
         return new LamaBlockNode(expressions.toArray(new LamaExpressionNode[0]));
+    }
+
+    private LamaExpressionNode toExpression(List<LamaExpressionNode> expressions) {
+        return expressions.size() == 1 ? expressions.getFirst() : toBlock(expressions);
     }
 
     @Override
@@ -207,13 +212,45 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         } else if (ctx.FUN() != null) {
             return buildFunction(ctx.functionArguments(), ctx.functionBody(), ANONYMOUS_FUN_NAME, getSourceSection(ctx));
         } else if (ctx.scopeExpression() != null) {
-            scopeManager.enterScope();
-            var body = visitScopeExpression(ctx.scopeExpression());
-            var r = new LamaScopeNode(new LamaRootNode(language, scopeManager.buildFrame(), body, getSourceSection(ctx), "scope").getCallTarget());
-            scopeManager.exitScope();
-            return r;
+            return buildScopeNode(ctx.scopeExpression());
+        } else if (ctx.ifExpression() != null) {
+            return visitIfExpression(ctx.ifExpression());
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
+        }
+    }
+
+    @Override
+    public LamaIfNode visitIfExpression(LamaParser.IfExpressionContext ctx) {
+        var condition = toExpression(parseExpression(ctx.expression()));
+        LamaScopeNode thenPart = buildScopeNode(ctx.scopeExpression());
+        LamaScopeNode elsePart = ctx.elsePart() != null ? parseElsePart(ctx.elsePart()) : null;
+        return new LamaIfNode(condition, thenPart, elsePart);
+    }
+
+    private LamaScopeNode buildScopeNode(LamaParser.ScopeExpressionContext ctx) {
+        return buildScopeNode(() -> visitScopeExpression(ctx), getSourceSection(ctx));
+    }
+
+    private LamaScopeNode buildScopeNode(Supplier<LamaExpressionNode> lazyBody, SourceSection source) {
+        scopeManager.enterScope();
+        LamaExpressionNode body = lazyBody.get();
+        var scopeNode = new LamaScopeNode(
+                new LamaRootNode(language, scopeManager.buildFrame(), body, source, "scope").getCallTarget()
+        );
+        scopeManager.exitScope();
+        return scopeNode;
+    }
+
+    private LamaScopeNode parseElsePart(LamaParser.ElsePartContext ctx) {
+        if (ctx.ELIF() != null) {
+            var condition = toExpression(parseExpression(ctx.expression()));
+            LamaScopeNode thenPart = buildScopeNode(ctx.scopeExpression());
+            LamaScopeNode elsePart = ctx.elsePart() != null ? parseElsePart(ctx.elsePart()) : null;
+            LamaIfNode nestedIf = new LamaIfNode(condition, thenPart, elsePart);
+            return buildScopeNode(() -> nestedIf, getSourceSection(ctx));
+        } else {
+            return buildScopeNode(ctx.scopeExpression());
         }
     }
 
