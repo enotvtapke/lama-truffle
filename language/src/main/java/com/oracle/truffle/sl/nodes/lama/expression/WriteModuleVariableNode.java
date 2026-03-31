@@ -12,8 +12,8 @@ import com.oracle.truffle.sl.runtime.lama.LamaContext;
 
 @NodeChild("valueNode")
 public abstract class WriteModuleVariableNode extends LamaExpressionNode {
-    private final String variableName;
-    private final String currentModule;
+    protected final String variableName;
+    protected final String currentModule;
 
     protected WriteModuleVariableNode(String variableName, String currentModule) {
         this.variableName = variableName;
@@ -25,7 +25,8 @@ public abstract class WriteModuleVariableNode extends LamaExpressionNode {
             Object valueNode,
             @CachedLibrary(limit = "3") DynamicObjectLibrary dynamicObjects,
             @Bind LamaContext context,
-            @Cached("context.findModuleDeclaringVariable(currentModule, variableName)") DynamicObject module
+            @Cached(value = "context.findModuleDeclaringVariable(currentModule, variableName)", neverDefault = true)
+            DynamicObject module
     ) {
         dynamicObjects.put(module, variableName, valueNode);
         return valueNode;

@@ -10,7 +10,7 @@ public final class LamaScopeNode extends LamaExpressionNode {
     @Child private DirectCallNode body;
 
     public LamaScopeNode(CallTarget body) {
-        this.body = DirectCallNode.create(body);;
+        this.body = DirectCallNode.create(body);
     }
 
     @Override

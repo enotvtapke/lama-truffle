@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateInline;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
@@ -50,6 +51,7 @@ public final class LamaInvokeNode extends LamaExpressionNode {
         abstract Object executeDispatch(Object function, Object[] arguments);
 
         @Specialization(
+                limit = "3",
                 guards = "function.callTarget == cachedTarget"
         )
         protected static Object doDirect(
