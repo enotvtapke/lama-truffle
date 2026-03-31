@@ -60,7 +60,7 @@ public final class LamaMain {
         Source source;
         Map<String, String> options = new HashMap<>();
         boolean launcherOutput = true;
-        var file = new File("programs/ifs.lama");
+        var file = new File("programs/comparisons.lama");
 //        source = Source.newBuilder(LAMA, new InputStreamReader(System.in), "<stdin>").interactive(!launcherOutput).build();
         source = Source.newBuilder(LAMA, file).interactive(!launcherOutput).build();
 

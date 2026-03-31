@@ -19,6 +19,8 @@ public final class LamaIfNode extends LamaExpressionNode {
     @Child private LamaScopeNode thenPartNode;
     @Child private LamaScopeNode elsePartNode;
 
+    private final CountingConditionProfile condition = CountingConditionProfile.create();
+
     public LamaIfNode(LamaExpressionNode conditionNode, LamaScopeNode thenPartNode, LamaScopeNode elsePartNode) {
         this.conditionNode = conditionNode;
         this.thenPartNode = thenPartNode;
@@ -27,7 +29,7 @@ public final class LamaIfNode extends LamaExpressionNode {
 
     @Override
     public Object executeGeneric(VirtualFrame frame) {
-        if (evaluateCondition(frame) != 0) {
+        if (condition.profile(evaluateCondition(frame) != 0)) {
             return thenPartNode.executeGeneric(frame);
         } else {
             if (elsePartNode != null) {

@@ -103,8 +103,9 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
 
     private List<LamaExpressionNode> parseVariableDefinition(LamaParser.VariableDefinitionContext ctx) {
         return ctx.variableDefinitionSequence().variableDefinitionItem().stream().flatMap(defItem -> {
-                    var e = parseBasicExpression(defItem.basicExpression());
-                    return defineVariable(defItem.LIDENT().getText(), e, ctx.PUBLIC() != null).stream();
+                    var rhsCtx = defItem.basicExpression();
+                    var rhsExpr = rhsCtx != null ? parseBasicExpression(rhsCtx) : new LamaLongLiteralNode(0);
+                    return defineVariable(defItem.LIDENT().getText(), rhsExpr, ctx.PUBLIC() != null).stream();
                 }
         ).toList();
     }
@@ -165,20 +166,28 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
 
     private LamaExpressionNode parseBasicExpression(LamaParser.BasicExpressionContext ctx) {
         return switch (ctx) {
-            case LamaParser.DecimalExprContext decimalExprContext -> visitDecimalExpr(decimalExprContext);
-            case LamaParser.AddSubExprContext addSubExprContext -> visitAddSubExpr(addSubExprContext);
-            case LamaParser.ParenExprContext parenExprContext -> visitParenExpr(parenExprContext);
-            case LamaParser.AssignExprContext assignExprContext -> {
-                var name = ((LamaParser.DecimalExprContext) assignExprContext.basicExpression(0)).postfixExpression().primary().LIDENT().getText();
-                yield writeVariable(name, parseBasicExpression(assignExprContext.basicExpression(1)));
+            case LamaParser.DecimalExprContext c -> visitDecimalExpr(c);
+            case LamaParser.ParenExprContext c -> visitParenExpr(c);
+            case LamaParser.AssignExprContext c -> {
+                var name = ((LamaParser.DecimalExprContext) c.basicExpression(0)).postfixExpression().primary().LIDENT().getText();
+                yield writeVariable(name, parseBasicExpression(c.basicExpression(1)));
             }
+            case LamaParser.AddSubExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
+            case LamaParser.MulDivModExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
+            case LamaParser.CompExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
+            case LamaParser.AndExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
+            case LamaParser.OrExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
             default -> throw new UnsupportedOperationException("Unknown basicExpression: " + ctx.getText());
         };
     }
 
     @Override
     public LamaExpressionNode visitDecimalExpr(LamaParser.DecimalExprContext ctx) {
-        return visitPostfixExpression(ctx.postfixExpression());
+        LamaExpressionNode expr = visitPostfixExpression(ctx.postfixExpression());
+        if (ctx.getChildCount() > 1) {
+            return LamaNegNodeGen.create(expr);
+        }
+        return expr;
     }
 
     @Override
@@ -272,15 +281,28 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         };
     }
 
-    public LamaExpressionNode visitAddSubExpr(LamaParser.AddSubExprContext ctx) {
-        LamaExpressionNode left = parseBasicExpression(ctx.basicExpression(0));
-        LamaExpressionNode right = parseBasicExpression(ctx.basicExpression(1));
-        String op = ctx.op.getText();
-        if (op.equals("+")) {
-            return LamaAddNodeGen.create(left, right);
-        } else {
-            throw new UnsupportedOperationException("Subtraction not yet supported: " + ctx.getText());
-        }
+    private LamaExpressionNode parseBinaryExpression(
+            LamaParser.BasicExpressionContext leftCtx,
+            LamaParser.BasicExpressionContext rightCtx,
+            String op) {
+        LamaExpressionNode left = parseBasicExpression(leftCtx);
+        LamaExpressionNode right = parseBasicExpression(rightCtx);
+        return switch (op) {
+            case "+" -> LamaAddNodeGen.create(left, right);
+            case "-" -> LamaSubNodeGen.create(left, right);
+            case "*" -> LamaMulNodeGen.create(left, right);
+            case "/" -> LamaDivNodeGen.create(left, right);
+            case "%" -> LamaModNodeGen.create(left, right);
+            case "<" -> LamaLessNodeGen.create(left, right);
+            case "<=" -> LamaLessOrEqualNodeGen.create(left, right);
+            case ">" -> LamaGreaterNodeGen.create(left, right);
+            case ">=" -> LamaGreaterOrEqualNodeGen.create(left, right);
+            case "==" -> LamaEqualNodeGen.create(left, right);
+            case "!=" -> LamaNotEqualNodeGen.create(left, right);
+            case "&&" -> new LamaLogicalAndNode(left, right);
+            case "!!" -> new LamaLogicalOrNode(left, right);
+            default -> throw new UnsupportedOperationException("Unknown binary operator: " + op);
+        };
     }
 
     public LamaExpressionNode visitParenExpr(LamaParser.ParenExprContext ctx) {
