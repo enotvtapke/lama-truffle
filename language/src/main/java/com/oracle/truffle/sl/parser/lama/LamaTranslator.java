@@ -224,9 +224,18 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return buildScopeNode(ctx.scopeExpression());
         } else if (ctx.ifExpression() != null) {
             return visitIfExpression(ctx.ifExpression());
+        } else if (ctx.whileDoExpression() != null) {
+            return visitWhileDoExpression(ctx.whileDoExpression());
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
+    }
+
+    @Override
+    public LamaWhileNode visitWhileDoExpression(LamaParser.WhileDoExpressionContext ctx) {
+        LamaExpressionNode condition = toExpression(parseExpression(ctx.expression()));
+        LamaScopeNode body = buildScopeNode(ctx.scopeExpression());
+        return new LamaWhileNode(condition, body);
     }
 
     @Override
