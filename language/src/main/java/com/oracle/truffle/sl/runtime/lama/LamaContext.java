@@ -18,7 +18,8 @@ import com.oracle.truffle.sl.LamaLanguage;
 import com.oracle.truffle.sl.nodes.lama.LamaRootNode;
 import com.oracle.truffle.sl.nodes.lama.builtin.LamaBuiltinAstNode;
 import com.oracle.truffle.sl.nodes.lama.builtin.LamaBuiltinNode;
-import com.oracle.truffle.sl.nodes.lama.builtin.WriteBuiltinNodeFactory;
+import com.oracle.truffle.sl.nodes.lama.builtin.LamaReadBuiltinNodeFactory;
+import com.oracle.truffle.sl.nodes.lama.builtin.LamaWriteBuiltinNodeFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -43,7 +44,8 @@ public final class LamaContext {
         this.input = new BufferedReader(new InputStreamReader(env.in()));
         this.output = new PrintWriter(env.out(), true);
         this.language = language;
-        registerBuiltIn(WriteBuiltinNodeFactory.create());
+        registerBuiltIn(LamaWriteBuiltinNodeFactory.create());
+        registerBuiltIn(LamaReadBuiltinNodeFactory.create());
     }
 
     private static final ContextReference<LamaContext> REFERENCE = ContextReference.create(LamaLanguage.class);
