@@ -226,6 +226,10 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return visitIfExpression(ctx.ifExpression());
         } else if (ctx.whileDoExpression() != null) {
             return visitWhileDoExpression(ctx.whileDoExpression());
+        } else if (ctx.doWhileExpression() != null) {
+            return visitDoWhileExpression(ctx.doWhileExpression());
+        } else if (ctx.forExpression() != null) {
+            return visitForExpression(ctx.forExpression());
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
@@ -236,6 +240,38 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         LamaExpressionNode condition = toExpression(parseExpression(ctx.expression()));
         LamaScopeNode body = buildScopeNode(ctx.scopeExpression());
         return new LamaWhileNode(condition, body);
+    }
+
+    public LamaExpressionNode visitDoWhileExpression(LamaParser.DoWhileExpressionContext ctx) {
+        SourceSection src = getSourceSection(ctx);
+        return buildScopeNode(() -> {
+            List<LamaExpressionNode> bodyNodes = parseScopeExpression(ctx.scopeExpression());
+            LamaExpressionNode condition = toExpression(parseExpression(ctx.expression()));
+            LamaScopeNode whileBody = buildScopeNode(ctx.scopeExpression());
+            LamaWhileNode whileNode = new LamaWhileNode(condition, whileBody);
+            var allNodes = new ArrayList<>(bodyNodes);
+            allNodes.add(whileNode);
+            return toBlock(allNodes);
+        }, src);
+    }
+
+    public LamaExpressionNode visitForExpression(LamaParser.ForExpressionContext ctx) {
+        SourceSection src = getSourceSection(ctx);
+        return buildScopeNode(() -> {
+            List<LamaExpressionNode> initNodes = parseScopeExpression(ctx.scopeExpression(0));
+            LamaExpressionNode condition = toExpression(parseExpression(ctx.expression(0)));
+            LamaScopeNode whileBody = buildScopeNode(() -> {
+                List<LamaExpressionNode> bodyNodes = parseScopeExpression(ctx.scopeExpression(1));
+                List<LamaExpressionNode> stepNodes = parseExpression(ctx.expression(1));
+                var allBodyNodes = new ArrayList<>(bodyNodes);
+                allBodyNodes.addAll(stepNodes);
+                return toBlock(allBodyNodes);
+            }, getSourceSection(ctx));
+            LamaWhileNode whileNode = new LamaWhileNode(condition, whileBody);
+            var allNodes = new ArrayList<>(initNodes);
+            allNodes.add(whileNode);
+            return toBlock(allNodes);
+        }, src);
     }
 
     @Override
