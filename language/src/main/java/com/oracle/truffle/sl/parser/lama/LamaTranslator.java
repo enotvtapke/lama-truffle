@@ -230,6 +230,8 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return visitDoWhileExpression(ctx.doWhileExpression());
         } else if (ctx.forExpression() != null) {
             return visitForExpression(ctx.forExpression());
+        } else if (ctx.LAMA_SKIP() != null) {
+            return new LamaLongLiteralNode(0L);
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
