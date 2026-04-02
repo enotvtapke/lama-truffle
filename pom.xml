@@ -50,7 +50,7 @@
     <graalvm.version>25.0.2</graalvm.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
-    <launcherClass>org.graalvm.sl.launcher/com.oracle.truffle.sl.launcher.SLMain</launcherClass>
+    <launcherClass>org.graalvm.sl.launcher/com.oracle.truffle.sl.launcher.LamaMain</launcherClass>
   </properties>
   <packaging>pom</packaging>
   <modules>

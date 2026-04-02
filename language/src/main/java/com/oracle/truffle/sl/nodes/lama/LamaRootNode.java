@@ -74,4 +74,9 @@ public final class LamaRootNode extends RootNode {
     public String getName() {
         return name;
     }
+
+    @Override
+    public String toString() {
+        return "root " + name;
+    }
 }
