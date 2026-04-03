@@ -6,25 +6,21 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 
-public final class LamaWhileRepeatingNode extends Node implements RepeatingNode {
-
-    @Child private LamaExpressionNode conditionNode;
+public final class LamaDoWhileRepeatingNode extends Node implements RepeatingNode {
 
     @Child private LamaExpressionNode bodyNode;
+    @Child private LamaExpressionNode conditionNode;
 
-    public LamaWhileRepeatingNode(LamaExpressionNode conditionNode, LamaExpressionNode bodyNode) {
-        this.conditionNode = conditionNode;
+    public LamaDoWhileRepeatingNode(LamaExpressionNode bodyNode, LamaExpressionNode conditionNode) {
         this.bodyNode = bodyNode;
+        this.conditionNode = conditionNode;
     }
 
     @Override
     public boolean executeRepeating(VirtualFrame frame) {
+        bodyNode.executeGeneric(frame);
         try {
-            if (conditionNode.executeLong(frame) == 0) {
-                return false;
-            }
-            bodyNode.executeGeneric(frame);
-            return true;
+            return conditionNode.executeLong(frame) != 0;
         } catch (UnexpectedResultException ex) {
             throw CompilerDirectives.shouldNotReachHere(ex);
         }

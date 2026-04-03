@@ -286,13 +286,9 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
 
     public LamaExpressionNode visitDoWhileExpression(LamaParser.DoWhileExpressionContext ctx) {
         return inScope(() -> {
-            List<LamaExpressionNode> bodyNodes = parseScopeExpression(ctx.scopeExpression());
+            LamaExpressionNode body = visitScopeExpression(ctx.scopeExpression());
             LamaExpressionNode condition = toExpression(parseExpression(ctx.expression()));
-            LamaExpressionNode whileBody = buildScopeNode(ctx.scopeExpression());
-            LamaWhileNode whileNode = new LamaWhileNode(condition, whileBody);
-            var allNodes = new ArrayList<>(bodyNodes);
-            allNodes.add(whileNode);
-            return toBlock(allNodes);
+            return new LamaDoWhileNode(body, condition);
         });
     }
 
