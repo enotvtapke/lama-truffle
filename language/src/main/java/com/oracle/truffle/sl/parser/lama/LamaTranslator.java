@@ -172,10 +172,7 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         return switch (ctx) {
             case LamaParser.DecimalExprContext c -> visitDecimalExpr(c);
             case LamaParser.ParenExprContext c -> visitParenExpr(c);
-            case LamaParser.AssignExprContext c -> {
-                var name = ((LamaParser.DecimalExprContext) c.basicExpression(0)).postfixExpression().primary().LIDENT().getText();
-                yield writeVariable(name, parseBasicExpression(c.basicExpression(1)));
-            }
+            case LamaParser.AssignExprContext c -> parseAssignment(c);
             case LamaParser.AddSubExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
             case LamaParser.MulDivModExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
             case LamaParser.CompExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
@@ -209,7 +206,8 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
                     ctx.expression().stream().flatMap(it -> parseExpression(it).stream()).toList().toArray(new LamaExpressionNode[0])
             );
         } else if (secondChildText.equals("[")) {
-            throw new UnsupportedOperationException("Array indexing not supported: " + ctx.getText());
+            LamaExpressionNode index = toExpression(parseExpression(ctx.expression(0)));
+            return LamaArrayReadNodeGen.create(receiver, index);
         } else {
             throw new UnsupportedOperationException("Unknown postfix expression: " + ctx.getText());
         }
@@ -236,6 +234,8 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return visitForExpression(ctx.forExpression());
         } else if (ctx.LAMA_SKIP() != null) {
             return new LamaLongLiteralNode(0L);
+        } else if (ctx.arrayExpression() != null) {
+            return visitArrayExpression(ctx.arrayExpression());
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
@@ -353,5 +353,32 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
 
     public LamaExpressionNode visitParenExpr(LamaParser.ParenExprContext ctx) {
         return parseBasicExpression(ctx.basicExpression());
+    }
+
+    private LamaExpressionNode parseAssignment(LamaParser.AssignExprContext ctx) {
+        LamaParser.BasicExpressionContext lhsCtx = ctx.basicExpression(0);
+        LamaExpressionNode value = parseBasicExpression(ctx.basicExpression(1));
+
+        if (lhsCtx instanceof LamaParser.DecimalExprContext dec) {
+            LamaParser.PostfixExpressionContext postfix = dec.postfixExpression();
+            if (postfix.primary() != null) {
+                String name = postfix.primary().LIDENT().getText();
+                return writeVariable(name, value);
+            }
+            String op = postfix.getChild(1).getText();
+            if (op.equals("[")) {
+                LamaExpressionNode receiver = visitPostfixExpression(postfix.postfixExpression());
+                LamaExpressionNode index = toExpression(parseExpression(postfix.expression(0)));
+                return LamaArrayWriteNodeGen.create(receiver, index, value);
+            }
+        }
+        throw new UnsupportedOperationException("Unsupported assignment target: " + ctx.getText());
+    }
+
+    public LamaExpressionNode visitArrayExpression(LamaParser.ArrayExpressionContext ctx) {
+        LamaExpressionNode[] elements = ctx.expression().stream()
+                .map(e -> toExpression(parseExpression(e)))
+                .toArray(LamaExpressionNode[]::new);
+        return new LamaArrayLiteralNode(elements);
     }
 }
