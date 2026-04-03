@@ -2,21 +2,22 @@ package com.oracle.truffle.sl.nodes.lama.expression;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.strings.TruffleString;
-import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
+import com.oracle.truffle.sl.runtime.lama.LamaString;
+
+import java.nio.charset.StandardCharsets;
 
 @NodeInfo(shortName = "const")
 public final class LamaStringLiteralNode extends LamaExpressionNode {
 
-    private final TruffleString value;
+    private final byte[] bytes;
 
-    public LamaStringLiteralNode(TruffleString value) {
-        this.value = value;
+    public LamaStringLiteralNode(String value) {
+        this.bytes = value.getBytes(StandardCharsets.US_ASCII);
     }
 
     @Override
-    public TruffleString executeGeneric(VirtualFrame frame) {
-        return value;
+    public Object executeGeneric(VirtualFrame frame) {
+        return new LamaString(bytes.clone());
     }
 }

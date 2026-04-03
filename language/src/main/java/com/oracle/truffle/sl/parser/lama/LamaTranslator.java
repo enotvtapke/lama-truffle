@@ -236,9 +236,16 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return new LamaLongLiteralNode(0L);
         } else if (ctx.arrayExpression() != null) {
             return visitArrayExpression(ctx.arrayExpression());
+        } else if (ctx.STRING() != null) {
+            return new LamaStringLiteralNode(parseStringLiteral(ctx.STRING().getText()));
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
+    }
+
+    private String parseStringLiteral(String rawText) {
+        String inner = rawText.substring(1, rawText.length() - 1);
+        return inner.replace("\"\"", "\"");
     }
 
     @Override
