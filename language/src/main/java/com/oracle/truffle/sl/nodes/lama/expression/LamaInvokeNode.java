@@ -2,9 +2,9 @@ package com.oracle.truffle.sl.nodes.lama.expression;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.GenerateInline;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
@@ -75,6 +75,7 @@ public final class LamaInvokeNode extends LamaExpressionNode {
             try {
                 return InteropLibrary.getUncached().execute(function, arguments);
             } catch (ArityException | UnsupportedTypeException | UnsupportedMessageException e) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
                 throw new RuntimeException("TypeError: Target is not callable.", e);
             }
         }

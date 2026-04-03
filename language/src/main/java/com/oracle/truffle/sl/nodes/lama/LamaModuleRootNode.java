@@ -1,6 +1,5 @@
 package com.oracle.truffle.sl.nodes.lama;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -15,7 +14,7 @@ public final class LamaModuleRootNode extends RootNode {
 
     @Child private LamaExpressionNode body;
     @Children private final LamaImportNode[] imports;
-    @CompilationFinal private final SourceSection sourceSection;
+    private final SourceSection sourceSection;
 
     public LamaModuleRootNode(LamaLanguage language, FrameDescriptor frameDescriptor, LamaExpressionNode body, LamaImportNode[] imports, SourceSection sourceSection) {
         super(language, frameDescriptor);
@@ -46,5 +45,10 @@ public final class LamaModuleRootNode extends RootNode {
     @Override
     public String getName() {
         return sourceSection.getSource().getName();
+    }
+
+    @Override
+    public String toString() {
+        return getName();
     }
 }
