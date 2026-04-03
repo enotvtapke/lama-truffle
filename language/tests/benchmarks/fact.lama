@@ -1,0 +1,13 @@
+fun fact (n) {
+  if n <= 1
+  then 1
+  else n * fact(n - 1)
+  fi
+}
+var total = 0;
+var j;
+
+for j := 0, j < 5000000, j := j + 1 do
+total := total + fact(20)
+od;
+write(total)

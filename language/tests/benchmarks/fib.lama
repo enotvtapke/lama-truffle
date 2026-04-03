@@ -1,0 +1,17 @@
+fun fib (n) {
+  if n <= 1
+  then n
+  else fib(n-1) + fib(n-2)
+  fi
+}
+
+fun run (iterations) {
+  var total = 0;
+  var j;
+  for j := 0, j < iterations, j := j + 1 do
+    total := total + fib(25)
+  od;
+  total
+}
+
+write(run(200))
