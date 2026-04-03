@@ -17,8 +17,8 @@ public final class LamaModuleRootNode extends RootNode {
     @Children private final LamaImportNode[] imports;
     @CompilationFinal private final SourceSection sourceSection;
 
-    public LamaModuleRootNode(LamaLanguage language, LamaExpressionNode body, LamaImportNode[] imports, SourceSection sourceSection) {
-        super(language, new FrameDescriptor());
+    public LamaModuleRootNode(LamaLanguage language, FrameDescriptor frameDescriptor, LamaExpressionNode body, LamaImportNode[] imports, SourceSection sourceSection) {
+        super(language, frameDescriptor);
         this.body = body;
         this.imports = imports;
         this.sourceSection = sourceSection;

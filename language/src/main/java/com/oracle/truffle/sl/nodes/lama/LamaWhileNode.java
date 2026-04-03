@@ -10,7 +10,7 @@ public final class LamaWhileNode extends LamaExpressionNode {
 
     @Child private LoopNode loopNode;
 
-    public LamaWhileNode(LamaExpressionNode conditionNode, LamaScopeNode bodyNode) {
+    public LamaWhileNode(LamaExpressionNode conditionNode, LamaExpressionNode bodyNode) {
         this.loopNode = Truffle.getRuntime().createLoopNode(new LamaWhileRepeatingNode(conditionNode, bodyNode));
     }
 

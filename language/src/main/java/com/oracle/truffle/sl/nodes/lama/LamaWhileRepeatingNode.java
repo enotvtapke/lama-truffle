@@ -13,7 +13,7 @@ public final class LamaWhileRepeatingNode extends Node implements RepeatingNode 
 
     @Child private LamaExpressionNode conditionNode;
 
-    @Child private LamaScopeNode bodyNode;
+    @Child private LamaExpressionNode bodyNode;
 
     /**
      * Profiling information, collected by the interpreter, capturing whether a {@code continue}
@@ -23,7 +23,7 @@ public final class LamaWhileRepeatingNode extends Node implements RepeatingNode 
     private final BranchProfile continueTaken = BranchProfile.create();
     private final BranchProfile breakTaken = BranchProfile.create();
 
-    public LamaWhileRepeatingNode(LamaExpressionNode conditionNode, LamaScopeNode bodyNode) {
+    public LamaWhileRepeatingNode(LamaExpressionNode conditionNode, LamaExpressionNode bodyNode) {
         this.conditionNode = conditionNode;
         this.bodyNode = bodyNode;
     }

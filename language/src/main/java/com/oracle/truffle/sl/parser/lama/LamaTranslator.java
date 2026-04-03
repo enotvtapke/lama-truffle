@@ -63,7 +63,7 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
     private LamaModuleRootNode parseCompilationUnit(LamaParser.CompilationUnitContext ctx) {
         var imports = ctx.UIDENT().stream().map(it -> LamaImportNodeGen.create(it.getText())).toList();
         var block = visitScopeExpression(ctx.scopeExpression());
-        return new LamaModuleRootNode(language, block, imports.toArray(new LamaImportNode[0]), source.createSection(0, source.getLength()));
+        return new LamaModuleRootNode(language, scopeManager.buildFrame(), block, imports.toArray(new LamaImportNode[0]), source.createSection(0, source.getLength()));
     }
 
     private LamaBlockNode toBlock(List<LamaExpressionNode> expressions) {
@@ -75,8 +75,12 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
     }
 
     @Override
-    public LamaBlockNode visitScopeExpression(LamaParser.ScopeExpressionContext ctx) {
-        return toBlock(parseScopeExpression(ctx));
+    public LamaExpressionNode visitScopeExpression(LamaParser.ScopeExpressionContext ctx) {
+        List<LamaExpressionNode> expressions = parseScopeExpression(ctx);
+        if (expressions.size() == 1) {
+            return expressions.getFirst();
+        }
+        return toBlock(expressions);
     }
 
     private List<LamaExpressionNode> parseScopeExpression(LamaParser.ScopeExpressionContext ctx) {
@@ -142,7 +146,7 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
     }
 
     private LamaFunctionLiteralNode buildFunction(LamaParser.FunctionArgumentsContext args, LamaParser.FunctionBodyContext fbody, String name, SourceSection functionSrc) {
-        scopeManager.enterScope();
+        scopeManager.enterFunction();
         defineVariable("__closure", new LamaReadArgumentNode(0), false);
 
         var patterns = args.pattern();
@@ -159,7 +163,7 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         body.addAll(expressions);
 
         var frame = scopeManager.buildFrame();
-        scopeManager.exitScope();
+        scopeManager.exitFunction();
 
         return new LamaFunctionLiteralNode(new LamaRootNode(language, frame, toBlock(body), functionSrc, name).getCallTarget());
     }
@@ -240,71 +244,66 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
     @Override
     public LamaWhileNode visitWhileDoExpression(LamaParser.WhileDoExpressionContext ctx) {
         LamaExpressionNode condition = toExpression(parseExpression(ctx.expression()));
-        LamaScopeNode body = buildScopeNode(ctx.scopeExpression());
+        LamaExpressionNode body = buildScopeNode(ctx.scopeExpression());
         return new LamaWhileNode(condition, body);
     }
 
     public LamaExpressionNode visitDoWhileExpression(LamaParser.DoWhileExpressionContext ctx) {
-        SourceSection src = getSourceSection(ctx);
-        return buildScopeNode(() -> {
+        return inScope(() -> {
             List<LamaExpressionNode> bodyNodes = parseScopeExpression(ctx.scopeExpression());
             LamaExpressionNode condition = toExpression(parseExpression(ctx.expression()));
-            LamaScopeNode whileBody = buildScopeNode(ctx.scopeExpression());
+            LamaExpressionNode whileBody = buildScopeNode(ctx.scopeExpression());
             LamaWhileNode whileNode = new LamaWhileNode(condition, whileBody);
             var allNodes = new ArrayList<>(bodyNodes);
             allNodes.add(whileNode);
             return toBlock(allNodes);
-        }, src);
+        });
     }
 
     public LamaExpressionNode visitForExpression(LamaParser.ForExpressionContext ctx) {
-        SourceSection src = getSourceSection(ctx);
-        return buildScopeNode(() -> {
+        return inScope(() -> {
             List<LamaExpressionNode> initNodes = parseScopeExpression(ctx.scopeExpression(0));
             LamaExpressionNode condition = toExpression(parseExpression(ctx.expression(0)));
-            LamaScopeNode whileBody = buildScopeNode(() -> {
+            LamaExpressionNode whileBody = inScope(() -> {
                 List<LamaExpressionNode> bodyNodes = parseScopeExpression(ctx.scopeExpression(1));
                 List<LamaExpressionNode> stepNodes = parseExpression(ctx.expression(1));
                 var allBodyNodes = new ArrayList<>(bodyNodes);
                 allBodyNodes.addAll(stepNodes);
                 return toBlock(allBodyNodes);
-            }, getSourceSection(ctx));
+            });
             LamaWhileNode whileNode = new LamaWhileNode(condition, whileBody);
             var allNodes = new ArrayList<>(initNodes);
             allNodes.add(whileNode);
             return toBlock(allNodes);
-        }, src);
+        });
     }
 
     @Override
     public LamaIfNode visitIfExpression(LamaParser.IfExpressionContext ctx) {
         var condition = toExpression(parseExpression(ctx.expression()));
-        LamaScopeNode thenPart = buildScopeNode(ctx.scopeExpression());
-        LamaScopeNode elsePart = ctx.elsePart() != null ? parseElsePart(ctx.elsePart()) : null;
+        LamaExpressionNode thenPart = buildScopeNode(ctx.scopeExpression());
+        LamaExpressionNode elsePart = ctx.elsePart() != null ? parseElsePart(ctx.elsePart()) : null;
         return new LamaIfNode(condition, thenPart, elsePart);
     }
 
-    private LamaScopeNode buildScopeNode(LamaParser.ScopeExpressionContext ctx) {
-        return buildScopeNode(() -> visitScopeExpression(ctx), getSourceSection(ctx));
-    }
-
-    private LamaScopeNode buildScopeNode(Supplier<LamaExpressionNode> lazyBody, SourceSection source) {
+    private LamaExpressionNode inScope(Supplier<LamaExpressionNode> body) {
         scopeManager.enterScope();
-        LamaExpressionNode body = lazyBody.get();
-        var scopeNode = new LamaScopeNode(
-                new LamaRootNode(language, scopeManager.buildFrame(), body, source, "scope").getCallTarget()
-        );
+        LamaExpressionNode result = body.get();
         scopeManager.exitScope();
-        return scopeNode;
+        return result;
     }
 
-    private LamaScopeNode parseElsePart(LamaParser.ElsePartContext ctx) {
+    private LamaExpressionNode buildScopeNode(LamaParser.ScopeExpressionContext ctx) {
+        return inScope(() -> visitScopeExpression(ctx));
+    }
+
+    private LamaExpressionNode parseElsePart(LamaParser.ElsePartContext ctx) {
         if (ctx.ELIF() != null) {
             var condition = toExpression(parseExpression(ctx.expression()));
-            LamaScopeNode thenPart = buildScopeNode(ctx.scopeExpression());
-            LamaScopeNode elsePart = ctx.elsePart() != null ? parseElsePart(ctx.elsePart()) : null;
+            LamaExpressionNode thenPart = buildScopeNode(ctx.scopeExpression());
+            LamaExpressionNode elsePart = ctx.elsePart() != null ? parseElsePart(ctx.elsePart()) : null;
             LamaIfNode nestedIf = new LamaIfNode(condition, thenPart, elsePart);
-            return buildScopeNode(() -> nestedIf, getSourceSection(ctx));
+            return inScope(() -> nestedIf);
         } else {
             return buildScopeNode(ctx.scopeExpression());
         }

@@ -5,23 +5,17 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
-import com.oracle.truffle.sl.nodes.SLExpressionNode;
-import com.oracle.truffle.sl.nodes.SLStatementNode;
-import com.oracle.truffle.sl.nodes.controlflow.SLBlockNode;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
-import com.oracle.truffle.sl.nodes.lama.LamaScopeNode;
-import com.oracle.truffle.sl.nodes.util.SLToBooleanNodeGen;
-import com.oracle.truffle.sl.nodes.util.SLUnboxNodeGen;
 
 @NodeInfo(shortName = "if")
 public final class LamaIfNode extends LamaExpressionNode {
     @Child private LamaExpressionNode conditionNode;
-    @Child private LamaScopeNode thenPartNode;
-    @Child private LamaScopeNode elsePartNode;
+    @Child private LamaExpressionNode thenPartNode;
+    @Child private LamaExpressionNode elsePartNode;
 
     private final CountingConditionProfile condition = CountingConditionProfile.create();
 
-    public LamaIfNode(LamaExpressionNode conditionNode, LamaScopeNode thenPartNode, LamaScopeNode elsePartNode) {
+    public LamaIfNode(LamaExpressionNode conditionNode, LamaExpressionNode thenPartNode, LamaExpressionNode elsePartNode) {
         this.conditionNode = conditionNode;
         this.thenPartNode = thenPartNode;
         this.elsePartNode = elsePartNode;

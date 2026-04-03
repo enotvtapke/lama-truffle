@@ -11,10 +11,26 @@ public class LexicalScope {
     public final LexicalScope parent;
     private final Map<String, Integer> variables = new HashMap<>();
     private final FrameDescriptor.Builder frameBuilder;
+    private final int depth;
 
     public LexicalScope(LexicalScope parent) {
         this.parent = parent;
-        this.frameBuilder = FrameDescriptor.newBuilder();
+        this.frameBuilder = parent.frameBuilder;
+        this.depth = parent.depth;
+    }
+
+    public LexicalScope(LexicalScope parent, FrameDescriptor.Builder frameBuilder) {
+        this.parent = parent;
+        this.frameBuilder = frameBuilder;
+        if (parent == null) {
+            this.depth = 0;
+        } else {
+            this.depth = parent.depth + 1;
+        }
+    }
+
+    public boolean isGlobal() {
+        return parent == null;
     }
 
     public int declareVariable(String name) {
@@ -33,15 +49,13 @@ public class LexicalScope {
 
     public VariableRef resolveVariable(String name) {
         var scope = this;
-        var depth = 0;
 
         while (!scope.variables.containsKey(name)) {
             scope = scope.parent;
-            depth++;
             if (scope == null) {
                 return null;
             }
         }
-        return new LocalVariable(scope.variables.get(name), depth);
+        return new LocalVariable(scope.variables.get(name), depth - scope.depth);
     }
 }
