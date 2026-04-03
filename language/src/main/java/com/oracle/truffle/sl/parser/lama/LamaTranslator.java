@@ -239,6 +239,8 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return visitArrayExpression(ctx.arrayExpression());
         } else if (ctx.STRING() != null) {
             return new LamaStringLiteralNode(parseStringLiteral(ctx.STRING().getText()));
+        } else if (ctx.CHAR() != null) {
+            return new LamaLongLiteralNode(parseCharLiteral(ctx.CHAR().getText()));
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
@@ -247,6 +249,16 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
     private String parseStringLiteral(String rawText) {
         String inner = rawText.substring(1, rawText.length() - 1);
         return inner.replace("\"\"", "\"");
+    }
+
+    private static long parseCharLiteral(String rawText) {
+        String inner = rawText.substring(1, rawText.length() - 1);
+        return switch (inner) {
+            case "\\n" -> '\n';
+            case "\\t" -> '\t';
+            case "''" -> '\'';
+            default -> inner.charAt(0);
+        };
     }
 
     @Override
