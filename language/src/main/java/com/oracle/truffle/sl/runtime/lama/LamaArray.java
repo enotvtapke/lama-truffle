@@ -45,6 +45,8 @@ public final class LamaArray implements TruffleObject {
         return strategy == OBJECT_STRATEGY;
     }
 
+    public int getSize() { return size; }
+
     @TruffleBoundary
     public void transitionToObjectStorage() {
         long[] oldStorage = (long[]) this.storage;
@@ -67,7 +69,7 @@ public final class LamaArray implements TruffleObject {
 
     @ExportMessage
     long getArraySize() {
-        return size;
+        return getSize();
     }
 
     // --- Array Read Messages ---

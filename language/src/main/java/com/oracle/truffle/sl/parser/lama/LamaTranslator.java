@@ -178,6 +178,7 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             case LamaParser.CompExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
             case LamaParser.AndExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
             case LamaParser.OrExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
+            case LamaParser.DotExprContext c -> parseDotExpression(parseBasicExpression(c.basicExpression()), c.postfixExpression());
             default -> throw new UnsupportedOperationException("Unknown basicExpression: " + ctx.getText());
         };
     }
@@ -360,6 +361,43 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
 
     public LamaExpressionNode visitParenExpr(LamaParser.ParenExprContext ctx) {
         return parseBasicExpression(ctx.basicExpression());
+    }
+
+    /**
+     * Desugars dot notation: {@code e1.f(e2, ..., ek)} becomes {@code f(e1, e2, ..., ek)}.
+     * Recurses into nested postfix chains so that {@code e.f(a)(b)} becomes {@code (f(e, a))(b)}.
+     */
+    private LamaExpressionNode parseDotExpression(LamaExpressionNode firstArg, LamaParser.PostfixExpressionContext ctx) {
+        if (ctx.primary() != null) {
+            LamaExpressionNode function = visitPrimary(ctx.primary());
+            return new LamaInvokeNode(function, new LamaExpressionNode[]{firstArg});
+        }
+
+        String op = ctx.getChild(1).getText();
+        if (op.equals("(")) {
+            LamaParser.PostfixExpressionContext inner = ctx.postfixExpression();
+            if (inner.primary() != null) {
+                LamaExpressionNode function = visitPrimary(inner.primary());
+                LamaExpressionNode[] otherArgs = ctx.expression().stream()
+                        .flatMap(it -> parseExpression(it).stream())
+                        .toArray(LamaExpressionNode[]::new);
+                LamaExpressionNode[] allArgs = new LamaExpressionNode[otherArgs.length + 1];
+                allArgs[0] = firstArg;
+                System.arraycopy(otherArgs, 0, allArgs, 1, otherArgs.length);
+                return new LamaInvokeNode(function, allArgs);
+            }
+            LamaExpressionNode innerResult = parseDotExpression(firstArg, inner);
+            LamaExpressionNode[] outerArgs = ctx.expression().stream()
+                    .flatMap(it -> parseExpression(it).stream())
+                    .toArray(LamaExpressionNode[]::new);
+            return new LamaInvokeNode(innerResult, outerArgs);
+        } else if (op.equals("[")) {
+            LamaExpressionNode innerResult = parseDotExpression(firstArg, ctx.postfixExpression());
+            LamaExpressionNode index = toExpression(parseExpression(ctx.expression(0)));
+            return LamaArrayReadNodeGen.create(innerResult, index);
+        }
+
+        throw new UnsupportedOperationException("Unsupported dot expression: " + ctx.getText());
     }
 
     private LamaExpressionNode parseAssignment(LamaParser.AssignExprContext ctx) {

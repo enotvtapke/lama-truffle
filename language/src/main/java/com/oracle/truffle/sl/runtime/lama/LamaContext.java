@@ -16,10 +16,7 @@ import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.sl.LamaLanguage;
 import com.oracle.truffle.sl.nodes.lama.LamaRootNode;
-import com.oracle.truffle.sl.nodes.lama.builtin.LamaBuiltinAstNode;
-import com.oracle.truffle.sl.nodes.lama.builtin.LamaBuiltinNode;
-import com.oracle.truffle.sl.nodes.lama.builtin.LamaReadBuiltinNodeFactory;
-import com.oracle.truffle.sl.nodes.lama.builtin.LamaWriteBuiltinNodeFactory;
+import com.oracle.truffle.sl.nodes.lama.builtin.*;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -44,8 +41,7 @@ public final class LamaContext {
         this.input = new BufferedReader(new InputStreamReader(env.in()));
         this.output = new PrintWriter(env.out(), true);
         this.language = language;
-        registerBuiltIn(LamaWriteBuiltinNodeFactory.create());
-        registerBuiltIn(LamaReadBuiltinNodeFactory.create());
+        registerBuiltins();
     }
 
     private static final ContextReference<LamaContext> REFERENCE = ContextReference.create(LamaLanguage.class);
@@ -139,6 +135,12 @@ public final class LamaContext {
         } catch (Exception e) {
             throw new RuntimeException("Failed to load module: " + path, e);
         }
+    }
+
+    private void registerBuiltins() {
+        registerBuiltIn(LamaWriteBuiltinNodeFactory.create());
+        registerBuiltIn(LamaReadBuiltinNodeFactory.create());
+        registerBuiltIn(LamaLengthBuiltinNodeFactory.create());
     }
 
     private void registerBuiltIn(LamaBuiltinNode builtin) {
