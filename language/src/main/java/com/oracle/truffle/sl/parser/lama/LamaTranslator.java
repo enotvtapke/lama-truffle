@@ -85,8 +85,11 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
 
     private List<LamaExpressionNode> parseScopeExpression(LamaParser.ScopeExpressionContext ctx) {
         var definitions = ctx.definition().stream().flatMap(def -> parseDefinition(def).stream()).toList();
+        var declarations = definitions.stream().map((d) -> declareVariable(d.name, d.isPublic)).toList();
+        var result = new ArrayList<>(declarations);
+        var initializers = definitions.stream().map((d) -> initializeVariable(d.name, d.initializer.get())).toList();
+        result.addAll(initializers);
         List<LamaExpressionNode> expressions = ctx.expression() != null ? parseExpression(ctx.expression()) : List.of();
-        var result = new ArrayList<>(definitions);
         result.addAll(expressions);
         return result;
     }
@@ -95,46 +98,59 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         return ctx.basicExpression().stream().map(this::parseBasicExpression).toList();
     }
 
-    private List<LamaExpressionNode> parseDefinition(LamaParser.DefinitionContext ctx) {
+    private List<VariableDefinition> parseDefinition(LamaParser.DefinitionContext ctx) {
         if (ctx.variableDefinition() != null) {
             return parseVariableDefinition(ctx.variableDefinition());
         }
         if (ctx.functionDefinition() != null) {
-            return parseFunctionDefinition(ctx.functionDefinition());
+            return List.of(parseFunctionDefinition(ctx.functionDefinition()));
         }
         throw new IllegalArgumentException("Unsupported definition type");
     }
 
-    private List<LamaExpressionNode> parseVariableDefinition(LamaParser.VariableDefinitionContext ctx) {
-        return ctx.variableDefinitionSequence().variableDefinitionItem().stream().flatMap(defItem -> {
+    private List<VariableDefinition> parseVariableDefinition(LamaParser.VariableDefinitionContext ctx) {
+        return ctx.variableDefinitionSequence().variableDefinitionItem().stream().map(defItem -> {
                     var rhsCtx = defItem.basicExpression();
-                    var rhsExpr = rhsCtx != null ? parseBasicExpression(rhsCtx) : new LamaLongLiteralNode(0);
-                    return defineVariable(defItem.LIDENT().getText(), rhsExpr, ctx.PUBLIC() != null).stream();
+                    Supplier<LamaExpressionNode> lamaExpressionNodeSupplier = () -> rhsCtx != null ?
+                            parseBasicExpression(rhsCtx) : new LamaLongLiteralNode(0);
+                    return new VariableDefinition(defItem.LIDENT().getText(), lamaExpressionNodeSupplier, ctx.PUBLIC() != null);
                 }
         ).toList();
     }
 
-    private List<LamaExpressionNode> defineVariable(String name, LamaExpressionNode value, Boolean isPublic) {
-        var v = scopeManager.declareVariable(name);
-        return switch (v) {
-            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
-                if (isPublic) throw new RuntimeException("Only top-level declarations can be public");
-                yield List.of(WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, value));
-            }
+    private LamaExpressionNode initializeVariable(String name, LamaExpressionNode value) {
+        return switch (scopeManager.resolveVariable(name)) {
+            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) ->
+                    WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, value);
             case VariableRef.GlobalVariable(String ignored) ->
-                List.of(DeclareModuleVariableNodeGen.create(name, moduleName, isPublic),
-                    WriteModuleVariableNodeGen.create(name, moduleName, value)
-                );
+                    WriteModuleVariableNodeGen.create(name, moduleName, value);
         };
     }
 
-    private List<LamaExpressionNode> parseFunctionDefinition(LamaParser.FunctionDefinitionContext ctx) {
+    private LamaExpressionNode declareVariable(String name, Boolean isPublic) {
+        return switch (scopeManager.declareVariable(name)) {
+            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
+                if (isPublic) throw new RuntimeException("Only top-level declarations can be public");
+                yield WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, new LamaLongLiteralNode(0));
+            }
+            case VariableRef.GlobalVariable(String ignored) ->
+                    DeclareModuleVariableNodeGen.create(name, moduleName, isPublic);
+        };
+    }
+
+    private List<LamaExpressionNode> defineVariable(String name, LamaExpressionNode value, Boolean isPublic) {
+        var x = declareVariable(name, isPublic);
+        var y = initializeVariable(name, value);
+        return List.of(x, y);
+    }
+
+    private VariableDefinition parseFunctionDefinition(LamaParser.FunctionDefinitionContext ctx) {
         final SourceSection functionSrc = getSourceSection(ctx);
         var isPublic = ctx.PUBLIC() != null;
         var name = ctx.LIDENT().getText();
-        return defineVariable(
+        return new VariableDefinition(
                 name,
-                buildFunction(ctx.functionArguments(), ctx.functionBody(), name, functionSrc),
+                () -> buildFunction(ctx.functionArguments(), ctx.functionBody(), name, functionSrc),
                 isPublic
         );
     }
@@ -438,4 +454,6 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
                 .toArray(LamaExpressionNode[]::new);
         return new LamaArrayLiteralNode(elements);
     }
+
+    private record VariableDefinition(String name, Supplier<LamaExpressionNode> initializer, Boolean isPublic) {}
 }
