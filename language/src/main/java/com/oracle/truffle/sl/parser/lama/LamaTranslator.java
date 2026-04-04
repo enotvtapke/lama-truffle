@@ -158,27 +158,57 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         return source.createSection(functionStartPos, bodyEndPos - functionStartPos);
     }
 
+    private boolean isSimpleVariablePattern(LamaParser.PatternContext pattern) {
+        return pattern.simplePattern() != null
+                && pattern.simplePattern().LIDENT() != null
+                && pattern.simplePattern().pattern() == null;
+    }
+
     private LamaFunctionLiteralNode buildFunction(LamaParser.FunctionArgumentsContext args, LamaParser.FunctionBodyContext fbody, String name, SourceSection functionSrc) {
         scopeManager.enterFunction();
         defineVariable("__closure", new LamaReadArgumentNode(0), false);
 
         var patterns = args.pattern();
         var prologue = new ArrayList<LamaExpressionNode>();
+        var complexPatternIndices = new ArrayList<Integer>();
+
         for (var i = 0; i < patterns.size(); i++) {
             var pattern = patterns.get(i);
-            if (pattern.simplePattern() == null || pattern.simplePattern().LIDENT() == null)
-                throw new RuntimeException("Patterns are not supported");pattern.simplePattern().LIDENT().getText();
-            prologue.addAll(defineVariable(pattern.getText(), new LamaReadArgumentNode(i + 1), false));
+            if (isSimpleVariablePattern(pattern)) {
+                prologue.addAll(defineVariable(pattern.simplePattern().LIDENT().getText(), new LamaReadArgumentNode(i + 1), false));
+            } else {
+                String freshName = "__arg" + (i + 1);
+                prologue.addAll(defineVariable(freshName, new LamaReadArgumentNode(i + 1), false));
+                complexPatternIndices.add(i);
+            }
+        }
+
+        List<LamaPatternNode> patternNodes = new ArrayList<>();
+        for (int idx : complexPatternIndices) {
+            scopeManager.enterScope();
+            patternNodes.add(parsePattern(patterns.get(idx)));
         }
 
         var expressions = parseScopeExpression(fbody.scopeExpression());
-        var body = new ArrayList<>(prologue);
-        body.addAll(expressions);
+        LamaExpressionNode bodyExpr = toExpression(expressions);
+
+        // This code generates a series of nested cases
+        for (int i = patternNodes.size() - 1; i >= 0; i--) {
+            int argIndex = complexPatternIndices.get(i);
+            String freshName = "__arg" + (argIndex + 1);
+            LamaExpressionNode target = readVariable(freshName);
+            CaseBranchNode branch = new CaseBranchNode(patternNodes.get(i), bodyExpr);
+            bodyExpr = new LamaCaseNode(target, new CaseBranchNode[]{branch});
+            scopeManager.exitScope();
+        }
+
+        var allNodes = new ArrayList<>(prologue);
+        allNodes.add(bodyExpr);
 
         var frame = scopeManager.buildFrame();
         scopeManager.exitFunction();
 
-        return new LamaFunctionLiteralNode(new LamaRootNode(language, frame, toExpression(body), functionSrc, name).getCallTarget());
+        return new LamaFunctionLiteralNode(new LamaRootNode(language, frame, toExpression(allNodes), functionSrc, name).getCallTarget());
     }
 
     private LamaExpressionNode parseBasicExpression(LamaParser.BasicExpressionContext ctx) {
