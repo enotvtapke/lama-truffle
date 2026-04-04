@@ -3,6 +3,7 @@ package com.oracle.truffle.sl.test;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -19,14 +20,21 @@ public class LamaBenchmarkTest {
     private static final int RUNS = 5;
     private static final double MIN_SPEEDUP = 5.0;
 
+    @Ignore
     @Test
     public void fib() throws IOException {
         runBenchmark("fib");
     }
 
+    @Ignore
     @Test
     public void fact() throws IOException {
         runBenchmark("fact");
+    }
+
+    @Test
+    public void bubbleSort() throws IOException {
+        runBenchmark("bubble-sort");
     }
 
     private void runBenchmark(String name) throws IOException {

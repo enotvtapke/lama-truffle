@@ -295,6 +295,8 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return visitListExpression(ctx.listExpression());
         } else if (ctx.caseExpression() != null) {
             return visitCaseExpression(ctx.caseExpression());
+        } else if (ctx.letExpression() != null) {
+            return visitLetExpression(ctx.letExpression());
         } else if (ctx.TRUE() != null) {
             return new LamaLongLiteralNode(1L);
         } else if (ctx.FALSE() != null) {
@@ -509,6 +511,16 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
                 .map(e -> toExpression(parseExpression(e)))
                 .toArray(LamaExpressionNode[]::new);
         return new LamaArrayLiteralNode(elements);
+    }
+
+    public LamaExpressionNode visitLetExpression(LamaParser.LetExpressionContext ctx) {
+        LamaExpressionNode target = toExpression(parseExpression(ctx.expression(0)));
+        scopeManager.enterScope();
+        LamaPatternNode pattern = parsePattern(ctx.pattern());
+        LamaExpressionNode body = toExpression(parseExpression(ctx.expression(1)));
+        scopeManager.exitScope();
+        CaseBranchNode branch = new CaseBranchNode(pattern, body);
+        return new LamaCaseNode(target, new CaseBranchNode[]{branch});
     }
 
     public LamaExpressionNode visitCaseExpression(LamaParser.CaseExpressionContext ctx) {

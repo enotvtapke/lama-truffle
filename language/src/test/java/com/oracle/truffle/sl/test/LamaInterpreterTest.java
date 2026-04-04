@@ -23,11 +23,11 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
-//@Ignore
 @RunWith(Parameterized.class)
 public class LamaInterpreterTest {
 
     private static final Path TESTS_DIR = Paths.get("tests", "lama");
+    private static final List<String> IGNORED_TESTS = List.of("test054", "test110", "test803");
 
     private final Path lamaFile;
     private final Path inputFile;
@@ -47,8 +47,7 @@ public class LamaInterpreterTest {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(TESTS_DIR, "*.lama")) {
             for (Path lamaFile : stream) {
                 String baseName = lamaFile.getFileName().toString().replace(".lama", "");
-                int testNum = Integer.parseInt(baseName.replace("test", ""));
-                if (testNum < 1 || testNum > 29) continue;
+                if (IGNORED_TESTS.contains(baseName)) continue;
                 Path inputFile = lamaFile.resolveSibling(baseName + ".input");
                 Path expectedFile = lamaFile.resolveSibling(baseName + ".t");
                 if (Files.exists(expectedFile)) {
