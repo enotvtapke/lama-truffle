@@ -24,7 +24,7 @@ public final class ArrayPatternNode extends LamaPatternNode {
             return false;
         }
         for (int i = 0; i < subPatterns.length; i++) {
-            if (!subPatterns[i].executeMatch(readElement(array, i))) {
+            if (!subPatterns[i].executeMatch(array.readElement(i))) {
                 return false;
             }
         }
@@ -36,14 +36,7 @@ public final class ArrayPatternNode extends LamaPatternNode {
     public void executeBind(VirtualFrame frame, Object target) {
         LamaArray array = (LamaArray) target;
         for (int i = 0; i < subPatterns.length; i++) {
-            subPatterns[i].executeBind(frame, readElement(array, i));
+            subPatterns[i].executeBind(frame, array.readElement(i));
         }
-    }
-
-    private static Object readElement(LamaArray array, int index) {
-        if (array.isLongStorage()) {
-            return ((long[]) array.storage)[index];
-        }
-        return ((Object[]) array.storage)[index];
     }
 }

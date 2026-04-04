@@ -47,6 +47,13 @@ public final class LamaArray implements TruffleObject {
 
     public int getSize() { return size; }
 
+    public Object readElement(int index) {
+        if (isLongStorage()) {
+            return ((long[]) storage)[index];
+        }
+        return ((Object[]) storage)[index];
+    }
+
     @TruffleBoundary
     public void transitionToObjectStorage() {
         long[] oldStorage = (long[]) this.storage;

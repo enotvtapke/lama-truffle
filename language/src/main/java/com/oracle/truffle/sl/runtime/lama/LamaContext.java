@@ -141,6 +141,7 @@ public final class LamaContext {
         registerBuiltIn(LamaWriteBuiltinNodeFactory.create());
         registerBuiltIn(LamaReadBuiltinNodeFactory.create());
         registerBuiltIn(LamaLengthBuiltinNodeFactory.create());
+        registerBuiltIn(LamaStringBuiltinNodeFactory.create());
     }
 
     private void registerBuiltIn(LamaBuiltinNode builtin) {
