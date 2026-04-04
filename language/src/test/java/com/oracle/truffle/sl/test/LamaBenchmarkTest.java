@@ -20,13 +20,11 @@ public class LamaBenchmarkTest {
     private static final int RUNS = 5;
     private static final double MIN_SPEEDUP = 5.0;
 
-    @Ignore
     @Test
     public void fib() throws IOException {
         runBenchmark("fib");
     }
 
-    @Ignore
     @Test
     public void fact() throws IOException {
         runBenchmark("fact");
@@ -44,10 +42,10 @@ public class LamaBenchmarkTest {
         Source source = Source.newBuilder(LAMA, programFile.toFile()).build();
 
         double compiledMs = measureAvg(source, expectedOutput, true);
+        System.out.printf("[%s] Compiled:    %.1f ms%n", name, compiledMs);
         double interpretedMs = measureAvg(source, expectedOutput, false);
 
         double speedup = interpretedMs / compiledMs;
-        System.out.printf("[%s] Compiled:    %.1f ms%n", name, compiledMs);
         System.out.printf("[%s] Interpreted: %.1f ms%n", name, interpretedMs);
         System.out.printf("[%s] Speedup:     %.1fx%n", name, speedup);
 
