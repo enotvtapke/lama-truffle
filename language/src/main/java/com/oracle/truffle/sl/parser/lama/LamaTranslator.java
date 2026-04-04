@@ -7,6 +7,7 @@ import com.oracle.truffle.sl.nodes.lama.*;
 import com.oracle.truffle.sl.nodes.lama.builtin.LamaImportNode;
 import com.oracle.truffle.sl.nodes.lama.builtin.LamaImportNodeGen;
 import com.oracle.truffle.sl.nodes.lama.expression.*;
+import com.oracle.truffle.sl.nodes.lama.patterns.*;
 import com.oracle.truffle.sl.parser.SLParseError;
 import org.antlr.v4.runtime.*;
 
@@ -191,6 +192,11 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             case LamaParser.AndExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
             case LamaParser.OrExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
             case LamaParser.DotExprContext c -> parseDotExpression(parseBasicExpression(c.basicExpression()), c.postfixExpression());
+            case LamaParser.ListConsExprContext c -> {
+                LamaExpressionNode left = parseBasicExpression(c.basicExpression(0));
+                LamaExpressionNode right = parseBasicExpression(c.basicExpression(1));
+                yield new LamaCreateSExprNode("cons", new LamaExpressionNode[]{left, right});
+            }
             default -> throw new UnsupportedOperationException("Unknown basicExpression: " + ctx.getText());
         };
     }
@@ -257,6 +263,12 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return visitSExpression(ctx.sExpression());
         } else if (ctx.listExpression() != null) {
             return visitListExpression(ctx.listExpression());
+        } else if (ctx.caseExpression() != null) {
+            return visitCaseExpression(ctx.caseExpression());
+        } else if (ctx.TRUE() != null) {
+            return new LamaLongLiteralNode(1L);
+        } else if (ctx.FALSE() != null) {
+            return new LamaLongLiteralNode(0L);
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
@@ -467,6 +479,112 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
                 .map(e -> toExpression(parseExpression(e)))
                 .toArray(LamaExpressionNode[]::new);
         return new LamaArrayLiteralNode(elements);
+    }
+
+    public LamaExpressionNode visitCaseExpression(LamaParser.CaseExpressionContext ctx) {
+        LamaExpressionNode target = toExpression(parseExpression(ctx.expression()));
+        CaseBranchNode[] branches = ctx.caseBranches().caseBranch().stream().map(b -> {
+            scopeManager.enterScope();
+            LamaPatternNode pattern = parsePattern(b.pattern());
+            LamaExpressionNode body = visitScopeExpression(b.scopeExpression());
+            scopeManager.exitScope();
+            return new CaseBranchNode(pattern, body);
+        }).toArray(CaseBranchNode[]::new);
+        return new LamaCaseNode(target, branches);
+    }
+
+    private LamaPatternNode parsePattern(LamaParser.PatternContext ctx) {
+        if (ctx.consPattern() != null) {
+            LamaParser.ConsPatternContext cons = ctx.consPattern();
+            LamaPatternNode head = parseSimplePattern(cons.simplePattern());
+            LamaPatternNode tail = parsePattern(cons.pattern());
+            return new SExprPatternNode("cons", new LamaPatternNode[]{head, tail});
+        }
+        return parseSimplePattern(ctx.simplePattern());
+    }
+
+    private LamaPatternNode parseSimplePattern(LamaParser.SimplePatternContext ctx) {
+        if (ctx.wildcardPattern() != null) {
+            return new WildcardPatternNode();
+        }
+        if (ctx.LIDENT() != null) {
+            int slot = declarePatternVariable(ctx.LIDENT().getText());
+            if (ctx.pattern() != null) {
+                return new AsPatternNode(slot, parsePattern(ctx.pattern()));
+            }
+            return new VariablePatternNode(slot);
+        }
+        if (ctx.DECIMAL() != null) {
+            long value = Long.parseLong(ctx.DECIMAL().getText());
+            if (ctx.getText().startsWith("-")) {
+                value = -value;
+            }
+            return LongLiteralPatternNodeGen.create(value);
+        }
+        if (ctx.CHAR() != null) {
+            return LongLiteralPatternNodeGen.create(parseCharLiteral(ctx.CHAR().getText()));
+        }
+        if (ctx.STRING() != null) {
+            return StringLiteralPatternNodeGen.create(parseStringLiteral(ctx.STRING().getText()));
+        }
+        if (ctx.TRUE() != null) {
+            return LongLiteralPatternNodeGen.create(1L);
+        }
+        if (ctx.FALSE() != null) {
+            return LongLiteralPatternNodeGen.create(0L);
+        }
+        if (ctx.sExprPattern() != null) {
+            LamaParser.SExprPatternContext sexpr = ctx.sExprPattern();
+            String tag = sexpr.UIDENT().getText();
+            LamaPatternNode[] subPatterns = sexpr.pattern().stream()
+                    .map(this::parsePattern)
+                    .toArray(LamaPatternNode[]::new);
+            return new SExprPatternNode(tag, subPatterns);
+        }
+        if (ctx.listPattern() != null) {
+            LamaParser.ListPatternContext list = ctx.listPattern();
+            List<LamaParser.PatternContext> elements = list.pattern();
+            LamaPatternNode result = LongLiteralPatternNodeGen.create(0L);
+            for (int i = elements.size() - 1; i >= 0; i--) {
+                LamaPatternNode elemPattern = parsePattern(elements.get(i));
+                result = new SExprPatternNode("cons", new LamaPatternNode[]{elemPattern, result});
+            }
+            return result;
+        }
+        if (ctx.arrayPattern() != null) {
+            LamaParser.ArrayPatternContext arr = ctx.arrayPattern();
+            LamaPatternNode[] subPatterns = arr.pattern().stream()
+                    .map(this::parsePattern)
+                    .toArray(LamaPatternNode[]::new);
+            return new ArrayPatternNode(subPatterns);
+        }
+        if (ctx.pattern() != null) {
+            return parsePattern(ctx.pattern());
+        }
+        if (ctx.BOX() != null) {
+            return new TypeTagPatternNode(TypeTagPatternNode.Tag.BOX);
+        }
+        if (ctx.VAL() != null) {
+            return new TypeTagPatternNode(TypeTagPatternNode.Tag.VAL);
+        }
+        if (ctx.STR() != null) {
+            return new TypeTagPatternNode(TypeTagPatternNode.Tag.STR);
+        }
+        if (ctx.ARRAY() != null) {
+            return new TypeTagPatternNode(TypeTagPatternNode.Tag.ARRAY);
+        }
+        if (ctx.SEXP() != null) {
+            return new TypeTagPatternNode(TypeTagPatternNode.Tag.SEXP);
+        }
+        if (ctx.FUN() != null) {
+            return new TypeTagPatternNode(TypeTagPatternNode.Tag.FUN);
+        }
+        throw new UnsupportedOperationException("Unsupported pattern: " + ctx.getText());
+    }
+
+    private int declarePatternVariable(String name) {
+        VariableRef ref = scopeManager.declareVariable(name);
+        return ((VariableRef.LocalVariable) ref).slotIndex();
     }
 
     private record VariableDefinition(String name, Supplier<LamaExpressionNode> initializer, Boolean isPublic) {}

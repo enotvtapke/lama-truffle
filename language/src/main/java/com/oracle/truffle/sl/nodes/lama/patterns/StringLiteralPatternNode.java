@@ -1,5 +1,6 @@
 package com.oracle.truffle.sl.nodes.lama.patterns;
 
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -19,6 +20,11 @@ public abstract class StringLiteralPatternNode extends LamaPatternNode {
     @Specialization
     protected boolean matchString(LamaString target) {
         return Arrays.equals(expectedBytes, target.getBytes());
+    }
+
+    @Fallback
+    protected boolean noMatch(Object target) {
+        return false;
     }
 
     @Override
