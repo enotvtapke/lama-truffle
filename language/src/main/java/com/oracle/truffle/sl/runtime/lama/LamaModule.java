@@ -16,7 +16,7 @@ import java.util.List;
 @ExportLibrary(InteropLibrary.class)
 public class LamaModule implements TruffleObject {
     private static final Shape EXPORTS_SHAPE = Shape.newBuilder().build();
-    private static final Shape IMPORTS_SHAPE = Shape.newBuilder().build();
+    private static final Shape LOCALS_SHAPE = Shape.newBuilder().build();
     public final List<String> imports = new ArrayList<>();
 
     public final DynamicObject exports;
@@ -24,7 +24,7 @@ public class LamaModule implements TruffleObject {
 
     public LamaModule() {
         this.exports = new DynamicObject(EXPORTS_SHAPE) {};
-        this.locals = new DynamicObject(IMPORTS_SHAPE) {};
+        this.locals = new DynamicObject(LOCALS_SHAPE) {};
     }
 
     @ExportMessage
