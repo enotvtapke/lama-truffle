@@ -38,6 +38,10 @@ public final class LamaString implements TruffleObject {
         bytes[index] = value;
     }
 
+    public byte[] getBytes() {
+        return bytes;
+    }
+
     public TruffleString toTruffleString() {
         return TruffleString.fromByteArrayUncached(bytes, TruffleString.Encoding.US_ASCII);
     }

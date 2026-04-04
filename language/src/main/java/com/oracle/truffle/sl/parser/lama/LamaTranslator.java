@@ -255,9 +255,21 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return new LamaLongLiteralNode(parseCharLiteral(ctx.CHAR().getText()));
         } else if (ctx.sExpression() != null) {
             return visitSExpression(ctx.sExpression());
+        } else if (ctx.listExpression() != null) {
+            return visitListExpression(ctx.listExpression());
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
+    }
+
+    @Override
+    public LamaExpressionNode visitListExpression(LamaParser.ListExpressionContext ctx) {
+        return ctx.expression().reversed().stream()
+                .map(it -> toExpression(parseExpression(it)))
+                .reduce(
+                        new LamaLongLiteralNode(0),
+                        (l, r) -> new LamaCreateSExprNode("cons", new LamaExpressionNode[]{r, l})
+                );
     }
 
     @Override
