@@ -66,12 +66,8 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         return new LamaModuleRootNode(language, scopeManager.buildFrame(), block, imports.toArray(new LamaImportNode[0]), source.createSection(0, source.getLength()));
     }
 
-    private LamaBlockNode toBlock(List<LamaExpressionNode> expressions) {
-        return new LamaBlockNode(expressions.toArray(new LamaExpressionNode[0]));
-    }
-
     private LamaExpressionNode toExpression(List<LamaExpressionNode> expressions) {
-        return expressions.size() == 1 ? expressions.getFirst() : toBlock(expressions);
+        return expressions.size() == 1 ? expressions.getFirst() : new LamaBlockNode(expressions.toArray(new LamaExpressionNode[0]));
     }
 
     @Override
@@ -80,7 +76,7 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         if (expressions.size() == 1) {
             return expressions.getFirst();
         }
-        return toBlock(expressions);
+        return toExpression(expressions);
     }
 
     private List<LamaExpressionNode> parseScopeExpression(LamaParser.ScopeExpressionContext ctx) {
@@ -181,7 +177,7 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
         var frame = scopeManager.buildFrame();
         scopeManager.exitFunction();
 
-        return new LamaFunctionLiteralNode(new LamaRootNode(language, frame, toBlock(body), functionSrc, name).getCallTarget());
+        return new LamaFunctionLiteralNode(new LamaRootNode(language, frame, toExpression(body), functionSrc, name).getCallTarget());
     }
 
     private LamaExpressionNode parseBasicExpression(LamaParser.BasicExpressionContext ctx) {
@@ -257,9 +253,19 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
             return new LamaStringLiteralNode(parseStringLiteral(ctx.STRING().getText()));
         } else if (ctx.CHAR() != null) {
             return new LamaLongLiteralNode(parseCharLiteral(ctx.CHAR().getText()));
+        } else if (ctx.sExpression() != null) {
+            return visitSExpression(ctx.sExpression());
         } else {
             throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
         }
+    }
+
+    @Override
+    public LamaCreateSExprNode visitSExpression(LamaParser.SExpressionContext ctx) {
+        return new LamaCreateSExprNode(
+                ctx.UIDENT().getText(),
+                ctx.expression().stream().map(it -> toExpression(parseExpression(it))).toArray(LamaExpressionNode[]::new)
+        );
     }
 
     private String parseStringLiteral(String rawText) {
@@ -301,12 +307,12 @@ public class LamaTranslator extends LamaBaseVisitor<LamaExpressionNode> {
                 List<LamaExpressionNode> stepNodes = parseExpression(ctx.expression(1));
                 var allBodyNodes = new ArrayList<>(bodyNodes);
                 allBodyNodes.addAll(stepNodes);
-                return toBlock(allBodyNodes);
+                return toExpression(allBodyNodes);
             });
             LamaWhileNode whileNode = new LamaWhileNode(condition, whileBody);
             var allNodes = new ArrayList<>(initNodes);
             allNodes.add(whileNode);
-            return toBlock(allNodes);
+            return toExpression(allNodes);
         });
     }
 

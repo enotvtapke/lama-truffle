@@ -40,18 +40,13 @@
  */
 package com.oracle.truffle.sl.nodes.lama;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.ImplicitCast;
-import com.oracle.truffle.api.dsl.TypeCast;
-import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
-import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.sl.SLLanguage;
 import com.oracle.truffle.sl.nodes.SLTypesGen;
-import com.oracle.truffle.sl.runtime.SLBigInteger;
-import com.oracle.truffle.sl.runtime.SLNull;
-
-import java.math.BigInteger;
+import com.oracle.truffle.sl.runtime.lama.LamaArray;
+import com.oracle.truffle.sl.runtime.lama.LamaFunction;
+import com.oracle.truffle.sl.runtime.lama.LamaString;
+import com.oracle.truffle.sl.runtime.lama.SExpr;
 
 /**
  * The type system of SL, as explained in {@link SLLanguage}. Based on the {@link TypeSystem}
@@ -59,5 +54,5 @@ import java.math.BigInteger;
  * conversion methods for some types. In this class, we only cover types where the automatically
  * generated ones would not be sufficient.
  */
-@TypeSystem({long.class, TruffleString.class})
+@TypeSystem({long.class, LamaString.class, LamaFunction.class, LamaArray.class, SExpr.class})
 public abstract class LamaTypes { }
