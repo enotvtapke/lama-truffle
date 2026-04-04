@@ -10,11 +10,11 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.util.Arrays;
 
 @ExportLibrary(InteropLibrary.class)
-public final class SExpr implements TruffleObject {
+public final class LamaSExpr implements TruffleObject {
     public final String tag;
     public final Object[] elements;
 
-    public SExpr(String tag, Object[] elements) {
+    public LamaSExpr(String tag, Object[] elements) {
         this.tag = tag;
         this.elements = elements;
     }

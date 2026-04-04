@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 import com.oracle.truffle.sl.runtime.lama.LamaArray;
+import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
 @NodeInfo(shortName = "[]=")
@@ -36,6 +37,12 @@ public abstract class LamaArrayWriteNode extends LamaExpressionNode {
     @Specialization
     protected long writeToString(LamaString string, long index, long value) {
         string.writeByte(Math.toIntExact(index), (byte) value);
+        return value;
+    }
+
+    @Specialization
+    protected Object writeToSExpr(LamaSExpr sExpr, long index, Object value) {
+        sExpr.elements[Math.toIntExact(index)] = value;
         return value;
     }
 }

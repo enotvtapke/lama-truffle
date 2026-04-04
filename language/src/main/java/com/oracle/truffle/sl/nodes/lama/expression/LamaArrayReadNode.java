@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 import com.oracle.truffle.sl.runtime.lama.LamaArray;
+import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
 @NodeInfo(shortName = "[]")
@@ -25,5 +26,10 @@ public abstract class LamaArrayReadNode extends LamaExpressionNode {
     @Specialization
     protected long readFromString(LamaString string, long index) {
         return string.readByte(Math.toIntExact(index));
+    }
+
+    @Specialization
+    protected Object readFromSExpr(LamaSExpr sExpr, long index) {
+        return sExpr.elements[Math.toIntExact(index)];
     }
 }

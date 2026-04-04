@@ -5,7 +5,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaFunction;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
-import com.oracle.truffle.sl.runtime.lama.SExpr;
+import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 
 @NodeInfo(shortName = "typeTagPattern")
 public final class TypeTagPatternNode extends LamaPatternNode {
@@ -24,7 +24,7 @@ public final class TypeTagPatternNode extends LamaPatternNode {
             case VAL -> target instanceof Long;
             case STR -> target instanceof LamaString;
             case ARRAY -> target instanceof LamaArray;
-            case SEXP -> target instanceof SExpr;
+            case SEXP -> target instanceof LamaSExpr;
             case FUN -> target instanceof LamaFunction;
             case BOX -> !(target instanceof Long);
         };
