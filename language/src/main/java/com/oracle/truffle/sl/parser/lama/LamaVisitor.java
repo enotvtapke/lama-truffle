@@ -167,11 +167,138 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitPostfixExpression(LamaParser.PostfixExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link LamaParser#primary}.
+	 * Visit a parse tree produced by the {@code DecimalPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitPrimary(LamaParser.PrimaryContext ctx);
+	T visitDecimalPrimary(LamaParser.DecimalPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code WildcardPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWildcardPrimary(LamaParser.WildcardPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code StringPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStringPrimary(LamaParser.StringPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code CharPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCharPrimary(LamaParser.CharPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code IdentPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIdentPrimary(LamaParser.IdentPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code TruePrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTruePrimary(LamaParser.TruePrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code FalsePrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFalsePrimary(LamaParser.FalsePrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code FunPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunPrimary(LamaParser.FunPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SkipPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSkipPrimary(LamaParser.SkipPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ScopePrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitScopePrimary(LamaParser.ScopePrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ListPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitListPrimary(LamaParser.ListPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ArrayPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArrayPrimary(LamaParser.ArrayPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SExprPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSExprPrimary(LamaParser.SExprPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code IfPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIfPrimary(LamaParser.IfPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code WhileDoPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWhileDoPrimary(LamaParser.WhileDoPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code DoWhilePrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDoWhilePrimary(LamaParser.DoWhilePrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ForPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitForPrimary(LamaParser.ForPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code CasePrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCasePrimary(LamaParser.CasePrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code LetPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLetPrimary(LamaParser.LetPrimaryContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link LamaParser#arrayExpression}.
 	 * @param ctx the parse tree
@@ -239,35 +366,124 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitConsPattern(LamaParser.ConsPatternContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link LamaParser#simplePattern}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSimplePattern(LamaParser.SimplePatternContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link LamaParser#wildcardPattern}.
+	 * Visit a parse tree produced by the {@code WildcardPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitWildcardPattern(LamaParser.WildcardPatternContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link LamaParser#sExprPattern}.
+	 * Visit a parse tree produced by the {@code SExprPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitSExprPattern(LamaParser.SExprPatternContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link LamaParser#arrayPattern}.
+	 * Visit a parse tree produced by the {@code ArrayPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitArrayPattern(LamaParser.ArrayPatternContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link LamaParser#listPattern}.
+	 * Visit a parse tree produced by the {@code ListPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitListPattern(LamaParser.ListPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code IdentPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIdentPattern(LamaParser.IdentPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code DecimalPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDecimalPattern(LamaParser.DecimalPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code StringPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStringPattern(LamaParser.StringPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code CharPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCharPattern(LamaParser.CharPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code TruePattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTruePattern(LamaParser.TruePatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code FalsePattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFalsePattern(LamaParser.FalsePatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code BoxTagPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBoxTagPattern(LamaParser.BoxTagPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ValTagPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitValTagPattern(LamaParser.ValTagPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code StrTagPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStrTagPattern(LamaParser.StrTagPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ArrayTagPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArrayTagPattern(LamaParser.ArrayTagPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SExpTagPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSExpTagPattern(LamaParser.SExpTagPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code FunTagPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunTagPattern(LamaParser.FunTagPatternContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ParenPattern}
+	 * labeled alternative in {@link LamaParser#simplePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParenPattern(LamaParser.ParenPatternContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link LamaParser#caseExpression}.
 	 * @param ctx the parse tree
