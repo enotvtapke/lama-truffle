@@ -306,7 +306,8 @@ public class LamaTranslator {
 
     static String parseStringLiteral(String rawText) {
         String inner = rawText.substring(1, rawText.length() - 1);
-        return inner.replace("\"\"", "\"");
+        String javaLike = inner.replace("\"\"", "\\\"");
+        return javaLike.translateEscapes();
     }
 
     static long parseCharLiteral(String rawText) {
