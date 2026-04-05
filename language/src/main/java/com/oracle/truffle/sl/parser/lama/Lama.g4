@@ -24,9 +24,9 @@ functionBody : '{' scopeExpression '}';
 
 expression : basicExpression ( ';' basicExpression )*;
 basicExpression
-    : '-'? postfixExpression                                             # DecimalExpr
+    : '-'? postfix                                                       # PostfixExpr
     | '(' basicExpression ')'                                            # ParenExpr
-    | basicExpression '.' postfixExpression                              # DotExpr
+    | basicExpression '.' postfix                                        # DotExpr
     | ETA basicExpression                                                # EtaExpr
     | LAZY basicExpression                                               # LazyExpr
     | basicExpression op=('*' | '/' | '%') basicExpression               # MulDivModExpr
@@ -38,10 +38,10 @@ basicExpression
     | <assoc=right> basicExpression op=':=' basicExpression              # AssignExpr
     ;
 
-postfixExpression
-    : primary
-    | postfixExpression '(' ( expression ( ',' expression )* )? ')'
-    | postfixExpression '[' expression ']'
+postfix
+    : primary                                                            # PrimaryPostfix
+    | postfix '(' ( expression ( ',' expression )* )? ')'               # InvokePostfix
+    | postfix '[' expression ']'                                         # ArrayPostfix
     ;
 
 primary

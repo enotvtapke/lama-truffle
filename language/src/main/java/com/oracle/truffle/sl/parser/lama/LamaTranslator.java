@@ -7,17 +7,18 @@ import com.oracle.truffle.sl.nodes.lama.*;
 import com.oracle.truffle.sl.nodes.lama.builtin.LamaImportNode;
 import com.oracle.truffle.sl.nodes.lama.builtin.LamaImportNodeGen;
 import com.oracle.truffle.sl.nodes.lama.expression.*;
-import com.oracle.truffle.sl.nodes.lama.patterns.*;
-import com.oracle.truffle.sl.parser.SLParseError;
+import com.oracle.truffle.sl.nodes.lama.patterns.CaseBranchNode;
+import com.oracle.truffle.sl.nodes.lama.patterns.LamaCaseNode;
+import com.oracle.truffle.sl.nodes.lama.patterns.LamaPatternNode;
 import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.Interval;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-import static com.oracle.truffle.sl.LamaLanguage.ANONYMOUS_FUN_NAME;
-
 public class LamaTranslator {
+    public static final String ANONYMOUS_FUN_NAME = "<anonymous>";
     private final ScopeManager scopeManager = new ScopeManager();
     private final LamaPatternTranslator patternTranslator = new LamaPatternTranslator(scopeManager);
     private final String moduleName;
@@ -28,26 +29,6 @@ public class LamaTranslator {
         this.moduleName = moduleName;
         this.language = language;
         this.source = source;
-    }
-
-    private static final class BailoutErrorListener extends BaseErrorListener {
-        private final Source source;
-
-        BailoutErrorListener(Source source) {
-            this.source = source;
-        }
-
-        @Override
-        public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e) {
-            throwParseError(source, line, charPositionInLine, (Token) offendingSymbol, msg);
-        }
-
-        private static void throwParseError(Source source, int line, int charPositionInLine, Token token, String message) {
-            int col = charPositionInLine + 1;
-            String location = "-- line " + line + " col " + col + ": ";
-            int length = token == null ? 1 : Math.max(token.getStopIndex() - token.getStartIndex(), 0);
-            throw new SLParseError(source, line, col, length, "Error(s) parsing script:\n" + location + message);
-        }
     }
 
     public LamaModuleRootNode parseLama() {
@@ -82,7 +63,7 @@ public class LamaTranslator {
 
     private List<LamaExpressionNode> parseScopeExpression(LamaParser.ScopeExpressionContext ctx) {
         var definitions = ctx.definition().stream().flatMap(def -> parseDefinition(def).stream()).toList();
-        var declarations = definitions.stream().map((d) -> declareVariable(d.name, d.isPublic)).toList();
+        var declarations = definitions.stream().map((d) -> declareVariable(d.name, d.isPublic, d.ctx)).toList();
         var result = new ArrayList<>(declarations);
         var initializers = definitions.stream().map((d) -> writeVariable(d.name, d.initializer.get())).toList();
         result.addAll(initializers);
@@ -96,13 +77,9 @@ public class LamaTranslator {
     }
 
     private List<VariableDefinition> parseDefinition(LamaParser.DefinitionContext ctx) {
-        if (ctx.variableDefinition() != null) {
-            return parseVariableDefinition(ctx.variableDefinition());
-        }
-        if (ctx.functionDefinition() != null) {
-            return List.of(parseFunctionDefinition(ctx.functionDefinition()));
-        }
-        throw new IllegalArgumentException("Unsupported definition type");
+        if (ctx.variableDefinition() != null) return parseVariableDefinition(ctx.variableDefinition());
+        if (ctx.functionDefinition() != null) return List.of(parseFunctionDefinition(ctx.functionDefinition()));
+        throw createParseError(ctx.start, "Unsupported definition type: " + getOriginalText(ctx));
     }
 
     private List<VariableDefinition> parseVariableDefinition(LamaParser.VariableDefinitionContext ctx) {
@@ -110,15 +87,15 @@ public class LamaTranslator {
                     var rhsCtx = defItem.basicExpression();
                     Supplier<LamaExpressionNode> lamaExpressionNodeSupplier = () -> rhsCtx != null ?
                             parseBasicExpression(rhsCtx) : new LamaLongLiteralNode(0);
-                    return new VariableDefinition(defItem.LIDENT().getText(), lamaExpressionNodeSupplier, ctx.PUBLIC() != null);
+                    return new VariableDefinition(defItem.LIDENT().getText(), lamaExpressionNodeSupplier, ctx.PUBLIC() != null, ctx);
                 }
         ).toList();
     }
 
-    private LamaExpressionNode declareVariable(String name, Boolean isPublic) {
+    private LamaExpressionNode declareVariable(String name, Boolean isPublic, ParserRuleContext ctx) {
         return switch (scopeManager.declareVariable(name)) {
             case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
-                if (isPublic) throw new RuntimeException("Only top-level declarations can be public");
+                if (isPublic && ctx != null) throw createParseError(ctx.start, "Only top-level declarations can be public: " + getOriginalText(ctx));
                 yield WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, new LamaLongLiteralNode(0));
             }
             case VariableRef.GlobalVariable(String ignored) ->
@@ -126,8 +103,8 @@ public class LamaTranslator {
         };
     }
 
-    private List<LamaExpressionNode> defineVariable(String name, LamaExpressionNode value, Boolean isPublic) {
-        var x = declareVariable(name, isPublic);
+    private List<LamaExpressionNode> defineVariable(String name, LamaExpressionNode value) {
+        var x = declareVariable(name, false, null);
         var y = writeVariable(name, value);
         return List.of(x, y);
     }
@@ -139,7 +116,8 @@ public class LamaTranslator {
         return new VariableDefinition(
                 name,
                 () -> buildFunction(ctx.functionArguments(), ctx.functionBody(), name, functionSrc),
-                isPublic
+                isPublic,
+                ctx
         );
     }
 
@@ -151,7 +129,7 @@ public class LamaTranslator {
 
     private LamaFunctionLiteralNode buildFunction(LamaParser.FunctionArgumentsContext args, LamaParser.FunctionBodyContext fbody, String name, SourceSection functionSrc) {
         scopeManager.enterFunction();
-        defineVariable("__closure", new LamaReadArgumentNode(0), false);
+        defineVariable("__closure", new LamaReadArgumentNode(0));
 
         var patterns = args.pattern();
         var prologue = new ArrayList<LamaExpressionNode>();
@@ -160,10 +138,10 @@ public class LamaTranslator {
         for (var i = 0; i < patterns.size(); i++) {
             var pattern = patterns.get(i);
             if (patternTranslator.isSimpleVariablePattern(pattern)) {
-                prologue.addAll(defineVariable(patternTranslator.simpleVariablePatternName(pattern), new LamaReadArgumentNode(i + 1), false));
+                prologue.addAll(defineVariable(patternTranslator.simpleVariablePatternName(pattern), new LamaReadArgumentNode(i + 1)));
             } else {
                 String freshName = "__arg" + (i + 1);
-                prologue.addAll(defineVariable(freshName, new LamaReadArgumentNode(i + 1), false));
+                prologue.addAll(defineVariable(freshName, new LamaReadArgumentNode(i + 1)));
                 complexPatternIndices.add(i);
             }
         }
@@ -198,51 +176,49 @@ public class LamaTranslator {
 
     private LamaExpressionNode parseBasicExpression(LamaParser.BasicExpressionContext ctx) {
         return switch (ctx) {
-            case LamaParser.DecimalExprContext c -> parseDecimalExpr(c);
+            case LamaParser.PostfixExprContext c -> parsePostfixExpr(c);
             case LamaParser.ParenExprContext c -> parseParenExpr(c);
             case LamaParser.AssignExprContext c -> parseAssignment(c);
-            case LamaParser.AddSubExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
-            case LamaParser.MulDivModExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
-            case LamaParser.CompExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
-            case LamaParser.AndExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
-            case LamaParser.OrExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op.getText());
-            case LamaParser.DotExprContext c -> parseDotExpression(parseBasicExpression(c.basicExpression()), c.postfixExpression());
+            case LamaParser.AddSubExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
+            case LamaParser.MulDivModExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
+            case LamaParser.CompExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
+            case LamaParser.AndExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
+            case LamaParser.OrExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
+            case LamaParser.DotExprContext c -> parseDotExpression(parseBasicExpression(c.basicExpression()), c.postfix());
             case LamaParser.ListConsExprContext c -> {
                 LamaExpressionNode left = parseBasicExpression(c.basicExpression(0));
                 LamaExpressionNode right = parseBasicExpression(c.basicExpression(1));
                 yield new LamaCreateSExprNode("cons", new LamaExpressionNode[]{left, right});
             }
-            default -> throw new UnsupportedOperationException("Unknown basicExpression: " + ctx.getText());
+            default -> throw createParseError(ctx.start, "Unknown basicExpression type: " + getOriginalText(ctx));
         };
     }
 
-    private LamaExpressionNode parseDecimalExpr(LamaParser.DecimalExprContext ctx) {
-        LamaExpressionNode expr = parsePostfixExpression(ctx.postfixExpression());
+    private LamaExpressionNode parsePostfixExpr(LamaParser.PostfixExprContext ctx) {
+        LamaExpressionNode expr = parsePostfix(ctx.postfix());
         if (ctx.getChildCount() > 1) {
             return LamaNegNodeGen.create(expr);
         }
         return expr;
     }
 
-    private LamaExpressionNode parsePostfixExpression(LamaParser.PostfixExpressionContext ctx) {
-        if (ctx.primary() != null) {
-            return parsePrimary(ctx.primary());
-        }
-
-        LamaExpressionNode receiver = parsePostfixExpression(ctx.postfixExpression());
-
-        String secondChildText = ctx.getChild(1).getText();
-        if (secondChildText.equals("(")) {
-            return new LamaInvokeNode(
-                    receiver,
-                    ctx.expression().stream().flatMap(it -> parseExpression(it).stream()).toList().toArray(new LamaExpressionNode[0])
-            );
-        } else if (secondChildText.equals("[")) {
-            LamaExpressionNode index = toExpression(parseExpression(ctx.expression(0)));
-            return LamaArrayReadNodeGen.create(receiver, index);
-        } else {
-            throw new UnsupportedOperationException("Unknown postfix expression: " + ctx.getText());
-        }
+    private LamaExpressionNode parsePostfix(LamaParser.PostfixContext ctx) {
+        return switch (ctx) {
+            case LamaParser.PrimaryPostfixContext c -> parsePrimary(c.primary());
+            case LamaParser.InvokePostfixContext c -> {
+                LamaExpressionNode receiver = parsePostfix(c.postfix());
+                yield new LamaInvokeNode(
+                        receiver,
+                        c.expression().stream().flatMap(it -> parseExpression(it).stream()).toList().toArray(new LamaExpressionNode[0])
+                );
+            }
+            case LamaParser.ArrayPostfixContext c -> {
+                LamaExpressionNode receiver = parsePostfix(c.postfix());
+                LamaExpressionNode index = toExpression(parseExpression(c.expression()));
+                yield LamaArrayReadNodeGen.create(receiver, index);
+            }
+            default -> throw createParseError(ctx.start, "Unsupported postfix type: " + getOriginalText(ctx));
+        };
     }
 
     private LamaExpressionNode parsePrimary(LamaParser.PrimaryContext ctx) {
@@ -265,8 +241,8 @@ public class LamaTranslator {
             case LamaParser.LetPrimaryContext c -> parseLetExpression(c.letExpression());
             case LamaParser.TruePrimaryContext ignored -> new LamaLongLiteralNode(1L);
             case LamaParser.FalsePrimaryContext ignored -> new LamaLongLiteralNode(0L);
-            case LamaParser.WildcardPrimaryContext c -> throw new UnsupportedOperationException("Wildcard '_' is not a valid expression: " + c.getText());
-            default -> throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
+            case LamaParser.WildcardPrimaryContext c -> throw createParseError(c.start, "Wildcard '_' is not a valid expression: " + getOriginalText(ctx));
+            default -> throw createParseError(ctx.start, "Unsupported primary type: " + getOriginalText(ctx));
         };
     }
 
@@ -383,10 +359,10 @@ public class LamaTranslator {
     private LamaExpressionNode parseBinaryExpression(
             LamaParser.BasicExpressionContext leftCtx,
             LamaParser.BasicExpressionContext rightCtx,
-            String op) {
+            Token op) {
         LamaExpressionNode left = parseBasicExpression(leftCtx);
         LamaExpressionNode right = parseBasicExpression(rightCtx);
-        return switch (op) {
+        return switch (op.getText()) {
             case "+" -> LamaAddNodeGen.create(left, right);
             case "-" -> LamaSubNodeGen.create(left, right);
             case "*" -> LamaMulNodeGen.create(left, right);
@@ -400,7 +376,7 @@ public class LamaTranslator {
             case "!=" -> LamaNotEqualNodeGen.create(left, right);
             case "&&" -> new LamaLogicalAndNode(left, right);
             case "!!" -> new LamaLogicalOrNode(left, right);
-            default -> throw new UnsupportedOperationException("Unknown binary operator: " + op);
+            default -> throw createParseError(op, "Unknown binary operator: " + op.getText());
         };
     }
 
@@ -412,56 +388,59 @@ public class LamaTranslator {
      * Desugars dot notation: {@code e1.f(e2, ..., ek)} becomes {@code f(e1, e2, ..., ek)}.
      * Recurses into nested postfix chains so that {@code e.f(a)(b)} becomes {@code (f(e, a))(b)}.
      */
-    private LamaExpressionNode parseDotExpression(LamaExpressionNode firstArg, LamaParser.PostfixExpressionContext ctx) {
-        if (ctx.primary() != null) {
-            LamaExpressionNode function = parsePrimary(ctx.primary());
-            return new LamaInvokeNode(function, new LamaExpressionNode[]{firstArg});
-        }
-
-        String op = ctx.getChild(1).getText();
-        if (op.equals("(")) {
-            LamaParser.PostfixExpressionContext inner = ctx.postfixExpression();
-            if (inner.primary() != null) {
-                LamaExpressionNode function = parsePrimary(inner.primary());
-                LamaExpressionNode[] otherArgs = ctx.expression().stream()
+    private LamaExpressionNode parseDotExpression(LamaExpressionNode firstArg, LamaParser.PostfixContext ctx) {
+        return switch (ctx) {
+            case LamaParser.PrimaryPostfixContext c -> {
+                LamaExpressionNode function = parsePrimary(c.primary());
+                yield new LamaInvokeNode(function, new LamaExpressionNode[]{firstArg});
+            }
+            case LamaParser.InvokePostfixContext c -> {
+                if (c.postfix() instanceof LamaParser.PrimaryPostfixContext inner) {
+                    LamaExpressionNode function = parsePrimary(inner.primary());
+                    LamaExpressionNode[] otherArgs = c.expression().stream()
+                            .flatMap(it -> parseExpression(it).stream())
+                            .toArray(LamaExpressionNode[]::new);
+                    LamaExpressionNode[] allArgs = new LamaExpressionNode[otherArgs.length + 1];
+                    allArgs[0] = firstArg;
+                    System.arraycopy(otherArgs, 0, allArgs, 1, otherArgs.length);
+                    yield new LamaInvokeNode(function, allArgs);
+                }
+                LamaExpressionNode innerResult = parseDotExpression(firstArg, c.postfix());
+                LamaExpressionNode[] outerArgs = c.expression().stream()
                         .flatMap(it -> parseExpression(it).stream())
                         .toArray(LamaExpressionNode[]::new);
-                LamaExpressionNode[] allArgs = new LamaExpressionNode[otherArgs.length + 1];
-                allArgs[0] = firstArg;
-                System.arraycopy(otherArgs, 0, allArgs, 1, otherArgs.length);
-                return new LamaInvokeNode(function, allArgs);
+                yield new LamaInvokeNode(innerResult, outerArgs);
             }
-            LamaExpressionNode innerResult = parseDotExpression(firstArg, inner);
-            LamaExpressionNode[] outerArgs = ctx.expression().stream()
-                    .flatMap(it -> parseExpression(it).stream())
-                    .toArray(LamaExpressionNode[]::new);
-            return new LamaInvokeNode(innerResult, outerArgs);
-        } else if (op.equals("[")) {
-            LamaExpressionNode innerResult = parseDotExpression(firstArg, ctx.postfixExpression());
-            LamaExpressionNode index = toExpression(parseExpression(ctx.expression(0)));
-            return LamaArrayReadNodeGen.create(innerResult, index);
-        }
-
-        throw new UnsupportedOperationException("Unsupported dot expression: " + ctx.getText());
+            case LamaParser.ArrayPostfixContext c -> {
+                LamaExpressionNode innerResult = parseDotExpression(firstArg, c.postfix());
+                LamaExpressionNode index = toExpression(parseExpression(c.expression()));
+                yield LamaArrayReadNodeGen.create(innerResult, index);
+            }
+            default -> throw createParseError(ctx.start, "Unsupported postfix type in dot expression: " + getOriginalText(ctx));
+        };
     }
 
     private LamaExpressionNode parseAssignment(LamaParser.AssignExprContext ctx) {
         LamaParser.BasicExpressionContext lhsCtx = ctx.basicExpression(0);
         LamaExpressionNode value = parseBasicExpression(ctx.basicExpression(1));
 
-        if (lhsCtx instanceof LamaParser.DecimalExprContext dec) {
-            LamaParser.PostfixExpressionContext postfix = dec.postfixExpression();
-            if (postfix.primary() instanceof LamaParser.IdentPrimaryContext ident) {
-                return writeVariable(ident.LIDENT().getText(), value);
-            }
-            String op = postfix.getChild(1).getText();
-            if (op.equals("[")) {
-                LamaExpressionNode receiver = parsePostfixExpression(postfix.postfixExpression());
-                LamaExpressionNode index = toExpression(parseExpression(postfix.expression(0)));
-                return LamaArrayWriteNodeGen.create(receiver, index, value);
+        if (lhsCtx instanceof LamaParser.PostfixExprContext pfe) {
+            switch (pfe.postfix()) {
+                case LamaParser.PrimaryPostfixContext pp -> {
+                    if (pp.primary() instanceof LamaParser.IdentPrimaryContext ident) {
+                        return writeVariable(ident.LIDENT().getText(), value);
+                    }
+                }
+                case LamaParser.ArrayPostfixContext ap -> {
+                    LamaExpressionNode receiver = parsePostfix(ap.postfix());
+                    LamaExpressionNode index = toExpression(parseExpression(ap.expression()));
+                    return LamaArrayWriteNodeGen.create(receiver, index, value);
+                }
+                default -> {}
             }
         }
-        throw new UnsupportedOperationException("Unsupported assignment target: " + ctx.getText());
+
+        throw createParseError(ctx.start, "Unsupported assignment target: " + getOriginalText(lhsCtx));
     }
 
     private LamaExpressionNode parseArrayExpression(LamaParser.ArrayExpressionContext ctx) {
@@ -493,5 +472,36 @@ public class LamaTranslator {
         return new LamaCaseNode(target, branches);
     }
 
-    private record VariableDefinition(String name, Supplier<LamaExpressionNode> initializer, boolean isPublic) {}
+    private String getOriginalText(ParserRuleContext ctx) {
+        int startIndex = ctx.start.getStartIndex();
+        int stopIndex = ctx.stop.getStopIndex();
+
+        return ctx.start.getInputStream().getText(Interval.of(startIndex, stopIndex));
+    }
+
+    private LamaParseError createParseError(Token token, String message) {
+        return createParseError(source, token.getLine(), token.getCharPositionInLine(), token, message);
+    }
+
+    private static LamaParseError createParseError(Source source, int line, int charPositionInLine, Token token, String message) {
+        int col = charPositionInLine + 1;
+        String location = "-- line " + line + " col " + col + ": ";
+        int length = token == null ? 1 : Math.max(token.getStopIndex() - token.getStartIndex(), 0);
+        return new LamaParseError(source, line, col, length, String.format("Error(s) parsing script:%n" + location + message));
+    }
+
+    private record VariableDefinition(String name, Supplier<LamaExpressionNode> initializer, boolean isPublic, ParserRuleContext ctx) {}
+
+    private static final class BailoutErrorListener extends BaseErrorListener {
+        private final Source source;
+
+        BailoutErrorListener(Source source) {
+            this.source = source;
+        }
+
+        @Override
+        public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e) {
+            throw createParseError(source, line, charPositionInLine, (Token) offendingSymbol, msg);
+        }
+    }
 }

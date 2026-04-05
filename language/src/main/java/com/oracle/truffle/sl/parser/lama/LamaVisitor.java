@@ -77,6 +77,13 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpression(LamaParser.ExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code PostfixExpr}
+	 * labeled alternative in {@link LamaParser#basicExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPostfixExpr(LamaParser.PostfixExprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code AndExpr}
 	 * labeled alternative in {@link LamaParser#basicExpression}.
 	 * @param ctx the parse tree
@@ -126,13 +133,6 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitParenExpr(LamaParser.ParenExprContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code DecimalExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitDecimalExpr(LamaParser.DecimalExprContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code AddSubExpr}
 	 * labeled alternative in {@link LamaParser#basicExpression}.
 	 * @param ctx the parse tree
@@ -161,11 +161,26 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAssignExpr(LamaParser.AssignExprContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link LamaParser#postfixExpression}.
+	 * Visit a parse tree produced by the {@code InvokePostfix}
+	 * labeled alternative in {@link LamaParser#postfix}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitPostfixExpression(LamaParser.PostfixExpressionContext ctx);
+	T visitInvokePostfix(LamaParser.InvokePostfixContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code PrimaryPostfix}
+	 * labeled alternative in {@link LamaParser#postfix}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrimaryPostfix(LamaParser.PrimaryPostfixContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ArrayPostfix}
+	 * labeled alternative in {@link LamaParser#postfix}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArrayPostfix(LamaParser.ArrayPostfixContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code DecimalPrimary}
 	 * labeled alternative in {@link LamaParser#primary}.
