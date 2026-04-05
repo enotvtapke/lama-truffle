@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
@@ -43,7 +44,7 @@ public abstract class LamaStringCatBuiltinNode extends LamaBuiltinNode {
     @Fallback
     @TruffleBoundary
     public LamaString catInvalid(@SuppressWarnings("unused") Object value) {
-        throw new IllegalArgumentException("stringcat: expected list of strings");
+        throw SLException.create("stringcat: expected list of strings", this);
     }
 
     protected static boolean isConsStringList(LamaSExpr e) {
@@ -64,12 +65,12 @@ public abstract class LamaStringCatBuiltinNode extends LamaBuiltinNode {
             appendArray(a, sb);
         } else if (p instanceof LamaSExpr e) {
             if (!isConsStringList(e)) {
-                throw new IllegalArgumentException("stringcat: expected list of strings");
+                throw new RuntimeException("stringcat: expected list of strings");
             }
             appendList(e.elements[0], sb);
             appendList(e.elements[1], sb);
         } else {
-            throw new IllegalArgumentException("stringcat: expected list of strings");
+            throw new RuntimeException("stringcat: expected list of strings");
         }
     }
 }

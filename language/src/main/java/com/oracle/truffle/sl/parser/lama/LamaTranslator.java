@@ -6,8 +6,6 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.LamaLanguage;
 import com.oracle.truffle.sl.nodes.lama.*;
-import com.oracle.truffle.sl.nodes.lama.builtin.LamaImportNode;
-import com.oracle.truffle.sl.nodes.lama.builtin.LamaImportNodeGen;
 import com.oracle.truffle.sl.nodes.lama.expression.*;
 import com.oracle.truffle.sl.nodes.lama.patterns.CaseBranchNode;
 import com.oracle.truffle.sl.nodes.lama.patterns.LamaCaseNode;

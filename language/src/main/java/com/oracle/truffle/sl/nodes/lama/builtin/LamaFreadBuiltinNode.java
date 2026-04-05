@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
@@ -20,7 +21,7 @@ public abstract class LamaFreadBuiltinNode extends LamaBuiltinNode {
         try {
             return new LamaString(file.readAllBytes());
         } catch (IOException e) {
-            throw new RuntimeException("fread: " + e.getMessage(), e);
+            throw SLException.create("fread: " + e.getMessage(), this);
         }
     }
 }

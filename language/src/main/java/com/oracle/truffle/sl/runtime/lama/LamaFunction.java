@@ -29,4 +29,9 @@ public final class LamaFunction implements TruffleObject {
 
         return this.callTarget.call(argsWithScope);
     }
+
+    @Override
+    public String toString() {
+        return "<closure>";
+    }
 }

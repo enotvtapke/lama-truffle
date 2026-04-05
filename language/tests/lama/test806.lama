@@ -1,0 +1,7 @@
+printf ("%d\n", 17);
+printf ("%s\n", string (42));
+printf ("%d\n", compare ("a", "b"));
+printf ("%d\n", compare (42, 42));
+printf ("%d\n", compare (45, 42));
+printf ("%d\n", compare ([1], [1, 2]));
+printf ("%d\n", compare (0, getEnv ("__NO_LAMA_ENV_xyz__")))

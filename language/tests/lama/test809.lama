@@ -1,0 +1,5 @@
+var p = regexp ("a+");
+
+printf ("%d\n", regexpMatch (p, "baaab", 0));
+printf ("%d\n", regexpMatch (p, "baaab", 1));
+printf ("%d\n", regexpMatch (p, "baaab", 4))

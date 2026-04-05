@@ -1,5 +1,6 @@
 package com.oracle.truffle.sl.runtime.lama;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -7,7 +8,7 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 
-import java.util.Arrays;
+import static com.oracle.truffle.sl.runtime.lama.Utils.displayElement;
 
 @ExportLibrary(InteropLibrary.class)
 public final class LamaSExpr implements TruffleObject {
@@ -67,6 +68,22 @@ public final class LamaSExpr implements TruffleObject {
 
     @ExportMessage
     Object toDisplayString(boolean allowSideEffects) {
-        return tag + "(" + Arrays.toString(elements) + ")";
+        return toString();
+    }
+
+    @TruffleBoundary
+    @Override
+    public String toString() {
+        if (elements.length == 0) {
+            return tag;
+        }
+        StringBuilder sb = new StringBuilder(tag);
+        sb.append(" (");
+        for (int i = 0; i < elements.length; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(displayElement(elements[i]));
+        }
+        sb.append(")");
+        return sb.toString();
     }
 }

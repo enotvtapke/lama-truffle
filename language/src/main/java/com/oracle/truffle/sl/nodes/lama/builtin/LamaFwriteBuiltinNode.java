@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
@@ -22,7 +23,7 @@ public abstract class LamaFwriteBuiltinNode extends LamaBuiltinNode {
         try (OutputStream os = file.newOutputStream(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
             os.write(contents.getBytes());
         } catch (IOException e) {
-            throw new RuntimeException("fwrite: " + e.getMessage(), e);
+            throw SLException.create("fwrite: " + e.getMessage(), this);
         }
         return 0L;
     }

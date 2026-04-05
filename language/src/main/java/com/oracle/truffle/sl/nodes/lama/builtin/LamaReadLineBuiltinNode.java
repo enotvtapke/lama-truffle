@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
@@ -22,7 +23,7 @@ public abstract class LamaReadLineBuiltinNode extends LamaBuiltinNode {
             }
             return LamaString.from(line);
         } catch (IOException e) {
-            throw new RuntimeException("readLine: I/O error", e);
+            throw SLException.create("readLine: " + e.getMessage(), this);
         }
     }
 }

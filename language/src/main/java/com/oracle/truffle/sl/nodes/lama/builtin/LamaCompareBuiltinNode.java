@@ -5,7 +5,6 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.runtime.lama.*;
-import com.oracle.truffle.sl.runtime.lama.LamaCompareLib;
 
 @NodeInfo(shortName = "compare")
 public abstract class LamaCompareBuiltinNode extends LamaBuiltinNode {

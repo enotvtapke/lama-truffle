@@ -32,4 +32,14 @@ public class Utils {
     public static TruffleString fromJavaString(String s) {
         return TruffleString.fromJavaStringUncached(s, LamaLanguage.STRING_ENCODING);
     }
+
+    public static String displayElement(Object value) {
+        if (value instanceof Long l) {
+            return Long.toString(l);
+        }
+        if (value instanceof LamaString s) {
+            return "\"" + s + "\"";
+        }
+        return String.valueOf(value);
+    }
 }

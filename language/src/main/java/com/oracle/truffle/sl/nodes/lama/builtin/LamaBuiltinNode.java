@@ -3,7 +3,6 @@ package com.oracle.truffle.sl.nodes.lama.builtin;
 import com.oracle.truffle.api.dsl.GenerateInline;
 import com.oracle.truffle.api.dsl.GenerateNodeFactory;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.sl.nodes.lama.LamaNode;
 
 @GenerateNodeFactory
