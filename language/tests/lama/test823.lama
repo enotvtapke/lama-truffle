@@ -1,0 +1,13 @@
+import List;
+
+var z = zip ({1, 2}, {10, 20});
+var fl = flatten ({{1, 2}, {3}});
+
+write (fst (hd (z)));
+write (snd (hd (z)));
+case unzip ({[1, 10], [2, 20]}) of
+  [a, b] -> write (hd (a)); write (hd (b))
+esac;
+write (hd (fl));
+write (hd (tl (fl)));
+write (hd (tl (tl (fl))))

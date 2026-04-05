@@ -1,0 +1,28 @@
+-- Fun.
+-- (C) Dmitry Boulytchev, JetBrains Research, St. Petersburg State University, 2020
+--
+-- This unit provides some convenient function-manipulation stuff.
+
+import Ref;
+
+public fun id (x) {
+  x
+}
+
+public infixr $ after := (f, x) {
+  f (x)
+}
+
+public infix # after * (f, g) {
+  fun (x) {
+    f (g (x))
+  }
+}
+
+public fun fix (f) {
+  var knot = ref ({});
+  
+  knot ::= fun (x) {f (deref (knot)) (x)};  
+
+  deref (knot)
+}

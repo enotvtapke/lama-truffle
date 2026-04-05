@@ -1,0 +1,384 @@
+-- Collections.
+-- (C) Dmitry Boulytchev, JetBrains Research, St. Petersburg State University, 2020
+--
+-- This unit provides a simplistic implementation of immutable set/map/hashtable
+-- data structures.
+
+import List;
+import Ref;
+import Array;
+
+fun printColl ([m, _]) {
+  fun inner (off, curr) {
+    printf (off);
+    case curr of
+      {} -> printf ("** nil **\n")
+    | MNode (k, v, b, l, r) ->
+      printf ("** key = %s, bf = %d **\n", k.string, b);
+      printf (off);
+      printf ("   values : %s\n", v.string);
+--      iter (fun ([x, _]) {printf (off); printf ("             %s\n", x.string)}, v);
+      inner ("  " ++ off, l);
+      inner ("  " ++ off, r)
+    esac
+  }
+
+  inner ("", m)
+}
+
+public fun validateColl ([t, compare]) {
+  fun inner (t, verify) {
+    case t of
+      {} -> 0
+    | MNode (k, _, bf, l, r) ->
+       if verify (k)
+       then
+	 var lh = inner (l, fun (x) {compare (x, k) < 0}),
+	     rh = inner (r, fun (x) {compare (x, k) > 0});
+
+         if bf == lh - rh
+	 then 1 + if lh > rh then lh else rh fi
+	 else failure ("Collection.validateColl: balance violation on key %s\nTree: %s\n", k.string, t.string)
+	 fi
+       else failure ("Collection.validateColl: order violation on key %s\nTree: %s\n", k.string, t.string)
+       fi
+    esac
+  }
+
+  inner (t, fun (x) {true})
+}
+
+fun insertColl ([m, compare], pk, v, sort) {
+  fun append (v, vs) {
+    case sort of
+      Map  -> v : vs
+    | Set  -> v
+    esac
+  }
+  
+  fun rot (left, node) {
+    if left
+    then case node of   
+           MNode (k, v, x, l, MNode (rk, rv, y, ll, rr)) ->           
+             var x0 = if y  > 0 then x + 1 else x - y + 1 fi,
+                   y0 = if x0 > 0
+                        then
+                          if y > 0
+                          then x + y + 2
+                          else x + 2
+                          fi                        
+                        else y + 1
+                        fi;
+             
+             MNode (rk, rv, y0, MNode (k, v, x0, l, ll), rr)
+         esac
+    else case node of
+           MNode (k, v, x, MNode (lk, lv, y, ll, rr), r) ->
+             var x0 = if y < 0 then x - 1 else x - y - 1 fi,
+                   y0 = if x0 > 0
+                        then y - 1
+                        else
+                          if y < 0
+                          then y + x - 2
+                          else x - 2
+                          fi
+                        fi;                   
+
+             MNode (lk, lv, y0, ll, MNode (k, v, x0, rr, r))
+         esac
+    fi
+  }
+
+  fun factor (x) {x [2]}
+  
+  fun inner (m) {
+    case m of
+      {} -> [true, MNode (pk, append (v, {}), 0, {}, {})]
+    | MNode (kk, vv, bf, l, r) -> 
+       var c = compare (pk, kk);
+       if c == 0
+       then [false, MNode (kk, append (v, vv), bf, l, r)]
+       else if c < 0
+            then
+              case inner (l) of
+                [true,  ll] -> if bf < 0
+	                       then [false, MNode (kk, vv, bf + 1, ll, r)]
+	                       elif bf == 1
+			       then if ll.factor > 0
+			            then [false, rot (false, MNode (kk, vv, 2, ll, r))] 
+			            else [false, rot (false, MNode (kk, vv, 2, rot (true, ll), r))]
+			            fi
+			       else [true,  MNode (kk, vv, bf + 1, ll, r)] 
+			       fi
+              | [false, ll] -> [false, MNode (kk, vv, bf, ll, r)]
+	      esac		
+            else
+	      case inner (r) of
+	        [true,  rr] -> if bf > 0
+	                       then [false, MNode (kk, vv, bf - 1, l, rr)]
+			       elif bf == -1
+			       then if rr.factor < 0
+			            then [false, rot (true, MNode (kk, vv, -2, l, rr))]
+			            else [false, rot (true, MNode (kk, vv, -2, l, rot (false, rr)))]
+			            fi				   
+			       else [true,  MNode (kk, vv, bf - 1, l, rr)] 
+			       fi
+              | [false, rr] -> [false, MNode (kk, vv, bf, l, rr)]
+	      esac
+            fi
+       fi	
+    esac
+  }
+
+  [inner (m).snd, compare]
+} 
+
+fun findColl ([m, compare], pk, sort) {
+  fun extract (vv) {
+    case sort of
+      Map  -> case vv of v : _ -> Some (v) | _ -> None esac
+    | Set  -> Some (vv)
+    esac
+  }
+  
+  fun inner (m) {
+    case m of
+      {} -> None
+    | MNode (kk, vv, _, l, r) ->
+       var c = compare (pk, kk);
+       if c == 0
+       then extract (vv)
+       else inner (if c < 0 then l else r fi)
+       fi
+    esac
+  }
+
+  inner (m)
+}
+
+fun removeColl ([m, compare], pk, sort) {
+  fun delete (vs) {
+    case sort of
+      Map  -> case vs of {} -> {} | _ : vv -> vv esac
+    | Set  -> false
+    esac
+  }
+  
+  fun inner (m) {
+    case m of
+      {} -> m
+    | MNode (kk, vv, bf, l, r) ->
+       var c = compare (pk, kk);
+       if c == 0
+       then MNode (kk, delete (vv), bf, l, r)
+       else if c < 0
+            then MNode (kk, vv, bf, inner (l), r)
+            else MNode (kk, vv, bf, l, inner (r))
+            fi
+       fi
+    esac
+  }
+
+  [inner (m), compare]
+}
+
+fun contents ([m, _], sort) {
+  fun append (k, vs, acc) {
+    case sort of
+      Map -> case vs of {} -> acc | v : _ -> [k, v] : acc esac
+    | Set -> if vs then k : acc else acc fi
+    esac
+  }
+  
+  fun inner (m, acc) {
+    case m of
+      {}                     -> acc
+    | MNode (k, vv, _, l, r) -> inner (l, append (k, vv, inner (r, acc))) 
+    esac
+  }
+
+  inner (m, {})
+}
+
+-- Accessors
+public fun internalOf (m) {
+  m [0]
+}
+
+public fun compareOf (m) {
+  m [1]
+}
+
+-- Map structure
+public fun emptyMap (compare) {
+  [{}, compare]
+}
+
+public fun isEmptyMap ([l, _]) {
+  case l of {} -> true | _ -> false esac
+}
+
+public fun addMap (m, k, v) {
+  insertColl (m, k, v, Map)
+}
+
+public fun findMap (m, k) {
+  findColl (m, k, Map)
+}
+
+public fun removeMap (m, k) {
+  removeColl (m, k, Map)
+}
+
+public fun bindings (m) {
+  contents (m, Map)
+}
+
+public fun listMap (l, compare) {
+  foldl (fun (m, p) {addMap (m, p.fst, p.snd)}, emptyMap (compare), l)
+}
+
+public fun iterMap (f, m) {
+  iter (f, bindings (m))  
+}
+
+public fun mapMap (f, m) {
+  listMap (map (fun (p) {[p.fst, f (p.snd)]}, bindings (m)), m[1])
+}
+
+public fun foldMap (f, acc, m) {
+  foldl (f, acc, bindings (m))
+}
+
+-- Set structure
+public fun emptySet (compare) {
+  [{}, compare]
+}
+
+public fun isEmptySet (s) {
+  isEmptyMap (s)
+}
+
+public fun addSet (s, v) {
+  insertColl (s, v, true, Set) 
+}
+
+public fun memSet (s, v) {
+  case findColl (s, v, Set) of
+    None     -> false
+  | Some (f) -> f
+  esac
+}
+
+public fun removeSet (s, v) {
+  removeColl (s, v, Set)
+}
+
+public fun elements (m) {
+  contents (m, Set)
+}
+
+public fun union (a, b) {
+  foldl (addSet, a, elements (b))
+}
+
+public fun diff (a, b) {
+  foldl (removeSet, a, elements (b))
+}
+
+public fun listSet (l, compare) {
+  foldl (addSet, emptySet (compare), l)
+}
+
+public fun iterSet (f, s) {
+  iter (f, elements (s))  
+}
+
+public fun mapSet (f, s) {
+  listSet (map (f, elements (s)),s[1])
+}
+
+public fun foldSet (f, acc, s) {
+  foldl (f, acc, elements (s))
+}
+
+-- Hash consing
+public fun emptyCustomMemo (pred, compare) {
+  [pred, emptyMap (compare)]
+}
+
+public fun emptyMemo () {
+  emptyCustomMemo ({}, compare)
+}
+
+public fun lookupMemo (mm@[p, m], v) {
+  var f = case v of
+            [Right, _] : _ -> true
+          | _              -> false
+          esac;
+
+  case
+  fun (x) {
+    case p of
+      #fun -> if p (v) then v else x () fi
+    | _    -> x ()
+    esac
+  }   
+  (fun () {
+     case v of
+       #val -> v
+     | _ ->
+        case findMap (m, v) of
+          Some (w) -> w
+        | None ->
+           case v of
+             #str -> mm[1] := addMap (m, v, v); v
+           | _ ->
+             var v0 = v;
+             var vc = clone (v), i = case vc of #fun -> 1 | _ -> 0 esac;
+--             printf ("Cloning: 0x%.8x\n", v);
+             for skip, i < v.length, i := i + 1 do
+               var vci = lookupMemo (mm, vc [i]);
+               vc [i] := vci
+             od;
+             mm [1] := addMap (m, vc, vc);
+             vc
+           esac 
+        esac
+     esac}) of
+     r -> -- if f then printf ("Result | 0x%.8x | %s\n", r, r.string) fi;
+     r
+     esac
+}
+
+-- Maps of hashed pointers
+public fun emptyHashTab (n, hash, compare) {
+  [initArray (n, fun (_) {{}}), compare, fun (x) {hash (x) % n}]
+}
+
+public fun addHashTab (ht@[a, compare, hash], k, v) {
+  var h = hash (k);
+  
+  a [h] := [k, v] : a [h];
+
+  ht
+}
+
+public fun findHashTab ([a, compare, hash], k) {
+  case find (fun ([k0, _]) {compare (k, k0) == 0}, a[hash(k)]) of
+    Some ([_, v]) -> Some (v)
+  | _ -> None
+  esac
+}
+
+public fun removeHashTab (ht@[a, compare, hash], k) {
+  var h = hash (k);
+  
+  a [h] := remove (fun ([k0, _]) {compare (k, k0) == 0}, a [h]);
+
+  ht
+}
+
+public fun hashOf (ht) {
+  ht [2]
+}

@@ -1,0 +1,91 @@
+-- Arrays.
+-- (C) Dmitry Boulytchev, JetBrains Research, St. Petersburg State University, 2020
+--
+-- This unit provides a set of array-manipulation primitives. Note, some of these
+-- primitives can be applied to any boxed value in Lama, not necessarily arrays
+-- per se.
+
+import List;
+
+public fun initArray (n, f) {
+  var a = makeArray (n), i;
+
+  for i := 0, i < n, i := i + 1 do
+    a [i] := f (i)
+  od;
+
+  a
+}
+
+public fun mapArray (f, a) {
+  initArray (a.length, fun (i) {f (a[i])})
+}
+
+public fun arrayList (a) {
+  var i = 0, res = [0, {}], curr = res;
+
+  for skip, i < a.length, i := i + 1 do
+    curr [1] := a [i] : curr [1];
+    curr := curr [1]
+  od;
+
+  res [1]
+}
+
+public fun listArray (l) {
+  var a = makeArray (l.size);
+
+  fun inner (i, l) {
+    case l of {} -> skip | h : t -> a[i] := h; inner (i+1, t) esac   
+  }
+
+  inner (0, l);
+  a
+}
+
+public fun foldlArray (f, acc, a) {
+  var i = 0;
+  
+  for skip, i < a.length, i := i+1 do
+    acc := f (acc, a[i])
+  od;
+
+  acc
+}
+
+public fun foldrArray (f, acc, a) {
+  var i = a.length - 1;
+ 
+  for skip, i >= 0, i := i-1 do
+    acc := f (acc, a[i])
+  od;
+
+  acc
+}
+
+public fun iterArray (f, a) {
+  var i = 0;
+  
+  for skip, i < a.length, i := i+1 do
+    f (a [i])
+  od
+}
+
+public fun iteriArray (f, a) {
+  var i = 0;
+  
+  for skip, i < a.length, i := i+1 do
+    f (i, a [i])
+  od
+}
+
+public fun findArray (f, a) {
+  var i = 0, found = false, value;
+
+  while i < a.length && found == false
+  do
+    found := f (value := a[i])
+  od;
+
+  if found then Some (value) else None fi
+}

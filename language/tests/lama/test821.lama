@@ -1,0 +1,15 @@
+import List;
+
+var r = reverse ({1, 2, 3});
+var f = filter (fun (x) { x > 2 }, {1, 2, 3, 4, 5});
+
+write (size ({}));
+write (size ({1, 2, 3}));
+write (foldl (fun (acc, x) { acc + x }, 0, {1, 2, 3}));
+write (foldr (fun (acc, x) { acc + x }, 0, {1, 2, 3}));
+write (hd (r));
+write (hd (tl (r)));
+write (hd (tl (tl (r))));
+write (hd (f));
+write (hd (tl (f)));
+write (hd (tl (tl (f))))
