@@ -31,21 +31,21 @@ public class LamaParser extends Parser {
 		RULE_lama = 0, RULE_compilationUnit = 1, RULE_scopeExpression = 2, RULE_definition = 3, 
 		RULE_variableDefinition = 4, RULE_variableDefinitionSequence = 5, RULE_variableDefinitionItem = 6, 
 		RULE_functionDefinition = 7, RULE_functionArguments = 8, RULE_functionBody = 9, 
-		RULE_expression = 10, RULE_basicExpression = 11, RULE_postfixExpression = 12, 
-		RULE_primary = 13, RULE_arrayExpression = 14, RULE_listExpression = 15, 
-		RULE_sExpression = 16, RULE_letExpression = 17, RULE_ifExpression = 18, 
-		RULE_elsePart = 19, RULE_whileDoExpression = 20, RULE_doWhileExpression = 21, 
-		RULE_forExpression = 22, RULE_pattern = 23, RULE_consPattern = 24, RULE_simplePattern = 25, 
-		RULE_caseExpression = 26, RULE_caseBranches = 27, RULE_caseBranch = 28;
+		RULE_expression = 10, RULE_basicExpression = 11, RULE_postfix = 12, RULE_primary = 13, 
+		RULE_arrayExpression = 14, RULE_listExpression = 15, RULE_sExpression = 16, 
+		RULE_letExpression = 17, RULE_ifExpression = 18, RULE_elsePart = 19, RULE_whileDoExpression = 20, 
+		RULE_doWhileExpression = 21, RULE_forExpression = 22, RULE_pattern = 23, 
+		RULE_consPattern = 24, RULE_simplePattern = 25, RULE_caseExpression = 26, 
+		RULE_caseBranches = 27, RULE_caseBranch = 28;
 	private static String[] makeRuleNames() {
 		return new String[] {
 			"lama", "compilationUnit", "scopeExpression", "definition", "variableDefinition", 
 			"variableDefinitionSequence", "variableDefinitionItem", "functionDefinition", 
 			"functionArguments", "functionBody", "expression", "basicExpression", 
-			"postfixExpression", "primary", "arrayExpression", "listExpression", 
-			"sExpression", "letExpression", "ifExpression", "elsePart", "whileDoExpression", 
-			"doWhileExpression", "forExpression", "pattern", "consPattern", "simplePattern", 
-			"caseExpression", "caseBranches", "caseBranch"
+			"postfix", "primary", "arrayExpression", "listExpression", "sExpression", 
+			"letExpression", "ifExpression", "elsePart", "whileDoExpression", "doWhileExpression", 
+			"forExpression", "pattern", "consPattern", "simplePattern", "caseExpression", 
+			"caseBranches", "caseBranch"
 		};
 	}
 	public static final String[] ruleNames = makeRuleNames();
@@ -754,6 +754,18 @@ public class LamaParser extends Parser {
 		}
 	}
 	@SuppressWarnings("CheckReturnValue")
+	public static class PostfixExprContext extends BasicExpressionContext {
+		public PostfixContext postfix() {
+			return getRuleContext(PostfixContext.class,0);
+		}
+		public PostfixExprContext(BasicExpressionContext ctx) { copyFrom(ctx); }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof LamaVisitor ) return ((LamaVisitor<? extends T>)visitor).visitPostfixExpr(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+	@SuppressWarnings("CheckReturnValue")
 	public static class AndExprContext extends BasicExpressionContext {
 		public Token op;
 		public List<BasicExpressionContext> basicExpression() {
@@ -836,8 +848,8 @@ public class LamaParser extends Parser {
 		public BasicExpressionContext basicExpression() {
 			return getRuleContext(BasicExpressionContext.class,0);
 		}
-		public PostfixExpressionContext postfixExpression() {
-			return getRuleContext(PostfixExpressionContext.class,0);
+		public PostfixContext postfix() {
+			return getRuleContext(PostfixContext.class,0);
 		}
 		public DotExprContext(BasicExpressionContext ctx) { copyFrom(ctx); }
 		@Override
@@ -855,18 +867,6 @@ public class LamaParser extends Parser {
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
 			if ( visitor instanceof LamaVisitor ) return ((LamaVisitor<? extends T>)visitor).visitParenExpr(this);
-			else return visitor.visitChildren(this);
-		}
-	}
-	@SuppressWarnings("CheckReturnValue")
-	public static class DecimalExprContext extends BasicExpressionContext {
-		public PostfixExpressionContext postfixExpression() {
-			return getRuleContext(PostfixExpressionContext.class,0);
-		}
-		public DecimalExprContext(BasicExpressionContext ctx) { copyFrom(ctx); }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof LamaVisitor ) return ((LamaVisitor<? extends T>)visitor).visitDecimalExpr(this);
 			else return visitor.visitChildren(this);
 		}
 	}
@@ -953,7 +953,7 @@ public class LamaParser extends Parser {
 			switch ( getInterpreter().adaptivePredict(_input,11,_ctx) ) {
 			case 1:
 				{
-				_localctx = new DecimalExprContext(_localctx);
+				_localctx = new PostfixExprContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
 
@@ -968,7 +968,7 @@ public class LamaParser extends Parser {
 				}
 
 				setState(138);
-				postfixExpression(0);
+				postfix(0);
 				}
 				break;
 			case 2:
@@ -1139,7 +1139,7 @@ public class LamaParser extends Parser {
 						setState(171);
 						match(T__8);
 						setState(172);
-						postfixExpression(0);
+						postfix(0);
 						}
 						break;
 					}
@@ -1163,12 +1163,21 @@ public class LamaParser extends Parser {
 	}
 
 	@SuppressWarnings("CheckReturnValue")
-	public static class PostfixExpressionContext extends ParserRuleContext {
-		public PrimaryContext primary() {
-			return getRuleContext(PrimaryContext.class,0);
+	public static class PostfixContext extends ParserRuleContext {
+		public PostfixContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
 		}
-		public PostfixExpressionContext postfixExpression() {
-			return getRuleContext(PostfixExpressionContext.class,0);
+		@Override public int getRuleIndex() { return RULE_postfix; }
+	 
+		public PostfixContext() { }
+		public void copyFrom(PostfixContext ctx) {
+			super.copyFrom(ctx);
+		}
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class InvokePostfixContext extends PostfixContext {
+		public PostfixContext postfix() {
+			return getRuleContext(PostfixContext.class,0);
 		}
 		public List<ExpressionContext> expression() {
 			return getRuleContexts(ExpressionContext.class);
@@ -1176,34 +1185,62 @@ public class LamaParser extends Parser {
 		public ExpressionContext expression(int i) {
 			return getRuleContext(ExpressionContext.class,i);
 		}
-		public PostfixExpressionContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_postfixExpression; }
+		public InvokePostfixContext(PostfixContext ctx) { copyFrom(ctx); }
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof LamaVisitor ) return ((LamaVisitor<? extends T>)visitor).visitPostfixExpression(this);
+			if ( visitor instanceof LamaVisitor ) return ((LamaVisitor<? extends T>)visitor).visitInvokePostfix(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class PrimaryPostfixContext extends PostfixContext {
+		public PrimaryContext primary() {
+			return getRuleContext(PrimaryContext.class,0);
+		}
+		public PrimaryPostfixContext(PostfixContext ctx) { copyFrom(ctx); }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof LamaVisitor ) return ((LamaVisitor<? extends T>)visitor).visitPrimaryPostfix(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class ArrayPostfixContext extends PostfixContext {
+		public PostfixContext postfix() {
+			return getRuleContext(PostfixContext.class,0);
+		}
+		public ExpressionContext expression() {
+			return getRuleContext(ExpressionContext.class,0);
+		}
+		public ArrayPostfixContext(PostfixContext ctx) { copyFrom(ctx); }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof LamaVisitor ) return ((LamaVisitor<? extends T>)visitor).visitArrayPostfix(this);
 			else return visitor.visitChildren(this);
 		}
 	}
 
-	public final PostfixExpressionContext postfixExpression() throws RecognitionException {
-		return postfixExpression(0);
+	public final PostfixContext postfix() throws RecognitionException {
+		return postfix(0);
 	}
 
-	private PostfixExpressionContext postfixExpression(int _p) throws RecognitionException {
+	private PostfixContext postfix(int _p) throws RecognitionException {
 		ParserRuleContext _parentctx = _ctx;
 		int _parentState = getState();
-		PostfixExpressionContext _localctx = new PostfixExpressionContext(_ctx, _parentState);
-		PostfixExpressionContext _prevctx = _localctx;
+		PostfixContext _localctx = new PostfixContext(_ctx, _parentState);
+		PostfixContext _prevctx = _localctx;
 		int _startState = 24;
-		enterRecursionRule(_localctx, 24, RULE_postfixExpression, _p);
+		enterRecursionRule(_localctx, 24, RULE_postfix, _p);
 		int _la;
 		try {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
 			{
+			_localctx = new PrimaryPostfixContext(_localctx);
+			_ctx = _localctx;
+			_prevctx = _localctx;
+
 			setState(179);
 			primary();
 			}
@@ -1221,8 +1258,8 @@ public class LamaParser extends Parser {
 					switch ( getInterpreter().adaptivePredict(_input,16,_ctx) ) {
 					case 1:
 						{
-						_localctx = new PostfixExpressionContext(_parentctx, _parentState);
-						pushNewRecursionContext(_localctx, _startState, RULE_postfixExpression);
+						_localctx = new InvokePostfixContext(new PostfixContext(_parentctx, _parentState));
+						pushNewRecursionContext(_localctx, _startState, RULE_postfix);
 						setState(181);
 						if (!(precpred(_ctx, 2))) throw new FailedPredicateException(this, "precpred(_ctx, 2)");
 						setState(182);
@@ -1259,8 +1296,8 @@ public class LamaParser extends Parser {
 						break;
 					case 2:
 						{
-						_localctx = new PostfixExpressionContext(_parentctx, _parentState);
-						pushNewRecursionContext(_localctx, _startState, RULE_postfixExpression);
+						_localctx = new ArrayPostfixContext(new PostfixContext(_parentctx, _parentState));
+						pushNewRecursionContext(_localctx, _startState, RULE_postfix);
 						setState(194);
 						if (!(precpred(_ctx, 1))) throw new FailedPredicateException(this, "precpred(_ctx, 1)");
 						setState(195);
@@ -3020,7 +3057,7 @@ public class LamaParser extends Parser {
 		case 11:
 			return basicExpression_sempred((BasicExpressionContext)_localctx, predIndex);
 		case 12:
-			return postfixExpression_sempred((PostfixExpressionContext)_localctx, predIndex);
+			return postfix_sempred((PostfixContext)_localctx, predIndex);
 		}
 		return true;
 	}
@@ -3045,7 +3082,7 @@ public class LamaParser extends Parser {
 		}
 		return true;
 	}
-	private boolean postfixExpression_sempred(PostfixExpressionContext _localctx, int predIndex) {
+	private boolean postfix_sempred(PostfixContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 8:
 			return precpred(_ctx, 2);

@@ -54,7 +54,7 @@ import com.oracle.truffle.api.strings.TruffleString;
  */
 @TypeSystemReference(LamaTypes.class)
 @NodeInfo(description = "The abstract base node for all expressions")
-public abstract class LamaExpressionNode extends Node {
+public abstract class LamaExpressionNode extends LamaNode {
 
     public abstract Object executeGeneric(VirtualFrame frame);
 

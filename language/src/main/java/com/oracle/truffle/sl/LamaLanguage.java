@@ -31,7 +31,6 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
     public static final String MIME_TYPE = "application/x-lama";
     public static final Source BUILTIN_SOURCE = Source.newBuilder(SLLanguage.ID, "", "Lama builtin").build();
     public static final TruffleString.Encoding STRING_ENCODING = TruffleString.Encoding.UTF_16;
-    public static final String ANONYMOUS_FUN_NAME = "<anonymous>";
 
     @Override
     protected LamaContext createContext(Env env) {

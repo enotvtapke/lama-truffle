@@ -1,10 +1,10 @@
 package com.oracle.truffle.sl.nodes.lama.patterns;
 
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
+import com.oracle.truffle.sl.nodes.lama.LamaNode;
 
-public final class CaseBranchNode extends Node {
+public final class CaseBranchNode extends LamaNode {
     @Child public LamaPatternNode pattern;
     @Child public LamaExpressionNode body;
 
