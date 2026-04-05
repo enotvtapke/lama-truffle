@@ -1,0 +1,8 @@
+var p, q;
+
+p := regexp ("^hello");
+printf ("%d\n", regexpMatch (p, "hello world", 0));
+printf ("%d\n", regexpMatch (p, "say hello", 0));
+q := regexp ("[0-9]+");
+printf ("%d\n", regexpMatch (q, "a42b", 1));
+printf ("%d\n", regexpMatch (q, "a42b", 0))
