@@ -36,6 +36,7 @@ public final class LamaContext {
     private final BufferedReader input;
     private final PrintWriter output;
     private final List<String> unitSearchPaths;
+    private final long startNanos = System.nanoTime();
 
     public LamaContext(LamaLanguage language, Env env) {
         this.env = env;
@@ -60,6 +61,9 @@ public final class LamaContext {
         return input;
     }
 
+    public long elapsedMicrosSinceStart() {
+        return (System.nanoTime() - startNanos) / 1000L;
+    }
     public Env getEnv() {
         return env;
     }
