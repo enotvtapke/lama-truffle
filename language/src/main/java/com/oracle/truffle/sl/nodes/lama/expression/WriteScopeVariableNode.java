@@ -2,7 +2,6 @@ package com.oracle.truffle.sl.nodes.lama.expression;
 
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
@@ -10,26 +9,27 @@ import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 @NodeChild("valueNode")
 public abstract class WriteScopeVariableNode extends LamaExpressionNode {
     private final int slotIndex;
-    private final int lexicalDepth;
+    protected final int lexicalDepth;
 
     protected WriteScopeVariableNode(int slotIndex, int lexicalDepth) {
         this.slotIndex = slotIndex;
         this.lexicalDepth = lexicalDepth;
     }
 
-    @Specialization
-    protected Object readObject(VirtualFrame frame, Object valueNode) {
-        getTargetFrame(frame).setObject(slotIndex, valueNode);
-        return valueNode;
+    @Specialization(guards = "lexicalDepth == 0")
+    protected Object writeLocal(VirtualFrame frame, Object value) {
+        frame.setObject(slotIndex, value);
+        return value;
     }
 
+    @Specialization(guards = "lexicalDepth > 0")
     @ExplodeLoop
-    protected VirtualFrame getTargetFrame(VirtualFrame frame) {
-        VirtualFrame target = frame;
-
-        for (int i = 0; i < lexicalDepth; i++) {
-            target = (MaterializedFrame) target.getArguments()[0];
+    protected Object writeOuter(VirtualFrame frame, Object value) {
+        Object[] scope = (Object[]) frame.getArguments()[0];
+        for (int i = 1; i < lexicalDepth; i++) {
+            scope = (Object[]) scope[0];
         }
-        return target;
+        scope[slotIndex + 1] = value;
+        return value;
     }
 }

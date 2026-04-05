@@ -64,6 +64,11 @@ public class LamaTranslator {
 
     private List<LamaExpressionNode> parseScopeExpressionToList(LamaParser.ScopeExpressionContext ctx) {
         var definitions = ctx.definition().stream().flatMap(def -> parseDefinition(def).stream()).toList();
+        for (var d : definitions) {
+            if (d.isFunction) {
+                scopeManager.markAsCell(d.name);
+            }
+        }
         var declarations = definitions.stream().map((d) -> declareVariable(d.name, d.isPublic, d.ctx)).toList();
         var result = new ArrayList<>(declarations);
         var initializers = definitions.stream().map((d) -> setSrc(writeVariable(d.name, d.initializer.get()), d.ctx)).toList();
@@ -94,7 +99,7 @@ public class LamaTranslator {
                         if (rhsCtx != null) return parseBasicExpression(rhsCtx);
                         return setUnavailableSrc(new LamaLongLiteralNode(0));
                     };
-                    return new VariableDefinition(defItem.LIDENT().getText(), lamaExpressionNodeSupplier, ctx.PUBLIC() != null, defItem);
+                    return new VariableDefinition(defItem.LIDENT().getText(), lamaExpressionNodeSupplier, ctx.PUBLIC() != null, false, defItem);
                 }
         ).toList();
     }
@@ -103,7 +108,10 @@ public class LamaTranslator {
         return switch (scopeManager.declareVariable(name)) {
             case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
                 if (isPublic && ctx != null) throw createParseError(ctx.start, "Only top-level declarations can be public: " + getOriginalText(ctx));
-                var node = WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, setUnavailableSrc(new LamaLongLiteralNode(0)));
+                LamaExpressionNode initValue = scopeManager.isCell(name)
+                        ? setUnavailableSrc(new LamaCreateCellNode())
+                        : setUnavailableSrc(new LamaLongLiteralNode(0));
+                var node = WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, initValue);
                 if (ctx != null) setSrc(node, ctx); else setUnavailableSrc(node);
                 yield node;
             }
@@ -129,6 +137,7 @@ public class LamaTranslator {
                 name,
                 () -> buildFunction(ctx.functionArguments(), ctx.functionBody(), name, functionSrc),
                 isPublic,
+                true,
                 ctx
         );
     }
@@ -157,7 +166,6 @@ public class LamaTranslator {
 
     private LamaFunctionLiteralNode buildFunction(LamaParser.FunctionArgumentsContext args, LamaParser.FunctionBodyContext fbody, String name, SourceSection functionSrc) {
         scopeManager.enterFunction();
-        defineVariable("__closure", setUnavailableSrc(new LamaReadArgumentNode(0)));
 
         var patterns = args.pattern();
         var prologue = new ArrayList<LamaExpressionNode>();
@@ -383,7 +391,13 @@ public class LamaTranslator {
     private LamaExpressionNode readVariable(String name) {
         var v = scopeManager.resolveVariable(name);
         return switch (v) {
-            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> ReadScopeVariableNodeGen.create(slotIndex, lexicalDepth);
+            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
+                LamaExpressionNode readNode = ReadScopeVariableNodeGen.create(slotIndex, lexicalDepth);
+                if (scopeManager.isCell(name)) {
+                    yield LamaReadCellNodeGen.create(readNode);
+                }
+                yield readNode;
+            }
             case VariableRef.GlobalVariable(String ignored) ->
                     ReadModuleVariableNodeGen.create(name, moduleName);
         };
@@ -391,7 +405,13 @@ public class LamaTranslator {
 
     private LamaExpressionNode writeVariable(String name, LamaExpressionNode value) {
         return switch (scopeManager.resolveVariable(name)) {
-            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, value);
+            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
+                if (scopeManager.isCell(name)) {
+                    LamaExpressionNode readCell = ReadScopeVariableNodeGen.create(slotIndex, lexicalDepth);
+                    yield LamaWriteCellNodeGen.create(readCell, value);
+                }
+                yield WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, value);
+            }
             case VariableRef.GlobalVariable(String ignored) -> WriteModuleVariableNodeGen.create(name, moduleName, value);
         };
     }
@@ -534,7 +554,7 @@ public class LamaTranslator {
         return new LamaParseError(source, line, col, length, String.format("Error(s) parsing script:%n" + location + message));
     }
 
-    private record VariableDefinition(String name, Supplier<LamaExpressionNode> initializer, boolean isPublic, ParserRuleContext ctx) {}
+    private record VariableDefinition(String name, Supplier<LamaExpressionNode> initializer, boolean isPublic, boolean isFunction, ParserRuleContext ctx) {}
 
     private static final class BailoutErrorListener extends BaseErrorListener {
         private final Source source;

@@ -43,4 +43,12 @@ public class ScopeManager {
     void exitScope() {
         scope = scope.parent;
     }
+
+    void markAsCell(String name) {
+        scope.markAsCell(name);
+    }
+
+    boolean isCell(String name) {
+        return scope.isCell(name);
+    }
 }
