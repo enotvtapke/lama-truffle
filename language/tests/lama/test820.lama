@@ -1,0 +1,17 @@
+fun inc (x) { x + 1 }
+
+var l;
+
+l := {7, 8};
+
+printf ("%d\n", compare ({1, 2}, {1, 2}));
+printf ("%d\n", compare ({0}, {1}));
+printf ("%d\n", compare ({1}, {0}));
+printf ("%d\n", compare ([1, 2], [1, 2]));
+printf ("%d\n", compare ([1], [1, 2]));
+printf ("%d\n", compare (l, l));
+printf ("%d\n", flatCompare (l, l));
+printf ("%d\n", compare (inc, inc));
+printf ("%d\n", flatCompare (inc, inc));
+printf ("%d\n", flatCompare (1, {0}));
+printf ("%d\n", flatCompare ({0}, 1))
