@@ -67,6 +67,7 @@ public class LamaTranslator {
         for (var d : definitions) {
             if (d.isFunction) {
                 scopeManager.markAsCell(d.name);
+                scopeManager.markAsFunction(d.name);
             }
         }
         var declarations = definitions.stream().map((d) -> declareVariable(d.name, d.isPublic, d.ctx)).toList();
@@ -392,6 +393,9 @@ public class LamaTranslator {
         var v = scopeManager.resolveVariable(name);
         return switch (v) {
             case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
+                if (scopeManager.isFunction(name)) {
+                    yield ReadNamedFunctionNodeGen.create(slotIndex, lexicalDepth);
+                }
                 LamaExpressionNode readNode = ReadScopeVariableNodeGen.create(slotIndex, lexicalDepth);
                 if (scopeManager.isCell(name)) {
                     yield LamaReadCellNodeGen.create(readNode);

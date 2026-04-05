@@ -51,4 +51,12 @@ public class ScopeManager {
     boolean isCell(String name) {
         return scope.isCell(name);
     }
+
+    void markAsFunction(String name) {
+        scope.markAsFunction(name);
+    }
+
+    boolean isFunction(String name) {
+        return scope.isFunction(name);
+    }
 }

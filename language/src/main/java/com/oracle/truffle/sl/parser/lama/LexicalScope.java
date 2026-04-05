@@ -13,6 +13,7 @@ public class LexicalScope {
     public final LexicalScope parent;
     private final Map<String, Integer> variables = new HashMap<>();
     private final Set<String> cellVariables = new HashSet<>();
+    private final Set<String> functionVariables = new HashSet<>();
     private final FrameDescriptor.Builder frameBuilder;
     private final int depth;
 
@@ -71,6 +72,21 @@ public class LexicalScope {
         while (scope != null) {
             if (scope.variables.containsKey(name)) {
                 return scope.cellVariables.contains(name);
+            }
+            scope = scope.parent;
+        }
+        return false;
+    }
+
+    public void markAsFunction(String name) {
+        functionVariables.add(name);
+    }
+
+    public boolean isFunction(String name) {
+        var scope = this;
+        while (scope != null) {
+            if (scope.variables.containsKey(name)) {
+                return scope.functionVariables.contains(name);
             }
             scope = scope.parent;
         }
