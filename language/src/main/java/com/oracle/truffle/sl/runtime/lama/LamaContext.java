@@ -24,6 +24,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SplittableRandom;
 
 import static com.oracle.truffle.sl.LamaLanguage.buildUnitSearchPaths;
 
@@ -37,6 +38,7 @@ public final class LamaContext {
     private final PrintWriter output;
     private final List<String> unitSearchPaths;
     private final long startNanos = System.nanoTime();
+    private final SplittableRandom random = new SplittableRandom();
 
     public LamaContext(LamaLanguage language, Env env) {
         this.env = env;
@@ -64,6 +66,10 @@ public final class LamaContext {
     public long elapsedMicrosSinceStart() {
         return (System.nanoTime() - startNanos) / 1000L;
     }
+    public long nextRandomBelow(long bound) {
+        return random.nextLong(bound);
+    }
+
     public Env getEnv() {
         return env;
     }
