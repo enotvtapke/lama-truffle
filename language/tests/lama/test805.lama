@@ -1,0 +1,6 @@
+write (fst ([1, 2]));
+write (snd ([1, 2]));
+write (fst (Pair (1, 2)));
+write (snd (Pair (1, 2)));
+write (hd ({10, 20, 30}));
+write (hd (tl ({10, 20, 30})))
