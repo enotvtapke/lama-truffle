@@ -45,25 +45,25 @@ postfixExpression
     ;
 
 primary
-    : DECIMAL
-    | '_'
-    | STRING 
-    | CHAR
-    | LIDENT
-    | TRUE
-    | FALSE
-    | FUN '(' functionArguments ')' functionBody
-    | LAMA_SKIP
-    | '(' scopeExpression ')'
-    | listExpression
-    | arrayExpression
-    | sExpression
-    | ifExpression
-    | whileDoExpression
-    | doWhileExpression
-    | forExpression
-    | caseExpression
-    | letExpression
+    : DECIMAL                                           # DecimalPrimary
+    | '_'                                               # WildcardPrimary
+    | STRING                                            # StringPrimary
+    | CHAR                                              # CharPrimary
+    | LIDENT                                            # IdentPrimary
+    | TRUE                                              # TruePrimary
+    | FALSE                                             # FalsePrimary
+    | FUN '(' functionArguments ')' functionBody         # FunPrimary
+    | LAMA_SKIP                                         # SkipPrimary
+    | '(' scopeExpression ')'                           # ScopePrimary
+    | listExpression                                    # ListPrimary
+    | arrayExpression                                   # ArrayPrimary
+    | sExpression                                       # SExprPrimary
+    | ifExpression                                      # IfPrimary
+    | whileDoExpression                                 # WhileDoPrimary
+    | doWhileExpression                                 # DoWhilePrimary
+    | forExpression                                     # ForPrimary
+    | caseExpression                                    # CasePrimary
+    | letExpression                                     # LetPrimary
     ;
 
 arrayExpression : '[' (  expression ( ',' expression )* )? ']';
@@ -91,29 +91,24 @@ consPattern
     ;
 
 simplePattern
-    : wildcardPattern
-    | sExprPattern
-    | arrayPattern
-    | listPattern
-    | LIDENT ('@' pattern)?
-    | '-'? DECIMAL
-    | STRING
-    | CHAR
-    | TRUE
-    | FALSE
-    | '#' BOX
-    | '#' VAL
-    | '#' STR
-    | '#' ARRAY
-    | '#' SEXP
-    | '#' FUN
-    | '(' pattern ')'
+    : '_'                                               # WildcardPattern
+    | UIDENT ('(' pattern (',' pattern)* ')')?          # SExprPattern
+    | '[' (pattern (',' pattern)*)? ']'                 # ArrayPattern
+    | '{' (pattern (',' pattern)*)? '}'                 # ListPattern
+    | LIDENT ('@' pattern)?                             # IdentPattern
+    | '-'? DECIMAL                                      # DecimalPattern
+    | STRING                                            # StringPattern
+    | CHAR                                              # CharPattern
+    | TRUE                                              # TruePattern
+    | FALSE                                             # FalsePattern
+    | '#' BOX                                           # BoxTagPattern
+    | '#' VAL                                           # ValTagPattern
+    | '#' STR                                           # StrTagPattern
+    | '#' ARRAY                                         # ArrayTagPattern
+    | '#' SEXP                                          # SExpTagPattern
+    | '#' FUN                                           # FunTagPattern
+    | '(' pattern ')'                                   # ParenPattern
     ;
-
-wildcardPattern : '_';
-sExprPattern : UIDENT ('(' pattern (',' pattern)* ')')?;
-arrayPattern : '[' (pattern (',' pattern)*)? ']';
-listPattern : '{' (pattern (',' pattern)*)? '}';
 
 caseExpression : 'case' expression 'of' caseBranches 'esac';
 caseBranches : caseBranch ('|' caseBranch)*;

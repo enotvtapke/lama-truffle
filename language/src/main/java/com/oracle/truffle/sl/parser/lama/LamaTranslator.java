@@ -160,7 +160,7 @@ public class LamaTranslator {
         for (var i = 0; i < patterns.size(); i++) {
             var pattern = patterns.get(i);
             if (patternTranslator.isSimpleVariablePattern(pattern)) {
-                prologue.addAll(defineVariable(pattern.simplePattern().LIDENT().getText(), new LamaReadArgumentNode(i + 1), false));
+                prologue.addAll(defineVariable(patternTranslator.simpleVariablePatternName(pattern), new LamaReadArgumentNode(i + 1), false));
             } else {
                 String freshName = "__arg" + (i + 1);
                 prologue.addAll(defineVariable(freshName, new LamaReadArgumentNode(i + 1), false));
@@ -246,46 +246,28 @@ public class LamaTranslator {
     }
 
     private LamaExpressionNode parsePrimary(LamaParser.PrimaryContext ctx) {
-        if (ctx.DECIMAL() != null) {
-            long value = Long.parseLong(ctx.DECIMAL().getText());
-            return new LamaLongLiteralNode(value);
-        } else if (ctx.LIDENT() != null) {
-            return readVariable(ctx.LIDENT().getText());
-        } else if (ctx.FUN() != null) {
-            return buildFunction(ctx.functionArguments(), ctx.functionBody(), ANONYMOUS_FUN_NAME, getSourceSection(ctx));
-        } else if (ctx.scopeExpression() != null) {
-            return buildScopeNode(ctx.scopeExpression());
-        } else if (ctx.ifExpression() != null) {
-            return parseIfExpression(ctx.ifExpression());
-        } else if (ctx.whileDoExpression() != null) {
-            return parseWhileDoExpression(ctx.whileDoExpression());
-        } else if (ctx.doWhileExpression() != null) {
-            return parseDoWhileExpression(ctx.doWhileExpression());
-        } else if (ctx.forExpression() != null) {
-            return parseForExpression(ctx.forExpression());
-        } else if (ctx.LAMA_SKIP() != null) {
-            return new LamaLongLiteralNode(0L);
-        } else if (ctx.arrayExpression() != null) {
-            return parseArrayExpression(ctx.arrayExpression());
-        } else if (ctx.STRING() != null) {
-            return new LamaStringLiteralNode(parseStringLiteral(ctx.STRING().getText()));
-        } else if (ctx.CHAR() != null) {
-            return new LamaLongLiteralNode(parseCharLiteral(ctx.CHAR().getText()));
-        } else if (ctx.sExpression() != null) {
-            return parseSExpression(ctx.sExpression());
-        } else if (ctx.listExpression() != null) {
-            return parseListExpression(ctx.listExpression());
-        } else if (ctx.caseExpression() != null) {
-            return parseCaseExpression(ctx.caseExpression());
-        } else if (ctx.letExpression() != null) {
-            return parseLetExpression(ctx.letExpression());
-        } else if (ctx.TRUE() != null) {
-            return new LamaLongLiteralNode(1L);
-        } else if (ctx.FALSE() != null) {
-            return new LamaLongLiteralNode(0L);
-        } else {
-            throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
-        }
+        return switch (ctx) {
+            case LamaParser.DecimalPrimaryContext c -> new LamaLongLiteralNode(Long.parseLong(c.DECIMAL().getText()));
+            case LamaParser.IdentPrimaryContext c -> readVariable(c.LIDENT().getText());
+            case LamaParser.FunPrimaryContext c -> buildFunction(c.functionArguments(), c.functionBody(), ANONYMOUS_FUN_NAME, getSourceSection(c));
+            case LamaParser.ScopePrimaryContext c -> buildScopeNode(c.scopeExpression());
+            case LamaParser.IfPrimaryContext c -> parseIfExpression(c.ifExpression());
+            case LamaParser.WhileDoPrimaryContext c -> parseWhileDoExpression(c.whileDoExpression());
+            case LamaParser.DoWhilePrimaryContext c -> parseDoWhileExpression(c.doWhileExpression());
+            case LamaParser.ForPrimaryContext c -> parseForExpression(c.forExpression());
+            case LamaParser.SkipPrimaryContext ignored -> new LamaLongLiteralNode(0L);
+            case LamaParser.ArrayPrimaryContext c -> parseArrayExpression(c.arrayExpression());
+            case LamaParser.StringPrimaryContext c -> new LamaStringLiteralNode(parseStringLiteral(c.STRING().getText()));
+            case LamaParser.CharPrimaryContext c -> new LamaLongLiteralNode(parseCharLiteral(c.CHAR().getText()));
+            case LamaParser.SExprPrimaryContext c -> parseSExpression(c.sExpression());
+            case LamaParser.ListPrimaryContext c -> parseListExpression(c.listExpression());
+            case LamaParser.CasePrimaryContext c -> parseCaseExpression(c.caseExpression());
+            case LamaParser.LetPrimaryContext c -> parseLetExpression(c.letExpression());
+            case LamaParser.TruePrimaryContext ignored -> new LamaLongLiteralNode(1L);
+            case LamaParser.FalsePrimaryContext ignored -> new LamaLongLiteralNode(0L);
+            case LamaParser.WildcardPrimaryContext c -> throw new UnsupportedOperationException("Wildcard '_' is not a valid expression: " + c.getText());
+            default -> throw new UnsupportedOperationException("Unsupported primary expression: " + ctx.getText());
+        };
     }
 
     private LamaExpressionNode parseListExpression(LamaParser.ListExpressionContext ctx) {
@@ -469,9 +451,8 @@ public class LamaTranslator {
 
         if (lhsCtx instanceof LamaParser.DecimalExprContext dec) {
             LamaParser.PostfixExpressionContext postfix = dec.postfixExpression();
-            if (postfix.primary() != null) {
-                String name = postfix.primary().LIDENT().getText();
-                return writeVariable(name, value);
+            if (postfix.primary() instanceof LamaParser.IdentPrimaryContext ident) {
+                return writeVariable(ident.LIDENT().getText(), value);
             }
             String op = postfix.getChild(1).getText();
             if (op.equals("[")) {

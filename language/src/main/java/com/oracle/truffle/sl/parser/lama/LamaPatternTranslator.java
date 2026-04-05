@@ -12,9 +12,12 @@ class LamaPatternTranslator {
     }
 
     boolean isSimpleVariablePattern(LamaParser.PatternContext pattern) {
-        return pattern.simplePattern() != null
-                && pattern.simplePattern().LIDENT() != null
-                && pattern.simplePattern().pattern() == null;
+        return pattern.simplePattern() instanceof LamaParser.IdentPatternContext ident
+                && ident.pattern() == null;
+    }
+
+    String simpleVariablePatternName(LamaParser.PatternContext pattern) {
+        return ((LamaParser.IdentPatternContext) pattern.simplePattern()).LIDENT().getText();
     }
 
     LamaPatternNode parsePattern(LamaParser.PatternContext ctx) {
@@ -28,82 +31,59 @@ class LamaPatternTranslator {
     }
 
     private LamaPatternNode parseSimplePattern(LamaParser.SimplePatternContext ctx) {
-        if (ctx.wildcardPattern() != null) {
-            return new WildcardPatternNode();
-        }
-        if (ctx.LIDENT() != null) {
-            int slot = declarePatternVariable(ctx.LIDENT().getText());
-            if (ctx.pattern() != null) {
-                return new AsPatternNode(slot, parsePattern(ctx.pattern()));
+        return switch (ctx) {
+            case LamaParser.WildcardPatternContext c -> new WildcardPatternNode();
+            case LamaParser.IdentPatternContext c -> {
+                int slot = declarePatternVariable(c.LIDENT().getText());
+                if (c.pattern() != null) {
+                    yield new AsPatternNode(slot, parsePattern(c.pattern()));
+                }
+                yield new VariablePatternNode(slot);
             }
-            return new VariablePatternNode(slot);
-        }
-        if (ctx.DECIMAL() != null) {
-            long value = Long.parseLong(ctx.DECIMAL().getText());
-            if (ctx.getText().startsWith("-")) {
-                value = -value;
+            case LamaParser.DecimalPatternContext c -> {
+                long value = Long.parseLong(c.DECIMAL().getText());
+                if (c.getText().startsWith("-")) {
+                    value = -value;
+                }
+                yield LongLiteralPatternNodeGen.create(value);
             }
-            return LongLiteralPatternNodeGen.create(value);
-        }
-        if (ctx.CHAR() != null) {
-            return LongLiteralPatternNodeGen.create(LamaTranslator.parseCharLiteral(ctx.CHAR().getText()));
-        }
-        if (ctx.STRING() != null) {
-            return StringLiteralPatternNodeGen.create(LamaTranslator.parseStringLiteral(ctx.STRING().getText()));
-        }
-        if (ctx.TRUE() != null) {
-            return LongLiteralPatternNodeGen.create(1L);
-        }
-        if (ctx.FALSE() != null) {
-            return LongLiteralPatternNodeGen.create(0L);
-        }
-        if (ctx.sExprPattern() != null) {
-            LamaParser.SExprPatternContext sexpr = ctx.sExprPattern();
-            String tag = sexpr.UIDENT().getText();
-            LamaPatternNode[] subPatterns = sexpr.pattern().stream()
-                    .map(this::parsePattern)
-                    .toArray(LamaPatternNode[]::new);
-            return new SExprPatternNode(tag, subPatterns);
-        }
-        if (ctx.listPattern() != null) {
-            LamaParser.ListPatternContext list = ctx.listPattern();
-            List<LamaParser.PatternContext> elements = list.pattern();
-            LamaPatternNode result = LongLiteralPatternNodeGen.create(0L);
-            for (int i = elements.size() - 1; i >= 0; i--) {
-                LamaPatternNode elemPattern = parsePattern(elements.get(i));
-                result = new SExprPatternNode("cons", new LamaPatternNode[]{elemPattern, result});
+            case LamaParser.CharPatternContext c ->
+                    LongLiteralPatternNodeGen.create(LamaTranslator.parseCharLiteral(c.CHAR().getText()));
+            case LamaParser.StringPatternContext c ->
+                    StringLiteralPatternNodeGen.create(LamaTranslator.parseStringLiteral(c.STRING().getText()));
+            case LamaParser.TruePatternContext c -> LongLiteralPatternNodeGen.create(1L);
+            case LamaParser.FalsePatternContext c -> LongLiteralPatternNodeGen.create(0L);
+            case LamaParser.SExprPatternContext c -> {
+                String tag = c.UIDENT().getText();
+                LamaPatternNode[] subPatterns = c.pattern().stream()
+                        .map(this::parsePattern)
+                        .toArray(LamaPatternNode[]::new);
+                yield new SExprPatternNode(tag, subPatterns);
             }
-            return result;
-        }
-        if (ctx.arrayPattern() != null) {
-            LamaParser.ArrayPatternContext arr = ctx.arrayPattern();
-            LamaPatternNode[] subPatterns = arr.pattern().stream()
-                    .map(this::parsePattern)
-                    .toArray(LamaPatternNode[]::new);
-            return new ArrayPatternNode(subPatterns);
-        }
-        if (ctx.pattern() != null) {
-            return parsePattern(ctx.pattern());
-        }
-        if (ctx.BOX() != null) {
-            return new TypeTagPatternNode(TypeTagPatternNode.Tag.BOX);
-        }
-        if (ctx.VAL() != null) {
-            return new TypeTagPatternNode(TypeTagPatternNode.Tag.VAL);
-        }
-        if (ctx.STR() != null) {
-            return new TypeTagPatternNode(TypeTagPatternNode.Tag.STR);
-        }
-        if (ctx.ARRAY() != null) {
-            return new TypeTagPatternNode(TypeTagPatternNode.Tag.ARRAY);
-        }
-        if (ctx.SEXP() != null) {
-            return new TypeTagPatternNode(TypeTagPatternNode.Tag.SEXP);
-        }
-        if (ctx.FUN() != null) {
-            return new TypeTagPatternNode(TypeTagPatternNode.Tag.FUN);
-        }
-        throw new UnsupportedOperationException("Unsupported pattern: " + ctx.getText());
+            case LamaParser.ListPatternContext c -> {
+                List<LamaParser.PatternContext> elements = c.pattern();
+                LamaPatternNode result = LongLiteralPatternNodeGen.create(0L);
+                for (int i = elements.size() - 1; i >= 0; i--) {
+                    LamaPatternNode elemPattern = parsePattern(elements.get(i));
+                    result = new SExprPatternNode("cons", new LamaPatternNode[]{elemPattern, result});
+                }
+                yield result;
+            }
+            case LamaParser.ArrayPatternContext c -> {
+                LamaPatternNode[] subPatterns = c.pattern().stream()
+                        .map(this::parsePattern)
+                        .toArray(LamaPatternNode[]::new);
+                yield new ArrayPatternNode(subPatterns);
+            }
+            case LamaParser.ParenPatternContext c -> parsePattern(c.pattern());
+            case LamaParser.BoxTagPatternContext c -> new TypeTagPatternNode(TypeTagPatternNode.Tag.BOX);
+            case LamaParser.ValTagPatternContext c -> new TypeTagPatternNode(TypeTagPatternNode.Tag.VAL);
+            case LamaParser.StrTagPatternContext c -> new TypeTagPatternNode(TypeTagPatternNode.Tag.STR);
+            case LamaParser.ArrayTagPatternContext c -> new TypeTagPatternNode(TypeTagPatternNode.Tag.ARRAY);
+            case LamaParser.SExpTagPatternContext c -> new TypeTagPatternNode(TypeTagPatternNode.Tag.SEXP);
+            case LamaParser.FunTagPatternContext c -> new TypeTagPatternNode(TypeTagPatternNode.Tag.FUN);
+            default -> throw new UnsupportedOperationException("Unsupported pattern: " + ctx.getText());
+        };
     }
 
     private int declarePatternVariable(String name) {
