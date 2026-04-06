@@ -1,8 +1,8 @@
 fun a (x) {
   var b = x;
-  var f = fun() {
+  fun f() {
     write (b)
-  };
+  }
   b := 100;
   f
 }
