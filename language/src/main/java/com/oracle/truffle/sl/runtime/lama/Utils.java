@@ -1,5 +1,7 @@
 package com.oracle.truffle.sl.runtime.lama;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.sl.LamaLanguage;
 
@@ -9,6 +11,17 @@ public class Utils {
         newArgs[0] = lexicalScope;
         System.arraycopy(userArgs, 0, newArgs, 1, userArgs.length);
         return newArgs;
+    }
+
+    @ExplodeLoop
+    public static Object[] capture(VirtualFrame frame) {
+        int numberOfSlots = frame.getFrameDescriptor().getNumberOfSlots();
+        Object[] captured = new Object[numberOfSlots + 1];
+        captured[0] = frame.getArguments().length > 0 ? frame.getArguments()[0] : null;
+        for (int i = 0; i < numberOfSlots; i++) {
+            captured[i + 1] = frame.getValue(i);
+        }
+        return captured;
     }
 
     public static String stripFileExtension(String fileName) {

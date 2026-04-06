@@ -6,6 +6,8 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 import com.oracle.truffle.sl.runtime.lama.LamaFunction;
 
+import static com.oracle.truffle.sl.runtime.lama.Utils.capture;
+
 /**
  * Reads a named function variable and creates a fresh closure capturing the
  * current frame values. This implements Lama's "capture at reference time"
@@ -23,17 +25,9 @@ public abstract class ReadNamedFunctionNode extends LamaExpressionNode {
     }
 
     @Specialization(guards = "lexicalDepth == 0")
-    @ExplodeLoop
     protected Object readLocal(VirtualFrame frame) {
-        LamaFunction storedFn = (LamaFunction) frame.getValue(slotIndex);
-
-        int numberOfSlots = frame.getFrameDescriptor().getNumberOfSlots();
-        Object[] captured = new Object[numberOfSlots + 1];
-        captured[0] = frame.getArguments().length > 0 ? frame.getArguments()[0] : null;
-        for (int i = 0; i < numberOfSlots; i++) {
-            captured[i + 1] = frame.getValue(i);
-        }
-        return new LamaFunction(storedFn.callTarget, captured);
+        LamaFunction lamaFunction = (LamaFunction) frame.getValue(slotIndex);
+        return new LamaFunction(lamaFunction.callTarget, capture(frame));
     }
 
     @Specialization(guards = "lexicalDepth > 0")
@@ -43,7 +37,7 @@ public abstract class ReadNamedFunctionNode extends LamaExpressionNode {
         for (int i = 1; i < lexicalDepth; i++) {
             scope = (Object[]) scope[0];
         }
-        LamaFunction storedFn = (LamaFunction) scope[slotIndex + 1];
-        return new LamaFunction(storedFn.callTarget, scope);
+        LamaFunction lamaFunction = (LamaFunction) scope[slotIndex + 1];
+        return new LamaFunction(lamaFunction.callTarget, scope);
     }
 }
