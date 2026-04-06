@@ -220,6 +220,8 @@ public class LamaTranslator {
             case LamaParser.CompExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
             case LamaParser.AndExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
             case LamaParser.OrExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
+            case LamaParser.EtaExprContext c -> parseEtaExpression(c);
+            case LamaParser.LazyExprContext c -> parseLazyExpression(c);
             case LamaParser.DotExprContext c -> parseDotExpression(parseBasicExpression(c.basicExpression()), c.postfix());
             case LamaParser.ListConsExprContext c -> {
                 LamaExpressionNode left = parseBasicExpression(c.basicExpression(0));
@@ -438,6 +440,56 @@ public class LamaTranslator {
 
     private LamaExpressionNode parseParenExpr(LamaParser.ParenExprContext ctx) {
         return parseBasicExpression(ctx.basicExpression());
+    }
+
+    /**
+     * Desugars {@code eta e} into {@code fun (__eta_x) { e(__eta_x) }}.
+     */
+    private LamaExpressionNode parseEtaExpression(LamaParser.EtaExprContext ctx) {
+        SourceSection functionSrc = getSourceSection(ctx);
+
+        scopeManager.enterFunction();
+
+        String freshArgName = "__eta_x";
+        var argRead = setUnavailableSrc(new LamaReadArgumentNode(1));
+        var prologue = new ArrayList<>(defineVariable(freshArgName, argRead));
+
+        LamaExpressionNode innerExpr = parseBasicExpression(ctx.basicExpression());
+        LamaExpressionNode argRef = setUnavailableSrc(readVariable(freshArgName));
+        LamaExpressionNode invocation = setSrc(new LamaInvokeNode(innerExpr, new LamaExpressionNode[]{argRef}), ctx);
+
+        var allNodes = new ArrayList<>(prologue);
+        allNodes.add(invocation);
+
+        var frame = scopeManager.buildFrame();
+        scopeManager.exitFunction();
+
+        var bodyExpr = toExpression(allNodes, ctx);
+        var funcLiteral = new LamaFunctionLiteralNode(
+                new LamaRootNode(language, frame, bodyExpr, functionSrc, ANONYMOUS_FUN_NAME).getCallTarget()
+        );
+        funcLiteral.setSourceSection(functionSrc.getCharIndex(), functionSrc.getCharLength());
+        return funcLiteral;
+    }
+
+    /**
+     * Desugars {@code lazy e} into {@code makeLazy(fun () { e })}.
+     */
+    private LamaExpressionNode parseLazyExpression(LamaParser.LazyExprContext ctx) {
+        SourceSection functionSrc = getSourceSection(ctx);
+
+        scopeManager.enterFunction();
+        LamaExpressionNode bodyExpr = parseBasicExpression(ctx.basicExpression());
+        var frame = scopeManager.buildFrame();
+        scopeManager.exitFunction();
+
+        var funcLiteral = new LamaFunctionLiteralNode(
+                new LamaRootNode(language, frame, bodyExpr, functionSrc, ANONYMOUS_FUN_NAME).getCallTarget()
+        );
+        funcLiteral.setSourceSection(functionSrc.getCharIndex(), functionSrc.getCharLength());
+
+        LamaExpressionNode makeLazy = setUnavailableSrc(readVariable("makeLazy"));
+        return setSrc(new LamaInvokeNode(makeLazy, new LamaExpressionNode[]{funcLiteral}), ctx);
     }
 
     /**

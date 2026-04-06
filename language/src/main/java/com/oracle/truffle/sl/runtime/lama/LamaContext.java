@@ -25,8 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.oracle.truffle.sl.LamaLanguage.BUILTIN_SOURCE;
-
 @Bind.DefaultExpression("get($node)")
 public final class LamaContext {
     private final Map<String, RegistryEntry> moduleRegistry = new HashMap<>();
@@ -146,7 +144,12 @@ public final class LamaContext {
 
     private void registerBuiltIn(LamaBuiltinNode builtin) {
         String name = lookupNodeInfo(builtin.getClass()).shortName();
-        LamaRootNode lamaRootNode = new LamaRootNode(language, new FrameDescriptor(), new LamaBuiltinAstNode(builtin), BUILTIN_SOURCE.createUnavailableSection(), name);
+        LamaRootNode lamaRootNode = new LamaRootNode(
+                language, new FrameDescriptor(),
+                new LamaBuiltinAstNode(builtin),
+                Source.newBuilder(LamaLanguage.ID, "", "<builtin> " + name).build().createUnavailableSection(),
+                name
+        );
         DynamicObjectLibrary.getUncached().put(builtins, name, new LamaFunction(lamaRootNode.getCallTarget(), null));
     }
 

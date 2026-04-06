@@ -27,7 +27,7 @@ import java.util.List;
 public class LamaInterpreterTest {
 
     private static final Path TESTS_DIR = Paths.get("tests", "lama");
-    private static final List<String> IGNORED_TESTS = List.of("test054", "test105", "test111", "test110", "test803");
+    private static final List<String> IGNORED_TESTS = List.of("test054", "test111", "test110", "test803");
 
     private final Path lamaFile;
     private final Path inputFile;
