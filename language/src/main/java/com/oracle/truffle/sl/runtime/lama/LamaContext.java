@@ -19,8 +19,10 @@ import com.oracle.truffle.sl.nodes.lama.LamaRootNode;
 import com.oracle.truffle.sl.nodes.lama.builtin.*;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +35,14 @@ public final class LamaContext {
     @CompilationFinal private Env env;
     private final BufferedReader input;
     private final PrintWriter output;
+    private final List<String> unitSearchPaths;
 
     public LamaContext(LamaLanguage language, Env env) {
         this.env = env;
         this.input = new BufferedReader(new InputStreamReader(env.in()));
         this.output = new PrintWriter(env.out(), true);
         this.language = language;
+        this.unitSearchPaths = buildUnitSearchPaths(env);
         registerBuiltins();
     }
 
@@ -127,12 +131,36 @@ public final class LamaContext {
 
     private CallTarget parseModule(String path) {
         try {
-            TruffleFile file = env.getInternalTruffleFile("programs/" + path + ".lama");
-            Source source = Source.newBuilder("lama", file).name(path).build();
+            TruffleFile file = findModuleFile(path);
+            Source source = Source.newBuilder(LamaLanguage.ID, file).name(path).build();
             return env.parsePublic(source);
         } catch (Exception e) {
             throw new RuntimeException("Failed to load module: " + path, e);
         }
+    }
+
+    private List<String> buildUnitSearchPaths(Env env) {
+        List<String> searchPaths = new ArrayList<>();
+        String configuredPaths = LamaLanguage.UnitSearchPath.getValue(env.getOptions());
+        if (!configuredPaths.isEmpty()) {
+            for (String path : configuredPaths.split(File.pathSeparator)) {
+                if (!path.isEmpty() && !searchPaths.contains(path)) {
+                    searchPaths.add(path);
+                }
+            }
+        }
+        return searchPaths;
+    }
+
+    private TruffleFile findModuleFile(String path) {
+        String moduleFileName = path + ".lama";
+        for (String searchPath : unitSearchPaths) {
+            TruffleFile file = env.getPublicTruffleFile(searchPath).resolve(moduleFileName);
+            if (file.exists()) {
+                return file;
+            }
+        }
+        throw new IllegalArgumentException("Module '" + path + "' was not found in unit search path list: " + String.join(", ", unitSearchPaths));
     }
 
     private void registerBuiltins() {
