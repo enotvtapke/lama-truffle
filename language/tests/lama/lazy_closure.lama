@@ -1,0 +1,10 @@
+fun a (x) {
+  var b = x;
+  var f = fun() {
+    write (b)
+  };
+  b := 100;
+  f
+}
+
+a (5) ()

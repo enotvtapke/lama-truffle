@@ -1,0 +1,13 @@
+fun makeCounter () {
+  var counter = 0;
+
+   fun () {
+       counter := counter + 1;
+       counter
+  }
+}
+
+var c = makeCounter ();
+
+write (c ());
+write (c ())

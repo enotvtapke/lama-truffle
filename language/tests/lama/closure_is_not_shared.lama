@@ -1,0 +1,21 @@
+fun a() {
+  var a = 0;
+
+  fun f () {
+    write(a);
+    a := 1
+  }
+
+  fun g () {
+    write(a);
+    a := 2
+  }
+
+  [f, g]
+}
+
+var z = a();
+var f = z[0];
+var g = z[1];
+f();
+g()

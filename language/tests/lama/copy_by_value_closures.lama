@@ -1,0 +1,16 @@
+fun a() {
+  var a = 0;
+
+  fun f() {
+    a := a + 1;
+    write(a)
+  }
+
+  f();
+  write(a);
+  a := 100;
+  f();
+  a
+}
+
+write(a())

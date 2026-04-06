@@ -1,0 +1,15 @@
+var a = 0;
+
+var f = fun () {
+  write(a);
+  a := 1
+};
+
+var g = fun () {
+  write(a);
+  a := 2
+};
+
+f();
+g();
+write(a)
