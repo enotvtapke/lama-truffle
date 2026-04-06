@@ -66,7 +66,6 @@ public class LamaTranslator {
         var definitions = ctx.definition().stream().flatMap(def -> parseDefinition(def).stream()).toList();
         for (var d : definitions) {
             if (d.isFunction) {
-                scopeManager.markAsCell(d.name);
                 scopeManager.markAsFunction(d.name);
             }
         }
@@ -109,9 +108,7 @@ public class LamaTranslator {
         return switch (scopeManager.declareVariable(name)) {
             case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
                 if (isPublic && ctx != null) throw createParseError(ctx.start, "Only top-level declarations can be public: " + getOriginalText(ctx));
-                LamaExpressionNode initValue = scopeManager.isCell(name)
-                        ? setUnavailableSrc(new LamaCreateCellNode())
-                        : setUnavailableSrc(new LamaLongLiteralNode(0));
+                LamaExpressionNode initValue = setUnavailableSrc(new LamaLongLiteralNode(0));
                 var node = WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, initValue);
                 if (ctx != null) setSrc(node, ctx); else setUnavailableSrc(node);
                 yield node;
@@ -396,11 +393,7 @@ public class LamaTranslator {
                 if (scopeManager.isFunction(name)) {
                     yield ReadNamedFunctionNodeGen.create(slotIndex, lexicalDepth);
                 }
-                LamaExpressionNode readNode = ReadScopeVariableNodeGen.create(slotIndex, lexicalDepth);
-                if (scopeManager.isCell(name)) {
-                    yield LamaReadCellNodeGen.create(readNode);
-                }
-                yield readNode;
+                yield ReadScopeVariableNodeGen.create(slotIndex, lexicalDepth);
             }
             case VariableRef.GlobalVariable(String ignored) ->
                     ReadModuleVariableNodeGen.create(name, moduleName);
@@ -409,13 +402,8 @@ public class LamaTranslator {
 
     private LamaExpressionNode writeVariable(String name, LamaExpressionNode value) {
         return switch (scopeManager.resolveVariable(name)) {
-            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
-                if (scopeManager.isCell(name)) {
-                    LamaExpressionNode readCell = ReadScopeVariableNodeGen.create(slotIndex, lexicalDepth);
-                    yield LamaWriteCellNodeGen.create(readCell, value);
-                }
-                yield WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, value);
-            }
+            case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) ->
+                    WriteScopeVariableNodeGen.create(slotIndex, lexicalDepth, value);
             case VariableRef.GlobalVariable(String ignored) -> WriteModuleVariableNodeGen.create(name, moduleName, value);
         };
     }

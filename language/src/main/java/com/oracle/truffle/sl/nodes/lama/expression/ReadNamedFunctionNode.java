@@ -25,8 +25,7 @@ public abstract class ReadNamedFunctionNode extends LamaExpressionNode {
     @Specialization(guards = "lexicalDepth == 0")
     @ExplodeLoop
     protected Object readLocal(VirtualFrame frame) {
-        Object[] cell = (Object[]) frame.getValue(slotIndex);
-        LamaFunction storedFn = (LamaFunction) cell[0];
+        LamaFunction storedFn = (LamaFunction) frame.getValue(slotIndex);
 
         int numberOfSlots = frame.getFrameDescriptor().getNumberOfSlots();
         Object[] captured = new Object[numberOfSlots + 1];
@@ -44,8 +43,7 @@ public abstract class ReadNamedFunctionNode extends LamaExpressionNode {
         for (int i = 1; i < lexicalDepth; i++) {
             scope = (Object[]) scope[0];
         }
-        Object[] cell = (Object[]) scope[slotIndex + 1];
-        LamaFunction storedFn = (LamaFunction) cell[0];
+        LamaFunction storedFn = (LamaFunction) scope[slotIndex + 1];
         return new LamaFunction(storedFn.callTarget, scope);
     }
 }

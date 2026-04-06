@@ -44,14 +44,6 @@ public class ScopeManager {
         scope = scope.parent;
     }
 
-    void markAsCell(String name) {
-        scope.markAsCell(name);
-    }
-
-    boolean isCell(String name) {
-        return scope.isCell(name);
-    }
-
     void markAsFunction(String name) {
         scope.markAsFunction(name);
     }
