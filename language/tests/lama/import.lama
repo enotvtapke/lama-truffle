@@ -1,0 +1,7 @@
+import Imported;
+write(square(4));
+write(ten);
+writeTen();
+ten := 15;
+write(ten);
+writeTen()

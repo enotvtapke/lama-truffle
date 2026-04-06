@@ -595,7 +595,7 @@ public class LamaTranslator {
         int col = charPositionInLine + 1;
         String location = "-- line " + line + " col " + col + ": ";
         int length = token == null ? 1 : Math.max(token.getStopIndex() - token.getStartIndex(), 0);
-        return new LamaParseError(source, line, col, length, String.format("Error(s) parsing script:%n" + location + message));
+        return new LamaParseError(source, line, col, length, "Error(s) parsing script:\n" + location + message);
     }
 
     private record VariableDefinition(String name, Supplier<LamaExpressionNode> initializer, boolean isPublic, boolean isFunction, ParserRuleContext ctx) {}

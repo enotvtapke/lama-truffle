@@ -18,10 +18,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 @RunWith(Parameterized.class)
 public class LamaInterpreterTest {
@@ -69,6 +66,7 @@ public class LamaInterpreterTest {
         try (Context context = Context.newBuilder("lama")
                 .in(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
                 .out(out)
+                .options(Map.of("lama.UnitSearchPath", lamaFile.getParent().resolve("imports").toAbsolutePath().toString()))
                 .allowIO(IOAccess.ALL)
                 .build()) {
             Source source = Source.newBuilder("lama", lamaFile.toFile()).build();

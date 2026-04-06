@@ -19,6 +19,7 @@ import com.oracle.truffle.sl.runtime.lama.LamaContext;
 import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
+import org.graalvm.options.OptionStability;
 
 import static com.oracle.truffle.sl.runtime.lama.Utils.stripFileExtension;
 
@@ -35,7 +36,7 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
     public static final String MIME_TYPE = "application/x-lama";
     public static final TruffleString.Encoding STRING_ENCODING = TruffleString.Encoding.UTF_16;
 
-    @Option(help = "Additional directories used to resolve imported Lama units. Entries are separated using the platform path separator.", category = OptionCategory.USER) //
+    @Option(help = "Additional directories used to resolve imported Lama units. Entries are separated using the platform path separator.", category = OptionCategory.USER, stability = OptionStability.STABLE) //
     public static final OptionKey<String> UnitSearchPath = new OptionKey<>("");
 
     @Override
