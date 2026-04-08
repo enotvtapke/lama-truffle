@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.LamaLanguage;
+import com.oracle.truffle.sl.nodes.lama.builtin.LamaImportNode;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
 
 import static com.oracle.truffle.sl.runtime.lama.Utils.stripFileExtension;

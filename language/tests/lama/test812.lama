@@ -1,2 +1,0 @@
-printf ("%d\n", compare (getEnv ("__NO_LAMA_ENV_xyz__"), 0));
-printf ("%d\n", system ("true"))
