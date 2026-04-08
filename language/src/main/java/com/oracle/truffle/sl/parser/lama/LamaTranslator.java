@@ -25,11 +25,13 @@ public class LamaTranslator {
     private final String moduleName;
     private final LamaLanguage language;
     private final Source source;
+    private final InfixExpressionTranslator infixExpressionTranslator;
 
     public LamaTranslator(String moduleName, LamaLanguage language, Source source) {
         this.moduleName = moduleName;
         this.language = language;
         this.source = source;
+        this.infixExpressionTranslator = new InfixExpressionTranslator(scopeManager, source, this::readVariable);
     }
 
     public LamaModuleRootNode parseLama() {
@@ -207,7 +209,7 @@ public class LamaTranslator {
         return node;
     }
 
-    private <T extends LamaNode> T setUnavailableSrc(T node) {
+    static <T extends LamaNode> T setUnavailableSrc(T node) {
         node.setUnavailableSourceSection();
         return node;
     }
@@ -265,93 +267,21 @@ public class LamaTranslator {
 
     private LamaExpressionNode parseInfixExpression(
             List<LamaParser.InfixOperandContext> operandCtxs,
-            List<LamaParser.InfixOpContext> opCtxs) {
-        if (opCtxs.isEmpty()) return parseInfixOperand(operandCtxs.getFirst());
+            List<LamaParser.InfixOpContext> operatorCtxs) {
+        if (operatorCtxs.isEmpty()) return parseInfixOperand(operandCtxs.getFirst());
 
-        if (opCtxs.getFirst().getText().equals(":=")) {
+        if (operatorCtxs.getFirst().getText().equals(":=")) {
             var lhsCtx = operandCtxs.getFirst();
             LamaExpressionNode rhs = parseInfixExpression(
                     operandCtxs.subList(1, operandCtxs.size()),
-                    opCtxs.subList(1, opCtxs.size())
+                    operatorCtxs.subList(1, operatorCtxs.size())
             );
             return parseAssignmentTarget(lhsCtx, rhs);
         }
 
         List<LamaExpressionNode> operands = operandCtxs.stream().map(this::parseInfixOperand).toList();
-        List<String> operators = opCtxs.stream().map(RuleContext::getText).toList();
-        InfixChain chain = new InfixChain(operands, operators, opCtxs);
-        var result = buildPrecedenceTree(chain, 0);
-        if (chain.hasNextOperator())
-            throw createParseError(chain.currentOpCtx().start, "Unknown operator: " + chain.currentOperator());
-        return result;
-    }
-
-    /**
-     * Precedence climbing over a flat list of operands and operators.
-     */
-    private LamaExpressionNode buildPrecedenceTree(InfixChain chain, int minPrecedence) {
-        LamaExpressionNode left = chain.consumeOperand();
-
-        while (chain.hasNextOperator()) {
-            String op = chain.currentOperator();
-            InfixTable.OperatorInfo info = scopeManager.lookupInfix(op);
-            if (info == null) {
-                throw createParseError(chain.currentOpCtx().start, "Unknown operator: " + op);
-            }
-            if (info.precedence() < minPrecedence) break;
-
-            int nextMinPrecedence = switch (info.associativity()) {
-                case LEFT, NONE -> info.precedence() + 1;
-                case RIGHT -> info.precedence();
-            };
-
-            LamaExpressionNode right = buildPrecedenceTree(chain, nextMinPrecedence);
-            left = makeBinaryNode(left, op, right);
-
-            if (info.associativity() == Associativity.NONE && chain.hasNextOperator()) {
-                String nextOp = chain.currentOperator();
-                InfixTable.OperatorInfo nextInfo = scopeManager.lookupInfix(nextOp);
-                if (nextInfo != null && nextInfo.precedence() == info.precedence()) {
-                    throw createParseError(chain.currentOpCtx().start,
-                            "Non-associative operator \"" + nextOp + "\" cannot be chained with \"" + op + "\"");
-                }
-            }
-        }
-
-        return left;
-    }
-
-    private LamaExpressionNode makeBinaryNode(
-            LamaExpressionNode left,
-            String op,
-            LamaExpressionNode right
-    ) {
-        LamaExpressionNode node = switch (op) {
-            case ":" -> new LamaCreateSExprNode("cons", new LamaExpressionNode[]{left, right});
-            case "+" -> LamaAddNodeGen.create(left, right);
-            case "-" -> LamaSubNodeGen.create(left, right);
-            case "*" -> LamaMulNodeGen.create(left, right);
-            case "/" -> LamaDivNodeGen.create(left, right);
-            case "%" -> LamaModNodeGen.create(left, right);
-            case "<" -> LamaLessNodeGen.create(left, right);
-            case "<=" -> LamaLessOrEqualNodeGen.create(left, right);
-            case ">" -> LamaGreaterNodeGen.create(left, right);
-            case ">=" -> LamaGreaterOrEqualNodeGen.create(left, right);
-            case "==" -> LamaEqualNodeGen.create(left, right);
-            case "!=" -> LamaNotEqualNodeGen.create(left, right);
-            case "&&" -> new LamaLogicalAndNode(left, right);
-            case "!!" -> new LamaLogicalOrNode(left, right);
-            case ":=" -> throw new IllegalArgumentException("Unsupported assignment target: " + left);
-            default -> {
-                String mangledName = InfixTable.infixName(op);
-                LamaExpressionNode func = setUnavailableSrc(readVariable(mangledName));
-                yield new LamaInvokeNode(func, new LamaExpressionNode[]{left, right});
-            }
-        };
-        int startIndex = left.getSourceCharIndex();
-        int length = right.getSourceCharIndex() + right.getSourceLength() - startIndex;
-        node.setSourceSection(startIndex, length);
-        return node;
+        List<String> operators = operatorCtxs.stream().map(RuleContext::getText).toList();
+        return infixExpressionTranslator.parseInfixExpression(operands, operators, operatorCtxs);
     }
 
     private LamaExpressionNode parseAssignmentTarget(
@@ -687,7 +617,7 @@ public class LamaTranslator {
         return createParseError(source, token.getLine(), token.getCharPositionInLine(), token, message);
     }
 
-    private static LamaParseError createParseError(Source source, int line, int charPositionInLine, Token token, String message) {
+    static LamaParseError createParseError(Source source, int line, int charPositionInLine, Token token, String message) {
         int col = charPositionInLine + 1;
         String location = "-- line " + line + " col " + col + ": ";
         int length = token == null ? 1 : Math.max(token.getStopIndex() - token.getStartIndex(), 0);
