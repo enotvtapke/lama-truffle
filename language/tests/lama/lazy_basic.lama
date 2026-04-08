@@ -1,0 +1,6 @@
+var n = 0;
+fun sideEffect () { n := n + 1; 42 }
+var l = lazy sideEffect ();
+write (force (l));
+write (force (l));
+write (n)

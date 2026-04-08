@@ -74,6 +74,10 @@ public final class LamaContext {
         return env;
     }
 
+    public LamaLanguage getLanguage() {
+        return language;
+    }
+
     @TruffleBoundary
     public LamaModule registerModule(String moduleName) {
         if (moduleRegistry.containsKey(moduleName)) {
@@ -199,6 +203,8 @@ public final class LamaContext {
         registerBuiltIn(LamaGetEnvBuiltinNodeFactory.create());
         registerBuiltIn(LamaSystemBuiltinNodeFactory.create());
         registerBuiltIn(LamaRandomBuiltinNodeFactory.create());
+        registerBuiltIn(LamaMakeLazyBuiltinNodeFactory.create());
+        registerBuiltIn(LamaForceBuiltinNodeFactory.create());
         registerSysargs();
     }
 
