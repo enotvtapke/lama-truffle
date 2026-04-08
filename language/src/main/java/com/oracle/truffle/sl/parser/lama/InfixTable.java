@@ -53,12 +53,12 @@ public final class InfixTable {
 
     public void addBefore(String newOp, String refOp, Associativity assoc) {
         int refIdx = findLevel(refOp);
-        levels.add(refIdx, new Level(assoc, List.of(newOp)));
+        levels.add(refIdx, new Level(assoc, arrayList(newOp)));
     }
 
     public void addAfter(String newOp, String refOp, Associativity assoc) {
         int refIdx = findLevel(refOp);
-        levels.add(refIdx + 1, new Level(assoc, List.of(newOp)));
+        levels.add(refIdx + 1, new Level(assoc, arrayList(newOp)));
     }
 
     /**

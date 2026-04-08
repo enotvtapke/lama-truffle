@@ -19,13 +19,13 @@ import com.oracle.truffle.sl.nodes.lama.LamaRootNode;
 import com.oracle.truffle.sl.nodes.lama.builtin.*;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.oracle.truffle.sl.LamaLanguage.buildUnitSearchPaths;
 
 @Bind.DefaultExpression("get($node)")
 public final class LamaContext {
@@ -137,19 +137,6 @@ public final class LamaContext {
         } catch (Exception e) {
             throw new RuntimeException("Failed to load module: " + path, e);
         }
-    }
-
-    private List<String> buildUnitSearchPaths(Env env) {
-        List<String> searchPaths = new ArrayList<>();
-        String configuredPaths = LamaLanguage.UnitSearchPath.getValue(env.getOptions());
-        if (!configuredPaths.isEmpty()) {
-            for (String path : configuredPaths.split(File.pathSeparator)) {
-                if (!path.isEmpty() && !searchPaths.contains(path)) {
-                    searchPaths.add(path);
-                }
-            }
-        }
-        return searchPaths;
     }
 
     private TruffleFile findModuleFile(String path) {

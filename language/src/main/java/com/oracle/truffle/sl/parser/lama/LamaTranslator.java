@@ -1,5 +1,7 @@
 package com.oracle.truffle.sl.parser.lama;
 
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.sl.LamaLanguage;
@@ -14,10 +16,11 @@ import com.oracle.truffle.sl.parser.lama.InfixTable.Associativity;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Interval;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 import java.util.function.Supplier;
 
+import static com.oracle.truffle.sl.LamaLanguage.buildUnitSearchPaths;
 import static com.oracle.truffle.sl.parser.lama.InfixTable.BUILTIN_INFIX_OPERATORS;
 
 public class LamaTranslator {
@@ -28,11 +31,16 @@ public class LamaTranslator {
     private final LamaLanguage language;
     private final Source source;
     private final InfixExpressionTranslator infixExpressionTranslator;
+    private final TruffleLanguage.Env env;
+    private final List<String> unitSearchPaths;
+    private final Set<String> processedInterfaceFiles = new HashSet<>();
 
-    public LamaTranslator(String moduleName, LamaLanguage language, Source source) {
+    public LamaTranslator(String moduleName, LamaLanguage language, Source source, TruffleLanguage.Env env) {
         this.moduleName = moduleName;
         this.language = language;
         this.source = source;
+        this.env = env;
+        this.unitSearchPaths = buildUnitSearchPaths(env);
         this.infixExpressionTranslator = new InfixExpressionTranslator(scopeManager, source, this::readVariable);
     }
 
@@ -49,9 +57,44 @@ public class LamaTranslator {
     }
 
     private LamaModuleRootNode parseCompilationUnit(LamaParser.CompilationUnitContext ctx) {
+        for (var importToken : ctx.UIDENT()) {
+            processInterfaceFile(importToken.getText());
+        }
         var imports = ctx.UIDENT().stream().map(it -> setSrc(LamaImportNodeGen.create(it.getText()), it.getSymbol())).toList();
         var block = parseScopeExpression(ctx.scopeExpression());
         return new LamaModuleRootNode(language, scopeManager.buildFrame(), block, imports.toArray(new LamaImportNode[0]), source.createSection(0, source.getLength()));
+    }
+
+    private void processInterfaceFile(String importedModuleName) {
+        if (processedInterfaceFiles.contains(importedModuleName)) return;
+        processedInterfaceFiles.add(importedModuleName);
+
+        String content = readInterfaceFile(importedModuleName);
+        if (content == null) return;
+
+        InterfaceFileParser.InterfaceFile interfaceFile = InterfaceFileParser.parse(content);
+        for (InterfaceFileParser.InfixEntry entry : interfaceFile.infixEntries()) {
+            switch (entry.position()) {
+                case AT -> scopeManager.addInfixAt(entry.operator(), entry.referenceOperator());
+                case BEFORE -> scopeManager.addInfixBefore(entry.operator(), entry.referenceOperator(), entry.associativity());
+                case AFTER -> scopeManager.addInfixAfter(entry.operator(), entry.referenceOperator(), entry.associativity());
+            }
+        }
+    }
+
+    private String readInterfaceFile(String moduleName) {
+        String interfaceFileName = moduleName + ".i";
+        for (String searchPath : unitSearchPaths) {
+            TruffleFile file = env.getPublicTruffleFile(searchPath).resolve(interfaceFileName);
+            if (file.exists()) {
+                try {
+                    return new String(file.readAllBytes());
+                } catch (IOException e) {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     private LamaExpressionNode toExpression(List<LamaExpressionNode> expressions, ParserRuleContext ctx) {

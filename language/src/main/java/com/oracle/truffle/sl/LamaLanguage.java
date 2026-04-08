@@ -21,6 +21,10 @@ import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionStability;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
 import static com.oracle.truffle.sl.runtime.lama.Utils.stripFileExtension;
 
 
@@ -39,8 +43,11 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
     @Option(help = "Additional directories used to resolve imported Lama units. Entries are separated using the platform path separator.", category = OptionCategory.USER, stability = OptionStability.STABLE) //
     public static final OptionKey<String> UnitSearchPath = new OptionKey<>("");
 
+    private Env currentEnv;
+
     @Override
     protected LamaContext createContext(Env env) {
+        this.currentEnv = env;
         return new LamaContext(this, env);
     }
 
@@ -53,8 +60,21 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
     protected CallTarget parse(ParsingRequest request) throws Exception {
         Source source = request.getSource();
         String moduleName = stripFileExtension(source.getName());
-        var root = new LamaTranslator(moduleName, this, source).parseLama();
+        var root = new LamaTranslator(moduleName, this, source, currentEnv).parseLama();
         return root.getCallTarget();
+    }
+
+    public static List<String> buildUnitSearchPaths(TruffleLanguage.Env env) {
+        List<String> searchPaths = new ArrayList<>();
+        String configuredPaths = LamaLanguage.UnitSearchPath.getValue(env.getOptions());
+        if (!configuredPaths.isEmpty()) {
+            for (String path : configuredPaths.split(File.pathSeparator)) {
+                if (!path.isEmpty() && !searchPaths.contains(path)) {
+                    searchPaths.add(path);
+                }
+            }
+        }
+        return searchPaths;
     }
 
     private static final LanguageReference<LamaLanguage> REFERENCE = LanguageReference.create(LamaLanguage.class);
