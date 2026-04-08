@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
+import static com.oracle.truffle.sl.parser.lama.InfixTable.BUILTIN_INFIX_OPERATORS;
+
 public class LamaTranslator {
     public static final String ANONYMOUS_FUN_NAME = "<anonymous>";
     private final ScopeManager scopeManager = new ScopeManager();
@@ -102,6 +104,8 @@ public class LamaTranslator {
         var posCtx = ctx.infixPosition();
         String refOp = posCtx.infixOp().getText();
 
+        if (opSymbol.equals(":=")) throw createParseError(ctx.start, "Cannot redefine assignment operator");
+        if (ctx.PUBLIC() != null && BUILTIN_INFIX_OPERATORS.contains(opSymbol)) throw createParseError(ctx.start, "Cannot export redefined builtin infix operator: " + opSymbol);
         if (posCtx.AT() != null) {
             if (assoc != Associativity.NONE) {
                 throw createParseError(ctx.start, "Associativity for infix \"" + opSymbol + "\" cannot be specified with 'at' (it is inherited from \"" + refOp + "\")");

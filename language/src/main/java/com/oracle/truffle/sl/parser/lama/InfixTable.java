@@ -3,6 +3,7 @@ package com.oracle.truffle.sl.parser.lama;
 import java.util.*;
 
 public final class InfixTable {
+    static final List<String> BUILTIN_INFIX_OPERATORS = createDefault().levels.stream().flatMap(l -> l.operators.stream()).toList();
 
     public enum Associativity { LEFT, RIGHT, NONE }
 
