@@ -1,0 +1,29 @@
+fun testBasic() {
+  infix <+> at + (a, b) { a + b * 10 }
+  write(1 <+> 2);
+  write(3 <+> 4)
+}
+
+fun testClosure(base) {
+  infix <*> at * (a, b) { a * b + base }
+  write(3 <*> 4);
+  write(2 <*> 5)
+}
+
+fun testNested() {
+  infixl ~> after := (a, b) { b(a) }
+  fun double(n) { n * 2 }
+  fun apply(x) {
+    x ~> double
+  }
+  write(apply(5));
+  write(apply(7))
+}
+
+testBasic();
+testClosure(100);
+write(
+  (infix <-> at + (a, b) { a - b }
+   10 <-> 3)
+);
+testNested()
