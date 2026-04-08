@@ -29,7 +29,7 @@ public final class InfixTable {
         levels.add(new Level(Associativity.LEFT, arrayList("!!")));
         levels.add(new Level(Associativity.LEFT, arrayList("&&")));
         levels.add(new Level(Associativity.NONE, arrayList("==", "!=", "<=", "<", ">=", ">")));
-        levels.add(new Level(Associativity.LEFT, arrayList("+", "-")));
+        levels.add(new Level(Associativity.LEFT, arrayList("+", "-", "++")));
         levels.add(new Level(Associativity.LEFT, arrayList("*", "/", "%")));
         return new InfixTable(levels);
     }

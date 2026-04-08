@@ -1,0 +1,11 @@
+import Collection;
+
+var ht = emptyHashTab (16, hash, compare);
+
+ht := addHashTab (ht, "a", 1);
+ht := addHashTab (ht, "b", 2);
+case findHashTab (ht, "a") of Some (v) -> write (v) | None -> write (-1) esac;
+case findHashTab (ht, "b") of Some (v) -> write (v) | None -> write (-1) esac;
+case findHashTab (ht, "c") of Some (v) -> write (v) | None -> write (-1) esac;
+ht := removeHashTab (ht, "a");
+case findHashTab (ht, "a") of Some (v) -> write (v) | None -> write (-1) esac

@@ -1,0 +1,22 @@
+import Collection;
+import List;
+
+var m = emptyMap (compare);
+var m2;
+var m3;
+
+write (isEmptyMap (m));
+m := addMap (m, 1, 10);
+m := addMap (m, 2, 20);
+m := addMap (m, 3, 30);
+write (isEmptyMap (m));
+case findMap (m, 2) of Some (v) -> write (v) | None -> write (-1) esac;
+case findMap (m, 99) of Some (v) -> write (v) | None -> write (-1) esac;
+m := removeMap (m, 2);
+case findMap (m, 2) of Some (v) -> write (v) | None -> write (-1) esac;
+iter (fun ([k, v]) { printf ("%d:%d\n", k, v) }, bindings (m));
+write (foldMap (fun (acc, [k, v]) { acc + v }, 0, m));
+m2 := listMap ({[5, 50], [6, 60]}, compare);
+case findMap (m2, 5) of Some (v) -> write (v) | None -> write (-1) esac;
+m3 := mapMap (fun (v) { v * 2 }, m);
+case findMap (m3, 1) of Some (v) -> write (v) | None -> write (-1) esac

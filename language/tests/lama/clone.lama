@@ -1,0 +1,15 @@
+var a = [10, 20];
+var b = clone (a);
+var s = "ab";
+var t = clone (s);
+t[0] := 122;
+b[0] := 99;
+
+printf ("%d\n", compare (a, b));
+printf ("%d\n", a[0]);
+printf ("%d\n", b[0]);
+printf ("%d\n", compare (a, b));
+printf ("%s\n", s);
+printf ("%s\n", t);
+
+printf ("%d\n", compare (clone (7), 7))

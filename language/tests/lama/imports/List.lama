@@ -38,6 +38,13 @@ public fun map (f, l) {
   esac
 }
 
+public infix +++ at + (x, y) {
+  case x of
+    {}     -> y
+  | x : xs -> x : xs +++ y
+  esac
+}
+
 public fun reverse (l) {
   fun inner (acc, l) {
     case l of
@@ -68,13 +75,13 @@ public fun flatten (l) {
 
   fun append (x) {
     var new = x : {};
-    
+
     curr [0][1] := new;
-    curr [0] := new    
+    curr [0] := new
   }
 
   iter (fun (x) {iter (append, x)}, l);
-  
+
   res [1]
 }
 
@@ -83,9 +90,9 @@ public fun deepFlatten (l) {
 
   fun append (x) {
     var new = x : {};
-    
+
     curr [0][1] := new;
-    curr [0] := new    
+    curr [0] := new
   }
 
   fun traverse (l) {
@@ -95,9 +102,9 @@ public fun deepFlatten (l) {
     | _     -> append (l)
     esac
   }
-  
+
   traverse (l);
-  
+
   res [1]
 }
 

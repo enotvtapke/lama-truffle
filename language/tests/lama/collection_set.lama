@@ -1,0 +1,24 @@
+import Collection;
+import List;
+
+var s = emptySet (compare);
+var s2;
+var u;
+var d;
+
+write (isEmptySet (s));
+s := addSet (s, 3);
+s := addSet (s, 1);
+s := addSet (s, 2);
+write (isEmptySet (s));
+write (memSet (s, 2));
+write (memSet (s, 99));
+iter (fun (x) { write (x) }, elements (s));
+s2 := addSet (addSet (emptySet (compare), 2), 4);
+u := union (s, s2);
+iter (fun (x) { write (x) }, elements (u));
+d := diff (s, s2);
+iter (fun (x) { write (x) }, elements (d));
+write (foldSet (fun (acc, x) { acc + x }, 0, s));
+s := removeSet (s, 2);
+write (memSet (s, 2))

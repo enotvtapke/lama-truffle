@@ -1,0 +1,16 @@
+import List;
+
+var m = map (fun (x) { x * 2 }, {1, 2, 3});
+
+iter (fun (x) { write (x) }, {10, 20, 30});
+write (hd (m));
+write (hd (tl (m)));
+write (hd (tl (tl (m))));
+case find (fun (x) { x == 3 }, {1, 2, 3, 4}) of
+  Some (v) -> write (v)
+| None     -> write (0)
+esac;
+case assoc ({[1, 10], [2, 20], [3, 30]}, 2) of
+  Some (v) -> write (v)
+| None     -> write (0)
+esac

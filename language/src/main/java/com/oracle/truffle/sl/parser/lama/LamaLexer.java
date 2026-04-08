@@ -1,4 +1,4 @@
-// Generated from language/src/main/java/com/oracle/truffle/sl/parser/lama/Lama.g4 by ANTLR 4.13.2
+// Generated from Lama.g4 by ANTLR 4.13.2
 package com.oracle.truffle.sl.parser.lama;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
@@ -197,7 +197,7 @@ public class LamaLexer extends Lexer {
 		":u;w<y={>}?\u007f@\u0081A\u0083B\u0085C\u0087D\u0089E\u008bF\u008dG\u008f"+
 		"H\u0091I\u0093J\u0001\u0000\t\u0002\u0000\n\n\r\r\u0003\u0000\t\n\r\r"+
 		"  \u0001\u0000AZ\u0004\u000009AZ__az\u0001\u0000az\u0001\u000009\u0001"+
-		"\u0000\"\"\u0001\u0000\'\'\n\u0000!!$&*+--//::<<>?^^~~\u01dd\u0000\u0001"+
+		"\u0000\"\"\u0001\u0000\'\'\t\u0000!!$&*+--//::<?^^~~\u01dd\u0000\u0001"+
 		"\u0001\u0000\u0000\u0000\u0000\u0003\u0001\u0000\u0000\u0000\u0000\u0005"+
 		"\u0001\u0000\u0000\u0000\u0000\u0007\u0001\u0000\u0000\u0000\u0000\t\u0001"+
 		"\u0000\u0000\u0000\u0000\u000b\u0001\u0000\u0000\u0000\u0000\r\u0001\u0000"+
