@@ -11,6 +11,7 @@ scopeExpression : definition* expression? ;
 definition
     : variableDefinition ';'
     | functionDefinition
+    | infixDefinition
     ;
 
 variableDefinition : ( VAR | PUBLIC ) variableDefinitionSequence ;
@@ -22,26 +23,41 @@ functionDefinition : PUBLIC? FUN LIDENT '(' functionArguments ')' functionBody;
 functionArguments : ( pattern ( ',' pattern )* )?;
 functionBody : '{' scopeExpression '}';
 
+infixDefinition
+    : PUBLIC? (INFIX | INFIXL | INFIXR)
+      infixOp infixPosition '(' functionArguments ')' functionBody
+    ;
+
+infixPosition
+    : AT infixOp
+    | BEFORE infixOp
+    | AFTER infixOp
+    ;
+
 expression : basicExpression ( ';' basicExpression )*;
-basicExpression
-    : '-'? postfix                                                       # PostfixExpr
-    | '(' basicExpression ')'                                            # ParenExpr
-    | basicExpression '.' postfix                                        # DotExpr
-    | ETA basicExpression                                                # EtaExpr
-    | LAZY basicExpression                                               # LazyExpr
-    | basicExpression op=('*' | '/' | '%') basicExpression               # MulDivModExpr
-    | basicExpression op=('+' | '-') basicExpression                     # AddSubExpr
-    | basicExpression op=('==' | '!=' | '<=' | '<' | '>=' | '>') basicExpression # CompExpr
-    | basicExpression op='&&' basicExpression                            # AndExpr
-    | basicExpression op='!!' basicExpression                            # OrExpr
-    | <assoc=right> basicExpression op=':' basicExpression               # ListConsExpr
-    | <assoc=right> basicExpression op=':=' basicExpression              # AssignExpr
+
+basicExpression : infixOperand (infixOp infixOperand)* ;
+
+infixOperand
+    : '-' postfix              # NegOperand
+    | postfix                  # PlainOperand
+    | ETA basicExpression      # EtaOperand
+    | LAZY basicExpression     # LazyOperand
+    ;
+
+infixOp
+    : '+' | '-' | '*' | '/' | '%'
+    | '==' | '!=' | '<=' | '<' | '>=' | '>'
+    | '&&' | '!!'
+    | ':' | ':='
+    | INFIX_OP
     ;
 
 postfix
     : primary                                                            # PrimaryPostfix
     | postfix '(' ( expression ( ',' expression )* )? ')'               # InvokePostfix
     | postfix '[' expression ']'                                         # ArrayPostfix
+    | postfix '.' postfix                                                # DotPostfix
     ;
 
 primary
@@ -152,12 +168,6 @@ WHILE: 'while' ;
 LET: 'let' ;
 IN: 'in' ;
 
-OP_OR: '||';
-OP_AND: '&&';
-OP_COMPARE: '<' | '<=' | '>' | '>=' | '==' | '!=';
-OP_ADD: '+' | '-';
-OP_MUL: '*' | '/';
-
 COMMENT : '(*' .*? '*)' -> skip;
 LINE_COMMENT : '--' (~[\r\n])* -> skip;
 WS : [ \n\r\t]+ -> skip;
@@ -167,3 +177,5 @@ LIDENT: [a-z][a-zA-Z_0-9]* ;
 DECIMAL: [0-9]+ ;
 STRING: '"'(~["]|'""')*'"';
 CHAR: '\''(~[']|'\'\''|'\\n'|'\\t')'\'' ;
+
+INFIX_OP: [+\-*/%$!&^~?<>:]+ ;

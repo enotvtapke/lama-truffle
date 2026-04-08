@@ -71,95 +71,70 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFunctionBody(LamaParser.FunctionBodyContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link LamaParser#infixDefinition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInfixDefinition(LamaParser.InfixDefinitionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LamaParser#infixPosition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInfixPosition(LamaParser.InfixPositionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link LamaParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitExpression(LamaParser.ExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code PostfixExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
+	 * Visit a parse tree produced by {@link LamaParser#basicExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitPostfixExpr(LamaParser.PostfixExprContext ctx);
+	T visitBasicExpression(LamaParser.BasicExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code AndExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
+	 * Visit a parse tree produced by the {@code NegOperand}
+	 * labeled alternative in {@link LamaParser#infixOperand}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitAndExpr(LamaParser.AndExprContext ctx);
+	T visitNegOperand(LamaParser.NegOperandContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code ListConsExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
+	 * Visit a parse tree produced by the {@code PlainOperand}
+	 * labeled alternative in {@link LamaParser#infixOperand}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitListConsExpr(LamaParser.ListConsExprContext ctx);
+	T visitPlainOperand(LamaParser.PlainOperandContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code MulDivModExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
+	 * Visit a parse tree produced by the {@code EtaOperand}
+	 * labeled alternative in {@link LamaParser#infixOperand}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitMulDivModExpr(LamaParser.MulDivModExprContext ctx);
+	T visitEtaOperand(LamaParser.EtaOperandContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code LazyExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
+	 * Visit a parse tree produced by the {@code LazyOperand}
+	 * labeled alternative in {@link LamaParser#infixOperand}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitLazyExpr(LamaParser.LazyExprContext ctx);
+	T visitLazyOperand(LamaParser.LazyOperandContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code CompExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
+	 * Visit a parse tree produced by {@link LamaParser#infixOp}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitCompExpr(LamaParser.CompExprContext ctx);
+	T visitInfixOp(LamaParser.InfixOpContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code DotExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
+	 * Visit a parse tree produced by the {@code DotPostfix}
+	 * labeled alternative in {@link LamaParser#postfix}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitDotExpr(LamaParser.DotExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code ParenExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitParenExpr(LamaParser.ParenExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code AddSubExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitAddSubExpr(LamaParser.AddSubExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code OrExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitOrExpr(LamaParser.OrExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code EtaExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitEtaExpr(LamaParser.EtaExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code AssignExpr}
-	 * labeled alternative in {@link LamaParser#basicExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitAssignExpr(LamaParser.AssignExprContext ctx);
+	T visitDotPostfix(LamaParser.DotPostfixContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code InvokePostfix}
 	 * labeled alternative in {@link LamaParser#postfix}.

@@ -10,6 +10,7 @@ import com.oracle.truffle.sl.nodes.lama.expression.*;
 import com.oracle.truffle.sl.nodes.lama.patterns.CaseBranchNode;
 import com.oracle.truffle.sl.nodes.lama.patterns.LamaCaseNode;
 import com.oracle.truffle.sl.nodes.lama.patterns.LamaPatternNode;
+import com.oracle.truffle.sl.parser.lama.InfixTable.Associativity;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Interval;
 
@@ -89,7 +90,51 @@ public class LamaTranslator {
     private List<VariableDefinition> parseDefinition(LamaParser.DefinitionContext ctx) {
         if (ctx.variableDefinition() != null) return parseVariableDefinition(ctx.variableDefinition());
         if (ctx.functionDefinition() != null) return List.of(parseFunctionDefinition(ctx.functionDefinition()));
+        if (ctx.infixDefinition() != null) return List.of(parseInfixDefinition(ctx.infixDefinition()));
         throw createParseError(ctx.start, "Unsupported definition type: " + getOriginalText(ctx));
+    }
+
+    private VariableDefinition parseInfixDefinition(LamaParser.InfixDefinitionContext ctx) {
+        Associativity assoc = associativity(ctx);
+        String opSymbol = ctx.infixOp().getText();
+        var posCtx = ctx.infixPosition();
+        String refOp = posCtx.infixOp().getText();
+
+        if (posCtx.AT() != null) {
+            if (assoc != Associativity.NONE) {
+                throw createParseError(ctx.start, "Associativity for infix \"" + opSymbol + "\" cannot be specified with 'at' (it is inherited from \"" + refOp + "\")");
+            }
+            scopeManager.addInfixAt(opSymbol, refOp);
+        } else if (posCtx.BEFORE() != null) {
+            scopeManager.addInfixBefore(opSymbol, refOp, assoc);
+        } else {
+            scopeManager.addInfixAfter(opSymbol, refOp, assoc);
+        }
+
+        var patterns = ctx.functionArguments().pattern();
+        if (patterns.size() != 2) {
+            throw createParseError(ctx.start, "Infix operator must accept exactly 2 arguments, got " + patterns.size());
+        }
+
+        String mangledName = InfixTable.infixName(opSymbol);
+
+        return new VariableDefinition(
+                mangledName,
+                () -> buildFunction(ctx.functionArguments(), ctx.functionBody(), mangledName, getSourceSection(ctx)),
+                ctx.PUBLIC() != null,
+                true,
+                ctx
+        );
+    }
+
+    private static Associativity associativity(LamaParser.InfixDefinitionContext ctx) {
+        if (ctx.INFIX() != null) {
+            return Associativity.NONE;
+        } else if (ctx.INFIXL() != null) {
+            return Associativity.LEFT;
+        } else {
+            return Associativity.RIGHT;
+        }
     }
 
     private List<VariableDefinition> parseVariableDefinition(LamaParser.VariableDefinitionContext ctx) {
@@ -146,6 +191,11 @@ public class LamaTranslator {
         return source.createSection(functionStartPos, bodyEndPos - functionStartPos);
     }
 
+    private <T extends LamaNode> T setSrc(T node, int startIndex, int length) {
+        node.setSourceSection(startIndex, length);
+        return node;
+    }
+
     private <T extends LamaNode> T setSrc(T node, ParserRuleContext ctx) {
         int startIndex = ctx.getStart().getStartIndex();
         node.setSourceSection(startIndex, ctx.getStop().getStopIndex() - startIndex + 1);
@@ -189,7 +239,6 @@ public class LamaTranslator {
 
         LamaExpressionNode bodyExpr = parseScopeExpression(fbody.scopeExpression());
 
-        // This code generates a series of nested cases
         for (int i = patternNodes.size() - 1; i >= 0; i--) {
             int argIndex = complexPatternIndices.get(i);
             String freshName = "__arg" + (argIndex + 1);
@@ -211,33 +260,131 @@ public class LamaTranslator {
     }
 
     private LamaExpressionNode parseBasicExpression(LamaParser.BasicExpressionContext ctx) {
-        return switch (ctx) {
-            case LamaParser.PostfixExprContext c -> parsePostfixExpr(c);
-            case LamaParser.ParenExprContext c -> parseParenExpr(c);
-            case LamaParser.AssignExprContext c -> parseAssignment(c);
-            case LamaParser.AddSubExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
-            case LamaParser.MulDivModExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
-            case LamaParser.CompExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
-            case LamaParser.AndExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
-            case LamaParser.OrExprContext c -> parseBinaryExpression(c.basicExpression(0), c.basicExpression(1), c.op);
-            case LamaParser.EtaExprContext c -> parseEtaExpression(c);
-            case LamaParser.LazyExprContext c -> parseLazyExpression(c);
-            case LamaParser.DotExprContext c -> parseDotExpression(parseBasicExpression(c.basicExpression()), c.postfix());
-            case LamaParser.ListConsExprContext c -> {
-                LamaExpressionNode left = parseBasicExpression(c.basicExpression(0));
-                LamaExpressionNode right = parseBasicExpression(c.basicExpression(1));
-                yield setSrc(new LamaCreateSExprNode("cons", new LamaExpressionNode[]{left, right}), c);
-            }
-            default -> throw createParseError(ctx.start, "Unknown basicExpression type: " + getOriginalText(ctx));
-        };
+        return parseInfixExpression(ctx.infixOperand(), ctx.infixOp());
     }
 
-    private LamaExpressionNode parsePostfixExpr(LamaParser.PostfixExprContext ctx) {
-        LamaExpressionNode expr = parsePostfix(ctx.postfix());
-        if (ctx.getChildCount() > 1) {
-            return setSrc(LamaNegNodeGen.create(expr), ctx);
+    private LamaExpressionNode parseInfixExpression(
+            List<LamaParser.InfixOperandContext> operandCtxs,
+            List<LamaParser.InfixOpContext> opCtxs) {
+        if (opCtxs.isEmpty()) return parseInfixOperand(operandCtxs.getFirst());
+
+        if (opCtxs.getFirst().getText().equals(":=")) {
+            var lhsCtx = operandCtxs.getFirst();
+            LamaExpressionNode rhs = parseInfixExpression(
+                    operandCtxs.subList(1, operandCtxs.size()),
+                    opCtxs.subList(1, opCtxs.size())
+            );
+            return parseAssignmentTarget(lhsCtx, rhs);
         }
-        return expr;
+
+        List<LamaExpressionNode> operands = operandCtxs.stream().map(this::parseInfixOperand).toList();
+        List<String> operators = opCtxs.stream().map(RuleContext::getText).toList();
+        InfixChain chain = new InfixChain(operands, operators, opCtxs);
+        var result = buildPrecedenceTree(chain, 0);
+        if (chain.hasNextOperator())
+            throw createParseError(chain.currentOpCtx().start, "Unknown operator: " + chain.currentOperator());
+        return result;
+    }
+
+    /**
+     * Precedence climbing over a flat list of operands and operators.
+     */
+    private LamaExpressionNode buildPrecedenceTree(InfixChain chain, int minPrecedence) {
+        LamaExpressionNode left = chain.consumeOperand();
+
+        while (chain.hasNextOperator()) {
+            String op = chain.currentOperator();
+            InfixTable.OperatorInfo info = scopeManager.lookupInfix(op);
+            if (info == null) {
+                throw createParseError(chain.currentOpCtx().start, "Unknown operator: " + op);
+            }
+            if (info.precedence() < minPrecedence) break;
+
+            int nextMinPrecedence = switch (info.associativity()) {
+                case LEFT, NONE -> info.precedence() + 1;
+                case RIGHT -> info.precedence();
+            };
+
+            LamaExpressionNode right = buildPrecedenceTree(chain, nextMinPrecedence);
+            left = makeBinaryNode(left, op, right);
+
+            if (info.associativity() == Associativity.NONE && chain.hasNextOperator()) {
+                String nextOp = chain.currentOperator();
+                InfixTable.OperatorInfo nextInfo = scopeManager.lookupInfix(nextOp);
+                if (nextInfo != null && nextInfo.precedence() == info.precedence()) {
+                    throw createParseError(chain.currentOpCtx().start,
+                            "Non-associative operator \"" + nextOp + "\" cannot be chained with \"" + op + "\"");
+                }
+            }
+        }
+
+        return left;
+    }
+
+    private LamaExpressionNode makeBinaryNode(
+            LamaExpressionNode left,
+            String op,
+            LamaExpressionNode right
+    ) {
+        LamaExpressionNode node = switch (op) {
+            case ":" -> new LamaCreateSExprNode("cons", new LamaExpressionNode[]{left, right});
+            case "+" -> LamaAddNodeGen.create(left, right);
+            case "-" -> LamaSubNodeGen.create(left, right);
+            case "*" -> LamaMulNodeGen.create(left, right);
+            case "/" -> LamaDivNodeGen.create(left, right);
+            case "%" -> LamaModNodeGen.create(left, right);
+            case "<" -> LamaLessNodeGen.create(left, right);
+            case "<=" -> LamaLessOrEqualNodeGen.create(left, right);
+            case ">" -> LamaGreaterNodeGen.create(left, right);
+            case ">=" -> LamaGreaterOrEqualNodeGen.create(left, right);
+            case "==" -> LamaEqualNodeGen.create(left, right);
+            case "!=" -> LamaNotEqualNodeGen.create(left, right);
+            case "&&" -> new LamaLogicalAndNode(left, right);
+            case "!!" -> new LamaLogicalOrNode(left, right);
+            case ":=" -> throw new IllegalArgumentException("Unsupported assignment target: " + left);
+            default -> {
+                String mangledName = InfixTable.infixName(op);
+                LamaExpressionNode func = setUnavailableSrc(readVariable(mangledName));
+                yield new LamaInvokeNode(func, new LamaExpressionNode[]{left, right});
+            }
+        };
+        int startIndex = left.getSourceCharIndex();
+        int length = right.getSourceCharIndex() + right.getSourceLength() - startIndex;
+        node.setSourceSection(startIndex, length);
+        return node;
+    }
+
+    private LamaExpressionNode parseAssignmentTarget(
+            LamaParser.InfixOperandContext leftCtx,
+            LamaExpressionNode rightExpr
+    ) {
+        int startIndex = leftCtx.getStart().getStartIndex();
+        int length = rightExpr.getSourceCharIndex() + rightExpr.getSourceLength() - startIndex;
+
+        if (leftCtx instanceof LamaParser.PlainOperandContext plain) {
+            LamaParser.PostfixContext postfixCtx = plain.postfix();
+            if (postfixCtx instanceof LamaParser.PrimaryPostfixContext pp) {
+                if (pp.primary() instanceof LamaParser.IdentPrimaryContext ident) {
+                    return setSrc(writeVariable(ident.LIDENT().getText(), rightExpr), startIndex, length);
+                }
+            }
+            if (postfixCtx instanceof LamaParser.ArrayPostfixContext ap) {
+                LamaExpressionNode receiver = parsePostfix(ap.postfix());
+                LamaExpressionNode index = parseExpression(ap.expression());
+                return setSrc(LamaArrayWriteNodeGen.create(receiver, index, rightExpr), startIndex, length);
+            }
+        }
+        throw createParseError(leftCtx.start, "Unsupported assignment target");
+    }
+
+    private LamaExpressionNode parseInfixOperand(LamaParser.InfixOperandContext ctx) {
+        return switch (ctx) {
+            case LamaParser.PlainOperandContext c -> parsePostfix(c.postfix());
+            case LamaParser.NegOperandContext c -> setSrc(LamaNegNodeGen.create(parsePostfix(c.postfix())), c);
+            case LamaParser.EtaOperandContext c -> parseEtaExpression(c);
+            case LamaParser.LazyOperandContext c -> parseLazyExpression(c);
+            default -> throw createParseError(ctx.start, "Unknown infixOperand type: " + getOriginalText(ctx));
+        };
     }
 
     private LamaExpressionNode parsePostfix(LamaParser.PostfixContext ctx) {
@@ -254,6 +401,10 @@ public class LamaTranslator {
                 LamaExpressionNode receiver = parsePostfix(c.postfix());
                 LamaExpressionNode index = parseExpression(c.expression());
                 yield setSrc(LamaArrayReadNodeGen.create(receiver, index), c);
+            }
+            case LamaParser.DotPostfixContext c -> {
+                LamaExpressionNode firstArg = parsePostfix(c.postfix(0));
+                yield parseDotExpression(firstArg, c.postfix(1));
             }
             default -> throw createParseError(ctx.start, "Unsupported postfix type: " + getOriginalText(ctx));
         };
@@ -410,42 +561,10 @@ public class LamaTranslator {
         };
     }
 
-    private LamaExpressionNode parseBinaryExpression(
-            LamaParser.BasicExpressionContext leftCtx,
-            LamaParser.BasicExpressionContext rightCtx,
-            Token op) {
-        LamaExpressionNode left = parseBasicExpression(leftCtx);
-        LamaExpressionNode right = parseBasicExpression(rightCtx);
-        int startIndex = leftCtx.getStart().getStartIndex();
-        int length = rightCtx.getStop().getStopIndex() - startIndex + 1;
-        LamaExpressionNode node = switch (op.getText()) {
-            case "+" -> LamaAddNodeGen.create(left, right);
-            case "-" -> LamaSubNodeGen.create(left, right);
-            case "*" -> LamaMulNodeGen.create(left, right);
-            case "/" -> LamaDivNodeGen.create(left, right);
-            case "%" -> LamaModNodeGen.create(left, right);
-            case "<" -> LamaLessNodeGen.create(left, right);
-            case "<=" -> LamaLessOrEqualNodeGen.create(left, right);
-            case ">" -> LamaGreaterNodeGen.create(left, right);
-            case ">=" -> LamaGreaterOrEqualNodeGen.create(left, right);
-            case "==" -> LamaEqualNodeGen.create(left, right);
-            case "!=" -> LamaNotEqualNodeGen.create(left, right);
-            case "&&" -> new LamaLogicalAndNode(left, right);
-            case "!!" -> new LamaLogicalOrNode(left, right);
-            default -> throw createParseError(op, "Unknown binary operator: " + op.getText());
-        };
-        node.setSourceSection(startIndex, length);
-        return node;
-    }
-
-    private LamaExpressionNode parseParenExpr(LamaParser.ParenExprContext ctx) {
-        return parseBasicExpression(ctx.basicExpression());
-    }
-
     /**
      * Desugars {@code eta e} into {@code fun (__eta_x) { e(__eta_x) }}.
      */
-    private LamaExpressionNode parseEtaExpression(LamaParser.EtaExprContext ctx) {
+    private LamaExpressionNode parseEtaExpression(LamaParser.EtaOperandContext ctx) {
         SourceSection functionSrc = getSourceSection(ctx);
 
         scopeManager.enterFunction();
@@ -475,7 +594,7 @@ public class LamaTranslator {
     /**
      * Desugars {@code lazy e} into {@code makeLazy(fun () { e })}.
      */
-    private LamaExpressionNode parseLazyExpression(LamaParser.LazyExprContext ctx) {
+    private LamaExpressionNode parseLazyExpression(LamaParser.LazyOperandContext ctx) {
         SourceSection functionSrc = getSourceSection(ctx);
 
         scopeManager.enterFunction();
@@ -526,29 +645,6 @@ public class LamaTranslator {
             }
             default -> throw createParseError(ctx.start, "Unsupported postfix type in dot expression: " + getOriginalText(ctx));
         };
-    }
-
-    private LamaExpressionNode parseAssignment(LamaParser.AssignExprContext ctx) {
-        LamaParser.BasicExpressionContext lhsCtx = ctx.basicExpression(0);
-        LamaExpressionNode value = parseBasicExpression(ctx.basicExpression(1));
-
-        if (lhsCtx instanceof LamaParser.PostfixExprContext pfe) {
-            switch (pfe.postfix()) {
-                case LamaParser.PrimaryPostfixContext pp -> {
-                    if (pp.primary() instanceof LamaParser.IdentPrimaryContext ident) {
-                        return setSrc(writeVariable(ident.LIDENT().getText(), value), ctx);
-                    }
-                }
-                case LamaParser.ArrayPostfixContext ap -> {
-                    LamaExpressionNode receiver = parsePostfix(ap.postfix());
-                    LamaExpressionNode index = parseExpression(ap.expression());
-                    return setSrc(LamaArrayWriteNodeGen.create(receiver, index, value), ctx);
-                }
-                default -> {}
-            }
-        }
-
-        throw createParseError(ctx.start, "Unsupported assignment target: " + getOriginalText(lhsCtx));
     }
 
     private LamaExpressionNode parseArrayExpression(LamaParser.ArrayExpressionContext ctx) {

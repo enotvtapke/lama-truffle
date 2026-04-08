@@ -1,6 +1,7 @@
 package com.oracle.truffle.sl.parser.lama;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.sl.parser.lama.InfixTable.OperatorInfo;
 
 public class ScopeManager {
     private LexicalScope scope = new LexicalScope(null, FrameDescriptor.newBuilder());
@@ -50,5 +51,21 @@ public class ScopeManager {
 
     boolean isFunction(String name) {
         return scope.isFunction(name);
+    }
+
+    public OperatorInfo lookupInfix(String op) {
+        return scope.lookupInfix(op);
+    }
+
+    public void addInfixAt(String newOp, String refOp) {
+        scope.addInfixAt(newOp, refOp);
+    }
+
+    public void addInfixAfter(String newOp, String refOp, InfixTable.Associativity assoc) {
+        scope.addInfixAfter(newOp, refOp, assoc);
+    }
+
+    public void addInfixBefore(String newOp, String refOp, InfixTable.Associativity assoc) {
+        scope.addInfixBefore(newOp, refOp, assoc);
     }
 }
