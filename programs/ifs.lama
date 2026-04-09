@@ -1,0 +1,10 @@
+var p = 25;
+if 1 then
+    fun f(x) { x + 10 }
+    write(5);f(p)
+elif 2 then
+    f(2);
+    write(p)
+elif 3 then
+    write(3)
+fi

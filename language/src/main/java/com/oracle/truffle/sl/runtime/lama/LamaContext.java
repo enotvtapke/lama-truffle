@@ -15,6 +15,7 @@ import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.sl.LamaLanguage;
+import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.nodes.lama.LamaRootNode;
 import com.oracle.truffle.sl.nodes.lama.builtin.*;
 
@@ -119,7 +120,7 @@ public final class LamaContext {
     }
 
     @TruffleBoundary
-    public DynamicObject findModuleDeclaringVariable(String currentModuleName, String variableName) {
+    public DynamicObject findModuleDeclaringVariable(String currentModuleName, String variableName, Node node) {
         LamaModule currentModule = getModule(currentModuleName);
         if (DynamicObjectLibrary.getUncached().containsKey(currentModule.locals, variableName)) {
             return currentModule.locals;

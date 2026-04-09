@@ -1,0 +1,8 @@
+var x = "ab""cds";
+write (x[0]);
+write (x[1]);
+write (x[2]);
+write (x[3]);
+x[0] := 127;
+write(x[0]);
+write(x[1])

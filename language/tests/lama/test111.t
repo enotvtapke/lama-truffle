@@ -1,2 +1,6 @@
-Error: undefined name "stringcat" at (11, 15)
-[255]
+97
+98
+99
+100
+97
+98

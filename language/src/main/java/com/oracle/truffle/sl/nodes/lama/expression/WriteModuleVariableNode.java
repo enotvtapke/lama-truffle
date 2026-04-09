@@ -25,7 +25,7 @@ public abstract class WriteModuleVariableNode extends LamaExpressionNode {
             Object valueNode,
             @CachedLibrary(limit = "3") DynamicObjectLibrary dynamicObjects,
             @Bind LamaContext context,
-            @Cached(value = "context.findModuleDeclaringVariable(currentModule, variableName)", neverDefault = true)
+            @Cached(value = "context.findModuleDeclaringVariable(currentModule, variableName, this)", neverDefault = true)
             DynamicObject module
     ) {
         dynamicObjects.put(module, variableName, valueNode);

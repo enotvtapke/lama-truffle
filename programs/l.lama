@@ -1,0 +1,16 @@
+import Aaa;
+var p = fun(pp) {
+  (
+    var k = 3;
+    (
+      write(k)
+    )
+  );
+  pp + 1
+};
+fun apply(f, x) { f(x) }
+x := 3000;
+write(1001);
+write(p(1));
+write(f(x));
+write(apply(fun (x) { x + 50 }, 50))

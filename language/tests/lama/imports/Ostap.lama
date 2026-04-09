@@ -11,7 +11,8 @@ import Fun;
 import Matcher;
 import Data;
 
-var tab, hct, restab, log = false;
+var tab, hct, restab = false;
+var log = true;
 
 public fun logOn () {
   log := true
@@ -26,7 +27,7 @@ public fun initOstap () {
 public fun memo (f) {
   -- f := lookupMemo (hct, f);
   
-  if log then printf ("Memoizing %x=%s\n", f, f.string) fi;
+  if log then printf ("Memoizing %s=%s\n", f.string, f.string) fi;
   
   case findHashTab (deref (tab), f) of
     None      -> if log then printf ("new table...\n") fi;

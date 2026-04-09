@@ -1,0 +1,26 @@
+import Ostap;
+import Matcher;
+
+var decimal = createRegexp ("[0-9]+", "decimal"), r;
+
+-- Single non-omitted binding: returns the value directly
+r := parseString (
+  syntax (token[decimal] -eof),
+  "42"
+);
+
+case r of
+  Succ (v) -> printf ("%s\n", v)
+| Fail (e, l, c) -> printf ("FAIL\n")
+esac;
+
+-- Multiple non-omitted bindings with omit: returns array of non-omitted
+r := parseString (
+  syntax (token[decimal] -token["+"] token[decimal] -eof),
+  "10+20"
+);
+
+case r of
+  Succ (v) -> printf ("%s %s\n", v[0], v[1])
+| Fail (e, l, c) -> printf ("FAIL\n")
+esac

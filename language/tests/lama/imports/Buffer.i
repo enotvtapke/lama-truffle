@@ -8,5 +8,5 @@ F,concatBuffer;
 F,i__Infix_604362;
 F,i__Infix_6043;
 F,getBuffer;
-L,"<+>",A,"=";
+L,"<+>",B,"+";
 L,"<+",T,"<+>";

@@ -21,6 +21,7 @@ public abstract class LamaFreadBuiltinNode extends LamaBuiltinNode {
         try {
             return new LamaString(file.readAllBytes());
         } catch (IOException e) {
+            e.printStackTrace();
             throw SLException.create("fread: " + e.getMessage(), this);
         }
     }

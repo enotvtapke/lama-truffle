@@ -1,54 +1,58 @@
-	.file "/Users/yuliya.karalenka/Desktop/study/5sem/lama-truffle/language/tests/lama/imports/Buffer.lama"
+	.file "/home/enotvtapke/study/virtual machines/simplelanguage/language/tests/lama/imports/Buffer.lama"
 
-	.globl	_LaddBuffer
+	.stabs "/home/enotvtapke/study/virtual machines/simplelanguage/language/tests/lama/imports/Buffer.lama",100,0,0,.Ltext
 
-	.globl	_LconcatBuffer
+	.globl	LaddBuffer
 
-	.globl	_LemptyBuffer
+	.globl	LconcatBuffer
 
-	.globl	_LgetBuffer
+	.globl	LemptyBuffer
 
-	.globl	_Li__Infix_6043
+	.globl	LgetBuffer
 
-	.globl	_Li__Infix_604362
+	.globl	Li__Infix_6043
 
-	.globl	_LlistBuffer
+	.globl	Li__Infix_604362
 
-	.globl	_LsingletonBuffer
+	.globl	LlistBuffer
 
-	.globl	_main
+	.globl	LsingletonBuffer
+
+	.globl	main
 
 	.data
 
-_string_2:	.string	"Buffer.lama"
+string_2:	.string	"Buffer.lama"
 
-_string_0:	.string	"Function %s called with incorrect arguments count. Expected: %d. Actual: %d\n"
+string_0:	.string	"Function %s called with incorrect arguments count. Expected: %d. Actual: %d\n"
 
-_string_6:	.string	"addBuffer"
+string_6:	.string	"addBuffer"
 
-_string_5:	.string	"concatBuffer"
+string_5:	.string	"concatBuffer"
 
-_string_9:	.string	"emptyBuffer"
+string_9:	.string	"emptyBuffer"
 
-_string_1:	.string	"getBuffer"
+string_1:	.string	"getBuffer"
 
-_string_3:	.string	"i__Infix_6043"
+string_3:	.string	"i__Infix_6043"
 
-_string_4:	.string	"i__Infix_604362"
+string_4:	.string	"i__Infix_604362"
 
-_string_7:	.string	"listBuffer"
+string_7:	.string	"listBuffer"
 
-_string_8:	.string	"singletonBuffer"
+string_8:	.string	"singletonBuffer"
 
-_init:	.quad 0
+init:	.quad 0
 
-	.section __DATA, custom_data, regular, no_dead_strip
+	.section custom_data,"aw",@progbits
 
-_filler:	.fill	4, 8, 1
+filler:	.fill	4, 8, 1
 
 	.text
 
-_.Ltext:
+.Ltext:
+
+	.stabs "data:t1=r1;0;4294967295;",128,0,0,0
 
 # IMPORT ("Std")
 
@@ -220,96 +224,126 @@ _.Ltext:
 
 # LABEL ("main")
 
-_main:
+main:
 
 # BEGIN ("main", 2, 0, [], [], [])
 
+	.type main, @function
+
 	.cfi_startproc
 
-	movq	_init(%rip),	%rax
+	movq	init(%rip),	%rax
 	test	%rax,	%rax
-	jz	_continue
+	jz	continue
 	ret
-__ERROR:
+_ERROR:
 
-	call	_Lbinoperror
+	call	Lbinoperror
 	ret
-__ERROR2:
+_ERROR2:
 
-	call	_Lbinoperror2
+	call	Lbinoperror2
 	ret
-_continue:
+continue:
 
-	movq	$1,	_init(%rip)
+	movq	$1,	init(%rip)
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_Lmain_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$Lmain_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSmain_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSmain_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
 	movq	%r14,	%rcx
 	movq	$15,	%rax
 	test	%rsp,	%rax
-	jz	_ALIGNED
-	pushq	_filler(%rip)
-_ALIGNED:
+	jz	ALIGNED
+	pushq	filler(%rip)
+ALIGNED:
 
 	pushq	%rdi
 	pushq	%rsi
-	call	___gc_init
+	call	__gc_init
 	popq	%rsi
 	popq	%rdi
-	call	_set_args
-	call	_initList
+	call	set_args
+	call	initList
 # SLABEL ("L1")
 
-_L1:
+L1:
 
 # CONST (0)
 
 	movq	$1,	%r10
 # SLABEL ("L2")
 
-_L2:
+L2:
 
 # END
 
 	movq	%r10,	%rax
-_Lmain_epilogue:
+Lmain_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
 	xorq	%rax,	%rax
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_Lmain_SIZE,	0
+	.set	Lmain_SIZE,	0
 
-	.set	_LSmain_SIZE,	0
+	.set	LSmain_SIZE,	0
+
+	.size main, .-main
 
 # LABEL ("LgetBuffer")
 
-_LgetBuffer:
+LgetBuffer:
 
 # BEGIN ("LgetBuffer", 1, 1, [], ["buf"], [{ blab="L4"; elab="L5"; names=[]; subs=[{ blab="L7"; elab="L8"; names=[]; subs=[{ blab="L18"; elab="L19"; names=[("head", 0)]; subs=[{ blab="L20"; elab="L21"; names=[]; subs=[]; }]; }; { blab="L12"; elab="L13"; names=[]; subs=[{ blab="L14"; elab="L15"; names=[]; subs=[]; }]; }]; }]; }])
+
+	.type getBuffer, @function
+
+	.stabs "getBuffer:F1",36,0,0,LgetBuffer
+
+	.stabs "head:1",128,0,0,-8
+
+	.stabn 192,0,0,L18-LgetBuffer
+
+	.stabn 224,0,0,L19-LgetBuffer
 
 	.cfi_startproc
 
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_LLgetBuffer_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$LLgetBuffer_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSLgetBuffer_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSLgetBuffer_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -317,11 +351,11 @@ _LgetBuffer:
 # Check arguments count
 
 	cmpq	$1,	%r11
-	je	_LgetBuffer_argc_correct
+	je	LgetBuffer_argc_correct
 	movq	%r11,	%r13
 	movq	$1,	%r12
-	leaq	_string_1(%rip),	%r11
-	leaq	_string_0(%rip),	%r10
+	leaq	string_1(%rip),	%r11
+	leaq	string_0(%rip),	%r10
 	pushq	%rdi
 	pushq	%rsi
 	movq	%r13,	%rcx
@@ -329,23 +363,27 @@ _LgetBuffer:
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$4,	%r11
-	call	_failure
+	call	failure
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
-_LgetBuffer_argc_correct:
+LgetBuffer_argc_correct:
 
 # SLABEL ("L4")
 
-_L4:
+L4:
 
 # SLABEL ("L7")
 
-_L7:
+L7:
 
 # LINE (62)
 
-_.L0:
+	.stabn 68,0,62,0
+
+	.stabn 68,0,62,.L0-LgetBuffer
+
+.L0:
 
 # LD (Arg (0))
 
@@ -355,7 +393,7 @@ _.L0:
 	movq	%r10,	%r11
 # SLABEL ("L12")
 
-_L12:
+L12:
 
 # CONST (0)
 
@@ -372,34 +410,34 @@ _L12:
 
 	sarq	%r11
 	cmpq	$0,	%r11
-	jz	_L11
+	jz	L11
 # DROP
 
 # SLABEL ("L14")
 
-_L14:
+L14:
 
 # CONST (0)
 
 	movq	$1,	%r10
 # SLABEL ("L15")
 
-_L15:
+L15:
 
 # JMP ("L6")
 
-	jmp	_L6
+	jmp	L6
 # SLABEL ("L13")
 
-_L13:
+L13:
 
 # SLABEL ("L18")
 
-_L18:
+L18:
 
 # LABEL ("L11")
 
-_L11:
+L11:
 
 # DUP
 
@@ -413,11 +451,11 @@ _L11:
 	pushq	%rdi
 	pushq	%r10
 	pushq	%r11
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Barray_patt
+	call	Barray_patt
 	addq	$8,	%rsp
 	popq	%r11
 	popq	%r10
@@ -427,19 +465,19 @@ _L11:
 
 	sarq	%r12
 	cmpq	$0,	%r12
-	jnz	_L16
+	jnz	L16
 # LABEL ("L17")
 
-_L17:
+L17:
 
 # DROP
 
 # JMP ("L9")
 
-	jmp	_L9
+	jmp	L9
 # LABEL ("L16")
 
-_L16:
+L16:
 
 # DUP
 
@@ -452,11 +490,11 @@ _L16:
 	pushq	%rdi
 	pushq	%r10
 	pushq	%r11
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r11
 	popq	%r10
@@ -475,11 +513,11 @@ _L16:
 	pushq	%rdi
 	pushq	%r10
 	pushq	%r11
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r11
 	popq	%r10
@@ -502,7 +540,7 @@ _L16:
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r11
@@ -515,35 +553,37 @@ _L16:
 
 # SLABEL ("L20")
 
-_L20:
+L20:
 
 # LINE (64)
 
-_.L1:
+	.stabn 68,0,64,.L1-LgetBuffer
+
+.L1:
 
 # LD (Local (0))
 
 	movq	-8(%rbp),	%r10
 # SLABEL ("L21")
 
-_L21:
+L21:
 
 # SLABEL ("L19")
 
-_L19:
+L19:
 
 # JMP ("L6")
 
-	jmp	_L6
+	jmp	L6
 # LABEL ("L9")
 
-_L9:
+L9:
 
 # FAIL ((62, 7), true)
 
 	movq	$15,	%r14
 	movq	$125,	%r13
-	leaq	_string_2(%rip),	%r12
+	leaq	string_2(%rip),	%r12
 	movq	%r10,	%r11
 	pushq	%rdi
 	pushq	%r10
@@ -552,56 +592,72 @@ _L9:
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$4,	%r11
-	call	_Bmatch_failure
+	call	Bmatch_failure
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r11
 # JMP ("L6")
 
-	jmp	_L6
+	jmp	L6
 # SLABEL ("L8")
 
-_L8:
+L8:
 
 # LABEL ("L6")
 
-_L6:
+L6:
 
 # SLABEL ("L5")
 
-_L5:
+L5:
 
 # END
 
 	movq	%r10,	%rax
-_LLgetBuffer_epilogue:
+LLgetBuffer_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_LLgetBuffer_SIZE,	16
+	.set	LLgetBuffer_SIZE,	16
 
-	.set	_LSLgetBuffer_SIZE,	1
+	.set	LSLgetBuffer_SIZE,	1
+
+	.size LgetBuffer, .-LgetBuffer
 
 # LABEL ("Li__Infix_6043")
 
-_Li__Infix_6043:
+Li__Infix_6043:
 
 # BEGIN ("Li__Infix_6043", 2, 0, [], ["b"; "x"], [{ blab="L22"; elab="L23"; names=[]; subs=[{ blab="L25"; elab="L26"; names=[]; subs=[]; }]; }])
+
+	.type i__Infix_6043, @function
+
+	.stabs "i__Infix_6043:F1",36,0,0,Li__Infix_6043
 
 	.cfi_startproc
 
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_LLi__Infix_6043_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$LLi__Infix_6043_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSLi__Infix_6043_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSLi__Infix_6043_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -609,39 +665,45 @@ _Li__Infix_6043:
 # Check arguments count
 
 	cmpq	$2,	%r11
-	je	_Li__Infix_6043_argc_correct
+	je	Li__Infix_6043_argc_correct
 	movq	%r11,	%r13
 	movq	$2,	%r12
-	leaq	_string_3(%rip),	%r11
-	leaq	_string_0(%rip),	%r10
+	leaq	string_3(%rip),	%r11
+	leaq	string_0(%rip),	%r10
 	pushq	%rdi
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r13,	%rcx
 	movq	%r12,	%rdx
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$4,	%r11
-	call	_failure
+	call	failure
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
-_Li__Infix_6043_argc_correct:
+Li__Infix_6043_argc_correct:
 
 # SLABEL ("L22")
 
-_L22:
+L22:
 
 # SLABEL ("L25")
 
-_L25:
+L25:
 
 # LINE (56)
 
-_.L2:
+	.stabn 68,0,56,0
+
+	.stabn 68,0,56,.L2-Li__Infix_6043
+
+.L2:
 
 # LINE (57)
 
-_.L3:
+	.stabn 68,0,57,.L3-Li__Infix_6043
+
+.L3:
 
 # LD (Arg (0))
 
@@ -656,50 +718,66 @@ _.L3:
 	movq	%rbp,	%rsp
 	popq	%rbp
 	movq	$2,	%r11
-	jmp	_LaddBuffer
+	jmp	LaddBuffer
 # SLABEL ("L26")
 
-_L26:
+L26:
 
 # LABEL ("L24")
 
-_L24:
+L24:
 
 # SLABEL ("L23")
 
-_L23:
+L23:
 
 # END
 
 	movq	%r10,	%rax
-_LLi__Infix_6043_epilogue:
+LLi__Infix_6043_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_LLi__Infix_6043_SIZE,	0
+	.set	LLi__Infix_6043_SIZE,	0
 
-	.set	_LSLi__Infix_6043_SIZE,	0
+	.set	LSLi__Infix_6043_SIZE,	0
+
+	.size Li__Infix_6043, .-Li__Infix_6043
 
 # LABEL ("Li__Infix_604362")
 
-_Li__Infix_604362:
+Li__Infix_604362:
 
 # BEGIN ("Li__Infix_604362", 2, 0, [], ["b1"; "b2"], [{ blab="L29"; elab="L30"; names=[]; subs=[{ blab="L32"; elab="L33"; names=[]; subs=[]; }]; }])
+
+	.type i__Infix_604362, @function
+
+	.stabs "i__Infix_604362:F1",36,0,0,Li__Infix_604362
 
 	.cfi_startproc
 
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_LLi__Infix_604362_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$LLi__Infix_604362_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSLi__Infix_604362_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSLi__Infix_604362_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -707,11 +785,11 @@ _Li__Infix_604362:
 # Check arguments count
 
 	cmpq	$2,	%r11
-	je	_Li__Infix_604362_argc_correct
+	je	Li__Infix_604362_argc_correct
 	movq	%r11,	%r13
 	movq	$2,	%r12
-	leaq	_string_4(%rip),	%r11
-	leaq	_string_0(%rip),	%r10
+	leaq	string_4(%rip),	%r11
+	leaq	string_0(%rip),	%r10
 	pushq	%rdi
 	pushq	%rsi
 	movq	%r13,	%rcx
@@ -719,27 +797,33 @@ _Li__Infix_604362:
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$4,	%r11
-	call	_failure
+	call	failure
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
-_Li__Infix_604362_argc_correct:
+Li__Infix_604362_argc_correct:
 
 # SLABEL ("L29")
 
-_L29:
+L29:
 
 # SLABEL ("L32")
 
-_L32:
+L32:
 
 # LINE (51)
 
-_.L4:
+	.stabn 68,0,51,0
+
+	.stabn 68,0,51,.L4-Li__Infix_604362
+
+.L4:
 
 # LINE (52)
 
-_.L5:
+	.stabn 68,0,52,.L5-Li__Infix_604362
+
+.L5:
 
 # LD (Arg (0))
 
@@ -754,50 +838,82 @@ _.L5:
 	movq	%rbp,	%rsp
 	popq	%rbp
 	movq	$2,	%r11
-	jmp	_LconcatBuffer
+	jmp	LconcatBuffer
 # SLABEL ("L33")
 
-_L33:
+L33:
 
 # LABEL ("L31")
 
-_L31:
+L31:
 
 # SLABEL ("L30")
 
-_L30:
+L30:
 
 # END
 
 	movq	%r10,	%rax
-_LLi__Infix_604362_epilogue:
+LLi__Infix_604362_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_LLi__Infix_604362_SIZE,	0
+	.set	LLi__Infix_604362_SIZE,	0
 
-	.set	_LSLi__Infix_604362_SIZE,	0
+	.set	LSLi__Infix_604362_SIZE,	0
+
+	.size Li__Infix_604362, .-Li__Infix_604362
 
 # LABEL ("LconcatBuffer")
 
-_LconcatBuffer:
+LconcatBuffer:
 
 # BEGIN ("LconcatBuffer", 2, 4, [], ["buf"; "x"], [{ blab="L36"; elab="L37"; names=[]; subs=[{ blab="L39"; elab="L40"; names=[]; subs=[{ blab="L50"; elab="L51"; names=[("head", 1); ("last", 0)]; subs=[{ blab="L52"; elab="L53"; names=[]; subs=[{ blab="L63"; elab="L64"; names=[("h", 3); ("l", 2)]; subs=[{ blab="L65"; elab="L66"; names=[]; subs=[]; }]; }; { blab="L57"; elab="L58"; names=[]; subs=[{ blab="L59"; elab="L60"; names=[]; subs=[]; }]; }]; }]; }; { blab="L44"; elab="L45"; names=[]; subs=[{ blab="L46"; elab="L47"; names=[]; subs=[]; }]; }]; }]; }])
+
+	.type concatBuffer, @function
+
+	.stabs "concatBuffer:F1",36,0,0,LconcatBuffer
+
+	.stabs "head:1",128,0,0,-16
+
+	.stabs "last:1",128,0,0,-8
+
+	.stabn 192,0,0,L50-LconcatBuffer
+
+	.stabs "h:1",128,0,0,-32
+
+	.stabs "l:1",128,0,0,-24
+
+	.stabn 192,0,0,L63-LconcatBuffer
+
+	.stabn 224,0,0,L64-LconcatBuffer
+
+	.stabn 224,0,0,L51-LconcatBuffer
 
 	.cfi_startproc
 
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_LLconcatBuffer_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$LLconcatBuffer_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSLconcatBuffer_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSLconcatBuffer_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -805,11 +921,11 @@ _LconcatBuffer:
 # Check arguments count
 
 	cmpq	$2,	%r11
-	je	_LconcatBuffer_argc_correct
+	je	LconcatBuffer_argc_correct
 	movq	%r11,	%r13
 	movq	$2,	%r12
-	leaq	_string_5(%rip),	%r11
-	leaq	_string_0(%rip),	%r10
+	leaq	string_5(%rip),	%r11
+	leaq	string_0(%rip),	%r10
 	pushq	%rdi
 	pushq	%rsi
 	movq	%r13,	%rcx
@@ -817,23 +933,27 @@ _LconcatBuffer:
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$4,	%r11
-	call	_failure
+	call	failure
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
-_LconcatBuffer_argc_correct:
+LconcatBuffer_argc_correct:
 
 # SLABEL ("L36")
 
-_L36:
+L36:
 
 # SLABEL ("L39")
 
-_L39:
+L39:
 
 # LINE (38)
 
-_.L6:
+	.stabn 68,0,38,0
+
+	.stabn 68,0,38,.L6-LconcatBuffer
+
+.L6:
 
 # LD (Arg (0))
 
@@ -843,7 +963,7 @@ _.L6:
 	movq	%r10,	%r11
 # SLABEL ("L44")
 
-_L44:
+L44:
 
 # CONST (0)
 
@@ -860,38 +980,40 @@ _L44:
 
 	sarq	%r11
 	cmpq	$0,	%r11
-	jz	_L43
+	jz	L43
 # DROP
 
 # SLABEL ("L46")
 
-_L46:
+L46:
 
 # LINE (39)
 
-_.L7:
+	.stabn 68,0,39,.L7-LconcatBuffer
+
+.L7:
 
 # LD (Arg (1))
 
 	movq	%rsi,	%r10
 # SLABEL ("L47")
 
-_L47:
+L47:
 
 # JMP ("L38")
 
-	jmp	_L38
+	jmp	L38
 # SLABEL ("L45")
 
-_L45:
+L45:
 
 # SLABEL ("L50")
 
-_L50:
+L50:
 
 # LABEL ("L43")
 
-_L43:
+L43:
 
 # DUP
 
@@ -909,7 +1031,7 @@ _L43:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Barray_patt
+	call	Barray_patt
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -919,19 +1041,19 @@ _L43:
 
 	sarq	%r12
 	cmpq	$0,	%r12
-	jnz	_L48
+	jnz	L48
 # LABEL ("L49")
 
-_L49:
+L49:
 
 # DROP
 
 # JMP ("L41")
 
-	jmp	_L41
+	jmp	L41
 # LABEL ("L48")
 
-_L48:
+L48:
 
 # DUP
 
@@ -948,7 +1070,7 @@ _L48:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -971,7 +1093,7 @@ _L48:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -992,11 +1114,11 @@ _L48:
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1018,11 +1140,11 @@ _L48:
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1037,11 +1159,13 @@ _L48:
 
 # SLABEL ("L52")
 
-_L52:
+L52:
 
 # LINE (41)
 
-_.L8:
+	.stabn 68,0,41,.L8-LconcatBuffer
+
+.L8:
 
 # LD (Arg (1))
 
@@ -1051,7 +1175,7 @@ _.L8:
 	movq	%r10,	%r11
 # SLABEL ("L57")
 
-_L57:
+L57:
 
 # CONST (0)
 
@@ -1068,38 +1192,40 @@ _L57:
 
 	sarq	%r11
 	cmpq	$0,	%r11
-	jz	_L56
+	jz	L56
 # DROP
 
 # SLABEL ("L59")
 
-_L59:
+L59:
 
 # LINE (42)
 
-_.L9:
+	.stabn 68,0,42,.L9-LconcatBuffer
+
+.L9:
 
 # LD (Arg (0))
 
 	movq	%rdi,	%r10
 # SLABEL ("L60")
 
-_L60:
+L60:
 
 # JMP ("L38")
 
-	jmp	_L38
+	jmp	L38
 # SLABEL ("L58")
 
-_L58:
+L58:
 
 # SLABEL ("L63")
 
-_L63:
+L63:
 
 # LABEL ("L56")
 
-_L56:
+L56:
 
 # DUP
 
@@ -1117,7 +1243,7 @@ _L56:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Barray_patt
+	call	Barray_patt
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -1127,19 +1253,19 @@ _L56:
 
 	sarq	%r12
 	cmpq	$0,	%r12
-	jnz	_L61
+	jnz	L61
 # LABEL ("L62")
 
-_L62:
+L62:
 
 # DROP
 
 # JMP ("L54")
 
-	jmp	_L54
+	jmp	L54
 # LABEL ("L61")
 
-_L61:
+L61:
 
 # DUP
 
@@ -1156,7 +1282,7 @@ _L61:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -1179,7 +1305,7 @@ _L61:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -1200,11 +1326,11 @@ _L61:
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1226,11 +1352,11 @@ _L61:
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1245,11 +1371,13 @@ _L61:
 
 # SLABEL ("L65")
 
-_L65:
+L65:
 
 # LINE (43)
 
-_.L10:
+	.stabn 68,0,43,.L10-LconcatBuffer
+
+.L10:
 
 # LD (Local (0))
 
@@ -1259,7 +1387,9 @@ _.L10:
 	movq	$3,	%r11
 # LINE (44)
 
-_.L11:
+	.stabn 68,0,44,.L11-LconcatBuffer
+
+.L11:
 
 # LD (Local (3))
 
@@ -1272,7 +1402,7 @@ _.L11:
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$3,	%r11
-	call	_Bsta
+	call	Bsta
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
@@ -1280,7 +1410,9 @@ _.L11:
 
 # LINE (45)
 
-_.L12:
+	.stabn 68,0,45,.L12-LconcatBuffer
+
+.L12:
 
 # LD (Local (1))
 
@@ -1296,42 +1428,42 @@ _.L12:
 	pushq	%r10
 	movq	%rsp,	%rdi
 	movq	$5,	%rsi
-	call	_Barray
+	call	Barray
 	addq	$16,	%rsp
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
 # SLABEL ("L66")
 
-_L66:
+L66:
 
 # SLABEL ("L64")
 
-_L64:
+L64:
 
 # JMP ("L38")
 
-	jmp	_L38
+	jmp	L38
 # LABEL ("L54")
 
-_L54:
+L54:
 
 # FAIL ((41, 12), true)
 
 	movq	$25,	%r14
 	movq	$83,	%r13
-	leaq	_string_2(%rip),	%r12
+	leaq	string_2(%rip),	%r12
 	movq	%r10,	%r11
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r14,	%rcx
 	movq	%r13,	%rdx
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$4,	%r11
-	call	_Bmatch_failure
+	call	Bmatch_failure
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1339,37 +1471,37 @@ _L54:
 	movq	%rax,	%r11
 # JMP ("L38")
 
-	jmp	_L38
+	jmp	L38
 # SLABEL ("L53")
 
-_L53:
+L53:
 
 # SLABEL ("L51")
 
-_L51:
+L51:
 
 # JMP ("L38")
 
 # LABEL ("L41")
 
-_L41:
+L41:
 
 # FAIL ((38, 7), true)
 
 	movq	$15,	%r14
 	movq	$77,	%r13
-	leaq	_string_2(%rip),	%r12
+	leaq	string_2(%rip),	%r12
 	movq	%r10,	%r11
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r14,	%rcx
 	movq	%r13,	%rdx
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$4,	%r11
-	call	_Bmatch_failure
+	call	Bmatch_failure
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1377,50 +1509,80 @@ _L41:
 	movq	%rax,	%r11
 # JMP ("L38")
 
-	jmp	_L38
+	jmp	L38
 # SLABEL ("L40")
 
-_L40:
+L40:
 
 # LABEL ("L38")
 
-_L38:
+L38:
 
 # SLABEL ("L37")
 
-_L37:
+L37:
 
 # END
 
 	movq	%r10,	%rax
-_LLconcatBuffer_epilogue:
+LLconcatBuffer_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_LLconcatBuffer_SIZE,	32
+	.set	LLconcatBuffer_SIZE,	32
 
-	.set	_LSLconcatBuffer_SIZE,	4
+	.set	LSLconcatBuffer_SIZE,	4
+
+	.size LconcatBuffer, .-LconcatBuffer
 
 # LABEL ("LaddBuffer")
 
-_LaddBuffer:
+LaddBuffer:
 
 # BEGIN ("LaddBuffer", 2, 2, [], ["buf"; "x"], [{ blab="L74"; elab="L75"; names=[]; subs=[{ blab="L77"; elab="L78"; names=[]; subs=[{ blab="L95"; elab="L96"; names=[("head", 1); ("last", 0)]; subs=[{ blab="L97"; elab="L98"; names=[]; subs=[]; }]; }; { blab="L82"; elab="L83"; names=[]; subs=[{ blab="L84"; elab="L85"; names=[("y", 0)]; subs=[]; }]; }]; }]; }])
+
+	.type addBuffer, @function
+
+	.stabs "addBuffer:F1",36,0,0,LaddBuffer
+
+	.stabs "head:1",128,0,0,-16
+
+	.stabs "last:1",128,0,0,-8
+
+	.stabn 192,0,0,L95-LaddBuffer
+
+	.stabn 224,0,0,L96-LaddBuffer
+
+	.stabs "y:1",128,0,0,-8
+
+	.stabn 192,0,0,L84-LaddBuffer
+
+	.stabn 224,0,0,L85-LaddBuffer
 
 	.cfi_startproc
 
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_LLaddBuffer_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$LLaddBuffer_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSLaddBuffer_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSLaddBuffer_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -1428,11 +1590,11 @@ _LaddBuffer:
 # Check arguments count
 
 	cmpq	$2,	%r11
-	je	_LaddBuffer_argc_correct
+	je	LaddBuffer_argc_correct
 	movq	%r11,	%r13
 	movq	$2,	%r12
-	leaq	_string_6(%rip),	%r11
-	leaq	_string_0(%rip),	%r10
+	leaq	string_6(%rip),	%r11
+	leaq	string_0(%rip),	%r10
 	pushq	%rdi
 	pushq	%rsi
 	movq	%r13,	%rcx
@@ -1440,23 +1602,27 @@ _LaddBuffer:
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$4,	%r11
-	call	_failure
+	call	failure
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
-_LaddBuffer_argc_correct:
+LaddBuffer_argc_correct:
 
 # SLABEL ("L74")
 
-_L74:
+L74:
 
 # SLABEL ("L77")
 
-_L77:
+L77:
 
 # LINE (27)
 
-_.L13:
+	.stabn 68,0,27,0
+
+	.stabn 68,0,27,.L13-LaddBuffer
+
+.L13:
 
 # LD (Arg (0))
 
@@ -1466,7 +1632,7 @@ _.L13:
 	movq	%r10,	%r11
 # SLABEL ("L82")
 
-_L82:
+L82:
 
 # CONST (0)
 
@@ -1483,12 +1649,12 @@ _L82:
 
 	sarq	%r11
 	cmpq	$0,	%r11
-	jz	_L81
+	jz	L81
 # DROP
 
 # SLABEL ("L84")
 
-_L84:
+L84:
 
 # LD (Arg (1))
 
@@ -1501,20 +1667,22 @@ _L84:
 	movq	$1697575,	%r12
 	pushq	%rdi
 	pushq	%rsi
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	pushq	%r12
 	pushq	%r11
 	pushq	%r10
 	movq	%rsp,	%rdi
 	movq	$7,	%rsi
-	call	_Bsexp
+	call	Bsexp
 	addq	$32,	%rsp
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
 # LINE (28)
 
-_.L14:
+	.stabn 68,0,28,.L14-LaddBuffer
+
+.L14:
 
 # ST (Local (0))
 
@@ -1523,7 +1691,9 @@ _.L14:
 
 # LINE (29)
 
-_.L15:
+	.stabn 68,0,29,.L15-LaddBuffer
+
+.L15:
 
 # LD (Local (0))
 
@@ -1539,29 +1709,29 @@ _.L15:
 	pushq	%r10
 	movq	%rsp,	%rdi
 	movq	$5,	%rsi
-	call	_Barray
+	call	Barray
 	addq	$16,	%rsp
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
 # SLABEL ("L85")
 
-_L85:
+L85:
 
 # JMP ("L76")
 
-	jmp	_L76
+	jmp	L76
 # SLABEL ("L83")
 
-_L83:
+L83:
 
 # SLABEL ("L95")
 
-_L95:
+L95:
 
 # LABEL ("L81")
 
-_L81:
+L81:
 
 # DUP
 
@@ -1579,7 +1749,7 @@ _L81:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Barray_patt
+	call	Barray_patt
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -1589,19 +1759,19 @@ _L81:
 
 	sarq	%r12
 	cmpq	$0,	%r12
-	jnz	_L93
+	jnz	L93
 # LABEL ("L94")
 
-_L94:
+L94:
 
 # DROP
 
 # JMP ("L79")
 
-	jmp	_L79
+	jmp	L79
 # LABEL ("L93")
 
-_L93:
+L93:
 
 # DUP
 
@@ -1618,7 +1788,7 @@ _L93:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -1641,7 +1811,7 @@ _L93:
 	movq	%r13,	%rsi
 	movq	%r12,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	popq	%r11
 	popq	%r10
 	popq	%rsi
@@ -1662,11 +1832,11 @@ _L93:
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1688,11 +1858,11 @@ _L93:
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1707,11 +1877,13 @@ _L93:
 
 # SLABEL ("L97")
 
-_L97:
+L97:
 
 # LINE (30)
 
-_.L16:
+	.stabn 68,0,30,.L16-LaddBuffer
+
+.L16:
 
 # LD (Local (0))
 
@@ -1721,7 +1893,9 @@ _.L16:
 	movq	$3,	%r11
 # LINE (31)
 
-_.L17:
+	.stabn 68,0,31,.L17-LaddBuffer
+
+.L17:
 
 # LD (Arg (1))
 
@@ -1736,13 +1910,13 @@ _.L17:
 	pushq	%rsi
 	pushq	%r10
 	pushq	%r11
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	pushq	%r14
 	pushq	%r13
 	pushq	%r12
 	movq	%rsp,	%rdi
 	movq	$7,	%rsi
-	call	_Bsexp
+	call	Bsexp
 	addq	$32,	%rsp
 	popq	%r11
 	popq	%r10
@@ -1757,7 +1931,7 @@ _.L17:
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$3,	%r11
-	call	_Bsta
+	call	Bsta
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
@@ -1765,7 +1939,9 @@ _.L17:
 
 # LINE (32)
 
-_.L18:
+	.stabn 68,0,32,.L18-LaddBuffer
+
+.L18:
 
 # LD (Local (1))
 
@@ -1781,11 +1957,11 @@ _.L18:
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$2,	%r11
-	call	_Belem
+	call	Belem
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1799,42 +1975,42 @@ _.L18:
 	pushq	%r10
 	movq	%rsp,	%rdi
 	movq	$5,	%rsi
-	call	_Barray
+	call	Barray
 	addq	$16,	%rsp
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
 # SLABEL ("L98")
 
-_L98:
+L98:
 
 # SLABEL ("L96")
 
-_L96:
+L96:
 
 # JMP ("L76")
 
-	jmp	_L76
+	jmp	L76
 # LABEL ("L79")
 
-_L79:
+L79:
 
 # FAIL ((27, 7), true)
 
 	movq	$15,	%r14
 	movq	$55,	%r13
-	leaq	_string_2(%rip),	%r12
+	leaq	string_2(%rip),	%r12
 	movq	%r10,	%r11
 	pushq	%rdi
 	pushq	%rsi
 	pushq	%r10
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r14,	%rcx
 	movq	%r13,	%rdx
 	movq	%r12,	%rsi
 	movq	%r11,	%rdi
 	movq	$4,	%r11
-	call	_Bmatch_failure
+	call	Bmatch_failure
 	addq	$8,	%rsp
 	popq	%r10
 	popq	%rsi
@@ -1842,50 +2018,66 @@ _L79:
 	movq	%rax,	%r11
 # JMP ("L76")
 
-	jmp	_L76
+	jmp	L76
 # SLABEL ("L78")
 
-_L78:
+L78:
 
 # LABEL ("L76")
 
-_L76:
+L76:
 
 # SLABEL ("L75")
 
-_L75:
+L75:
 
 # END
 
 	movq	%r10,	%rax
-_LLaddBuffer_epilogue:
+LLaddBuffer_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_LLaddBuffer_SIZE,	16
+	.set	LLaddBuffer_SIZE,	16
 
-	.set	_LSLaddBuffer_SIZE,	2
+	.set	LSLaddBuffer_SIZE,	2
+
+	.size LaddBuffer, .-LaddBuffer
 
 # LABEL ("LlistBuffer")
 
-_LlistBuffer:
+LlistBuffer:
 
 # BEGIN ("LlistBuffer", 1, 0, [], ["x"], [{ blab="L110"; elab="L111"; names=[]; subs=[{ blab="L113"; elab="L114"; names=[]; subs=[]; }]; }])
+
+	.type listBuffer, @function
+
+	.stabs "listBuffer:F1",36,0,0,LlistBuffer
 
 	.cfi_startproc
 
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_LLlistBuffer_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$LLlistBuffer_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSLlistBuffer_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSLlistBuffer_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -1893,11 +2085,11 @@ _LlistBuffer:
 # Check arguments count
 
 	cmpq	$1,	%r11
-	je	_LlistBuffer_argc_correct
+	je	LlistBuffer_argc_correct
 	movq	%r11,	%r13
 	movq	$1,	%r12
-	leaq	_string_7(%rip),	%r11
-	leaq	_string_0(%rip),	%r10
+	leaq	string_7(%rip),	%r11
+	leaq	string_0(%rip),	%r10
 	pushq	%rdi
 	pushq	%rsi
 	movq	%r13,	%rcx
@@ -1905,36 +2097,42 @@ _LlistBuffer:
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$4,	%r11
-	call	_failure
+	call	failure
 	popq	%rsi
 	popq	%rdi
 	movq	%rax,	%r10
-_LlistBuffer_argc_correct:
+LlistBuffer_argc_correct:
 
 # SLABEL ("L110")
 
-_L110:
+L110:
 
 # SLABEL ("L113")
 
-_L113:
+L113:
 
 # LINE (21)
 
-_.L19:
+	.stabn 68,0,21,0
+
+	.stabn 68,0,21,.L19-LlistBuffer
+
+.L19:
 
 # LINE (22)
 
-_.L20:
+	.stabn 68,0,22,.L20-LlistBuffer
+
+.L20:
 
 # CLOSURE ("LaddBuffer", [])
 
-	leaq	_LaddBuffer(%rip),	%r10
+	leaq	LaddBuffer(%rip),	%r10
 	pushq	%rdi
 	pushq	%r10
 	movq	%rsp,	%rdi
 	movq	$1,	%rsi
-	call	_Bclosure
+	call	Bclosure
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
@@ -1943,7 +2141,7 @@ _.L20:
 	pushq	%rdi
 	pushq	%r10
 	movq	$0,	%r11
-	call	_LemptyBuffer
+	call	LemptyBuffer
 	popq	%r10
 	popq	%rdi
 	movq	%rax,	%r11
@@ -1953,58 +2151,80 @@ _.L20:
 # CALL ("Lfoldl", 3, true)
 
 	pushq	%rdi
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r12,	%rdx
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$3,	%r11
-	call	_Lfoldl
+	call	Lfoldl
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
 # SLABEL ("L114")
 
-_L114:
+L114:
 
 # LABEL ("L112")
 
-_L112:
+L112:
 
 # SLABEL ("L111")
 
-_L111:
+L111:
 
 # END
 
 	movq	%r10,	%rax
-_LLlistBuffer_epilogue:
+LLlistBuffer_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_LLlistBuffer_SIZE,	0
+	.set	LLlistBuffer_SIZE,	0
 
-	.set	_LSLlistBuffer_SIZE,	0
+	.set	LSLlistBuffer_SIZE,	0
+
+	.size LlistBuffer, .-LlistBuffer
 
 # LABEL ("LsingletonBuffer")
 
-_LsingletonBuffer:
+LsingletonBuffer:
 
 # BEGIN ("LsingletonBuffer", 1, 1, [], ["x"], [{ blab="L119"; elab="L120"; names=[]; subs=[{ blab="L122"; elab="L123"; names=[("y", 0)]; subs=[]; }]; }])
+
+	.type singletonBuffer, @function
+
+	.stabs "singletonBuffer:F1",36,0,0,LsingletonBuffer
+
+	.stabs "y:1",128,0,0,-8
+
+	.stabn 192,0,0,L122-LsingletonBuffer
+
+	.stabn 224,0,0,L123-LsingletonBuffer
 
 	.cfi_startproc
 
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_LLsingletonBuffer_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$LLsingletonBuffer_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSLsingletonBuffer_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSLsingletonBuffer_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -2012,31 +2232,31 @@ _LsingletonBuffer:
 # Check arguments count
 
 	cmpq	$1,	%r11
-	je	_LsingletonBuffer_argc_correct
+	je	LsingletonBuffer_argc_correct
 	movq	%r11,	%r13
 	movq	$1,	%r12
-	leaq	_string_8(%rip),	%r11
-	leaq	_string_0(%rip),	%r10
+	leaq	string_8(%rip),	%r11
+	leaq	string_0(%rip),	%r10
 	pushq	%rdi
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r13,	%rcx
 	movq	%r12,	%rdx
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$4,	%r11
-	call	_failure
+	call	failure
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
-_LsingletonBuffer_argc_correct:
+LsingletonBuffer_argc_correct:
 
 # SLABEL ("L119")
 
-_L119:
+L119:
 
 # SLABEL ("L122")
 
-_L122:
+L122:
 
 # LD (Arg (0))
 
@@ -2053,13 +2273,17 @@ _L122:
 	pushq	%r10
 	movq	%rsp,	%rdi
 	movq	$7,	%rsi
-	call	_Bsexp
+	call	Bsexp
 	addq	$24,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
 # LINE (15)
 
-_.L21:
+	.stabn 68,0,15,0
+
+	.stabn 68,0,15,.L21-LsingletonBuffer
+
+.L21:
 
 # ST (Local (0))
 
@@ -2068,7 +2292,9 @@ _.L21:
 
 # LINE (17)
 
-_.L22:
+	.stabn 68,0,17,.L22-LsingletonBuffer
+
+.L22:
 
 # LD (Local (0))
 
@@ -2079,58 +2305,74 @@ _.L22:
 # CALL (".array", 2, true)
 
 	pushq	%rdi
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	pushq	%r11
 	pushq	%r10
 	movq	%rsp,	%rdi
 	movq	$5,	%rsi
-	call	_Barray
+	call	Barray
 	addq	$24,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
 # SLABEL ("L123")
 
-_L123:
+L123:
 
 # LABEL ("L121")
 
-_L121:
+L121:
 
 # SLABEL ("L120")
 
-_L120:
+L120:
 
 # END
 
 	movq	%r10,	%rax
-_LLsingletonBuffer_epilogue:
+LLsingletonBuffer_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_LLsingletonBuffer_SIZE,	16
+	.set	LLsingletonBuffer_SIZE,	16
 
-	.set	_LSLsingletonBuffer_SIZE,	1
+	.set	LSLsingletonBuffer_SIZE,	1
+
+	.size LsingletonBuffer, .-LsingletonBuffer
 
 # LABEL ("LemptyBuffer")
 
-_LemptyBuffer:
+LemptyBuffer:
 
 # BEGIN ("LemptyBuffer", 0, 0, [], [], [{ blab="L131"; elab="L132"; names=[]; subs=[{ blab="L134"; elab="L135"; names=[]; subs=[]; }]; }])
+
+	.type emptyBuffer, @function
+
+	.stabs "emptyBuffer:F1",36,0,0,LemptyBuffer
 
 	.cfi_startproc
 
 	pushq	%rbp
+	.cfi_def_cfa_offset	8
+
+	.cfi_offset 5, -8
+
 	movq	%rsp,	%rbp
-	subq	$_LLemptyBuffer_SIZE,	%rsp
+	.cfi_def_cfa_register	5
+
+	subq	$LLemptyBuffer_SIZE,	%rsp
 	movq	%rdi,	%r12
 	movq	%rsi,	%r13
 	movq	%rcx,	%r14
 	movq	%rsp,	%rdi
-	leaq	_filler(%rip),	%rsi
-	movq	$_LSLemptyBuffer_SIZE,	%rcx
+	leaq	filler(%rip),	%rsi
+	movq	$LSLemptyBuffer_SIZE,	%rcx
 	rep movsq	
 	movq	%r12,	%rdi
 	movq	%r13,	%rsi
@@ -2138,58 +2380,64 @@ _LemptyBuffer:
 # Check arguments count
 
 	cmpq	$0,	%r11
-	je	_LemptyBuffer_argc_correct
+	je	LemptyBuffer_argc_correct
 	movq	%r11,	%r13
 	movq	$0,	%r12
-	leaq	_string_9(%rip),	%r11
-	leaq	_string_0(%rip),	%r10
+	leaq	string_9(%rip),	%r11
+	leaq	string_0(%rip),	%r10
 	pushq	%rdi
-	pushq	_filler(%rip)
+	pushq	filler(%rip)
 	movq	%r13,	%rcx
 	movq	%r12,	%rdx
 	movq	%r11,	%rsi
 	movq	%r10,	%rdi
 	movq	$4,	%r11
-	call	_failure
+	call	failure
 	addq	$8,	%rsp
 	popq	%rdi
 	movq	%rax,	%r10
-_LemptyBuffer_argc_correct:
+LemptyBuffer_argc_correct:
 
 # SLABEL ("L131")
 
-_L131:
+L131:
 
 # SLABEL ("L134")
 
-_L134:
+L134:
 
 # CONST (0)
 
 	movq	$1,	%r10
 # SLABEL ("L135")
 
-_L135:
+L135:
 
 # LABEL ("L133")
 
-_L133:
+L133:
 
 # SLABEL ("L132")
 
-_L132:
+L132:
 
 # END
 
 	movq	%r10,	%rax
-_LLemptyBuffer_epilogue:
+LLemptyBuffer_epilogue:
 
 	movq	%rbp,	%rsp
 	popq	%rbp
+	.cfi_restore	rbp
+
+	.cfi_def_cfa	4, 4
+
 	ret
 	.cfi_endproc
 
-	.set	_LLemptyBuffer_SIZE,	0
+	.set	LLemptyBuffer_SIZE,	0
 
-	.set	_LSLemptyBuffer_SIZE,	0
+	.set	LSLemptyBuffer_SIZE,	0
+
+	.size LemptyBuffer, .-LemptyBuffer
 

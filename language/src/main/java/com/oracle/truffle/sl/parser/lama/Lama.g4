@@ -45,11 +45,20 @@ infixOperand
     | LAZY basicExpression     # LazyOperand
     ;
 
+noPipeExpression : noPipeBasicExpression ( ';' noPipeBasicExpression )*;
+noPipeBasicExpression : infixOperand (noPipeInfixOp infixOperand)* ;
+
 infixOp
+    : noPipeInfixOp
+    | '|'
+    ;
+
+noPipeInfixOp
     : '+' | '-' | '*' | '/' | '%'
     | '==' | '!=' | '<=' | '<' | '>=' | '>'
     | '&&' | '!!'
     | ':' | ':='
+    | '$' | '?' | '@' | '#'
     | INFIX_OP
     ;
 
@@ -80,7 +89,10 @@ primary
     | forExpression                                     # ForPrimary
     | caseExpression                                    # CasePrimary
     | letExpression                                     # LetPrimary
+    | syntaxExpression                                  # SyntaxExprPrimary
+    | INFIX infixOp                                     # InfixRefPrimary
     ;
+
 
 arrayExpression : '[' (  expression ( ',' expression )* )? ']';
 listExpression : '{' ( expression ( ',' expression )* )? '}';
@@ -126,9 +138,26 @@ simplePattern
     | '(' pattern ')'                                   # ParenPattern
     ;
 
+syntaxExpression : SYNTAX '(' syntaxAlternatives ')' ;
+syntaxAlternatives : syntaxSeq ('|' syntaxSeq)* ;
+syntaxSeq : syntaxBinding+ ('{' scopeExpression '}')? ;
+syntaxBinding
+    : '-' pattern '=' syntaxPostfix                   # OmitBoundSyntaxBinding
+    | '-' syntaxPostfix                               # OmitUnboundSyntaxBinding
+    | pattern '=' syntaxPostfix                       # BoundSyntaxBinding
+    | syntaxPostfix                                   # UnboundSyntaxBinding
+    ;
+syntaxPostfix : syntaxPrimary ('*' | '+' | '?')? ;
+syntaxPrimary
+    : LIDENT ('[' (expression (',' expression)*)? ']')*       # IdentSyntaxPrimary
+    | '(' syntaxAlternatives ')'                              # ParenSyntaxPrimary
+    | '$' '(' expression ')'                                  # EmbeddedExprSyntaxPrimary
+    ;
+
 caseExpression : 'case' expression 'of' caseBranches 'esac';
 caseBranches : caseBranch ('|' caseBranch)*;
-caseBranch : pattern '->' scopeExpression;
+caseBranch : pattern '->' caseScopeExpression;
+caseScopeExpression : definition* noPipeExpression? ;
 
 // Lexer
 
@@ -178,4 +207,4 @@ DECIMAL: [0-9]+ ;
 STRING: '"'(~["]|'""')*'"';
 CHAR: '\''(~[']|'\'\''|'\\n'|'\\t')'\'' ;
 
-INFIX_OP: [+\-*/%$!&^~?<>=:]+ ;
+INFIX_OP: [+\-*/%$!&^~?<>=:|@]+ ;

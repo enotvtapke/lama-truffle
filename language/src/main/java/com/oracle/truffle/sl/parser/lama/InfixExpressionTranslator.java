@@ -4,6 +4,7 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 import com.oracle.truffle.sl.nodes.lama.expression.*;
 import com.oracle.truffle.sl.parser.lama.InfixTable.Associativity;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 
 import java.util.List;
@@ -22,7 +23,7 @@ class InfixExpressionTranslator {
         this.readVariable = readVariable;
     }
 
-    LamaExpressionNode parseInfixExpression(List<LamaExpressionNode> operands, List<String> operators, List<LamaParser.InfixOpContext> operatorContexts) {
+    LamaExpressionNode parseInfixExpression(List<LamaExpressionNode> operands, List<String> operators, List<? extends ParserRuleContext> operatorContexts) {
         InfixChain chain = new InfixChain(operands, operators, operatorContexts);
         var result = buildPrecedenceTree(chain, 0);
         assert !chain.hasNextOperator() : "Unconsumed operator: " + chain.peekOperator();
@@ -70,7 +71,7 @@ class InfixExpressionTranslator {
         LamaExpressionNode node = switch (op) {
             case ":" -> new LamaCreateSExprNode("cons", new LamaExpressionNode[]{left, right});
             case "+" -> LamaAddNodeGen.create(left, right);
-            case "++" -> LamaStringConcatNodeGen.create(left, right);
+//            case "++" -> LamaStringConcatNodeGen.create(left, right);
             case "-" -> LamaSubNodeGen.create(left, right);
             case "*" -> LamaMulNodeGen.create(left, right);
             case "/" -> LamaDivNodeGen.create(left, right);
@@ -103,13 +104,13 @@ class InfixExpressionTranslator {
     private static final class InfixChain {
         private final List<LamaExpressionNode> operands;
         private final List<String> operators;
-        private final List<LamaParser.InfixOpContext> opCtxs;
+        private final List<? extends ParserRuleContext> opCtxs;
         private int operandCursor;
         private int operatorCursor;
 
         InfixChain(List<LamaExpressionNode> operands,
                    List<String> operators,
-                   List<LamaParser.InfixOpContext> opCtxs) {
+                   List<? extends ParserRuleContext> opCtxs) {
             this.operands = operands;
             this.operators = operators;
             this.opCtxs = opCtxs;
@@ -123,7 +124,7 @@ class InfixExpressionTranslator {
             return operators.get(operatorCursor);
         }
 
-        LamaParser.InfixOpContext peekOperatorCtx() {
+        ParserRuleContext peekOperatorCtx() {
             return opCtxs.get(operatorCursor);
         }
 

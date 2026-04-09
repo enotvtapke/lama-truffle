@@ -4,17 +4,14 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public final class LamaMain {
 
@@ -67,14 +64,22 @@ public final class LamaMain {
             options.put("lama.UnitSearchPath", unitSearchPathOption);
         }
 
-        System.exit(executeSource(source, System.in, System.out, options, launcherOutput));
+        String[] appArgs = Arrays.copyOfRange(args, 1, args.length);
+        System.exit(executeSource(source, System.in, System.out, options, launcherOutput, prepend(appArgs, file)));
     }
 
-    private static int executeSource(Source source, InputStream in, PrintStream out, Map<String, String> options, boolean launcherOutput) {
+    public static String[] prepend(String[] original, String element) {
+        String[] newArray = new String[original.length + 1]; // Create new array
+        newArray[0] = element; // Place new element at the front
+        System.arraycopy(original, 0, newArray, 1, original.length); // Copy old elements
+        return newArray;
+    }
+
+    private static int executeSource(Source source, InputStream in, PrintStream out, Map<String, String> options, boolean launcherOutput, String[] appArgs) {
         Context context;
         PrintStream err = System.err;
         try {
-            context = Context.newBuilder(LAMA).in(in).out(out).options(options).allowAllAccess(true).build();
+            context = Context.newBuilder(LAMA).in(in).out(out).options(options).allowIO(IOAccess.ALL).allowAllAccess(true).arguments("lama", appArgs).build();
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
             return 1;

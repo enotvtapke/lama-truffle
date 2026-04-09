@@ -1,4 +1,4 @@
-// Generated from Lama.g4 by ANTLR 4.13.2
+// Generated from language/src/main/java/com/oracle/truffle/sl/parser/lama/Lama.g4 by ANTLR 4.13.2
 package com.oracle.truffle.sl.parser.lama;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -123,11 +123,29 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLazyOperand(LamaParser.LazyOperandContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link LamaParser#noPipeExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNoPipeExpression(LamaParser.NoPipeExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LamaParser#noPipeBasicExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNoPipeBasicExpression(LamaParser.NoPipeBasicExpressionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link LamaParser#infixOp}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitInfixOp(LamaParser.InfixOpContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LamaParser#noPipeInfixOp}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNoPipeInfixOp(LamaParser.NoPipeInfixOpContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code DotPostfix}
 	 * labeled alternative in {@link LamaParser#postfix}.
@@ -289,6 +307,20 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitLetPrimary(LamaParser.LetPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SyntaxExprPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSyntaxExprPrimary(LamaParser.SyntaxExprPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code InfixRefPrimary}
+	 * labeled alternative in {@link LamaParser#primary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInfixRefPrimary(LamaParser.InfixRefPrimaryContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link LamaParser#arrayExpression}.
 	 * @param ctx the parse tree
@@ -475,6 +507,79 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitParenPattern(LamaParser.ParenPatternContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link LamaParser#syntaxExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSyntaxExpression(LamaParser.SyntaxExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LamaParser#syntaxAlternatives}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSyntaxAlternatives(LamaParser.SyntaxAlternativesContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LamaParser#syntaxSeq}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSyntaxSeq(LamaParser.SyntaxSeqContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code OmitBoundSyntaxBinding}
+	 * labeled alternative in {@link LamaParser#syntaxBinding}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitOmitBoundSyntaxBinding(LamaParser.OmitBoundSyntaxBindingContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code OmitUnboundSyntaxBinding}
+	 * labeled alternative in {@link LamaParser#syntaxBinding}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitOmitUnboundSyntaxBinding(LamaParser.OmitUnboundSyntaxBindingContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code BoundSyntaxBinding}
+	 * labeled alternative in {@link LamaParser#syntaxBinding}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBoundSyntaxBinding(LamaParser.BoundSyntaxBindingContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code UnboundSyntaxBinding}
+	 * labeled alternative in {@link LamaParser#syntaxBinding}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnboundSyntaxBinding(LamaParser.UnboundSyntaxBindingContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LamaParser#syntaxPostfix}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSyntaxPostfix(LamaParser.SyntaxPostfixContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code IdentSyntaxPrimary}
+	 * labeled alternative in {@link LamaParser#syntaxPrimary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIdentSyntaxPrimary(LamaParser.IdentSyntaxPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ParenSyntaxPrimary}
+	 * labeled alternative in {@link LamaParser#syntaxPrimary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParenSyntaxPrimary(LamaParser.ParenSyntaxPrimaryContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code EmbeddedExprSyntaxPrimary}
+	 * labeled alternative in {@link LamaParser#syntaxPrimary}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEmbeddedExprSyntaxPrimary(LamaParser.EmbeddedExprSyntaxPrimaryContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link LamaParser#caseExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -492,4 +597,10 @@ public interface LamaVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitCaseBranch(LamaParser.CaseBranchContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link LamaParser#caseScopeExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCaseScopeExpression(LamaParser.CaseScopeExpressionContext ctx);
 }

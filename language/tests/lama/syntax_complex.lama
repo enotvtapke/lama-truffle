@@ -1,0 +1,52 @@
+import Ostap;
+import Matcher;
+import List;
+
+var decimal = createRegexp ("[0-9]+", "decimal"),
+    ident   = createRegexp ("[a-z]+", "identifier"),
+    ws      = createRegexp ("[ \t\n]*", "whitespace"),
+    r;
+
+fun kw (s) {
+  syntax (-token[ws] token[s])
+}
+
+fun tok (p) {
+  syntax (-token[ws] token[p])
+}
+
+-- Test a simple calculator with proper whitespace handling
+fun pExpr (input) {
+  parseString (
+    syntax (
+      l=tok[decimal] kw["+"] r=tok[decimal] -token[ws] -eof { stringInt (l) + stringInt (r) }
+    | l=tok[decimal] kw["*"] r=tok[decimal] -token[ws] -eof { stringInt (l) * stringInt (r) }
+    | v=tok[decimal] -token[ws] -eof { stringInt (v) }
+    ),
+    input
+  )
+}
+
+fun pList (input) {
+  parseString (
+    syntax (
+      kw["("] items=tok[decimal] (kw[","] tok[decimal])* kw[")"] -token[ws] -eof {
+        var sum = stringInt (items);
+        sum
+      }
+    ),
+    input
+  )
+}
+
+r := pExpr ("3 + 4");
+case r of Succ (v) -> printf ("%d\n", v) | _ -> printf ("FAIL\n") esac;
+
+r := pExpr ("5 * 6");
+case r of Succ (v) -> printf ("%d\n", v) | _ -> printf ("FAIL\n") esac;
+
+r := pExpr ("42");
+case r of Succ (v) -> printf ("%d\n", v) | _ -> printf ("FAIL\n") esac;
+
+r := pList ("( 7 )");
+case r of Succ (v) -> printf ("%d\n", v) | _ -> printf ("FAIL\n") esac

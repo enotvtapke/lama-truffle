@@ -1,0 +1,10 @@
+I,List;
+I,Collection;
+I,Ref;
+I,Fun;
+I,Matcher;
+I,Data;
+R,"|",B,"!!";
+R,"|>",A,"|";
+N,"@",T,"*";
+N,"@@",T,"*";

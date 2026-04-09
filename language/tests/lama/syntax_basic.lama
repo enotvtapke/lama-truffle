@@ -1,0 +1,16 @@
+import Ostap;
+import Matcher;
+
+var decimal = createRegexp ("[0-9]+", "decimal"), r;
+
+r := parseString (
+  syntax (l=token[decimal] token["+"] r=token[decimal] -eof {
+    stringInt (l) + stringInt (r)
+  }),
+  "12+34"
+);
+
+case r of
+  Succ (v) -> printf ("%d\n", v)
+| Fail (e, l, c) -> printf ("FAIL at %d:%d\n", l, c)
+esac

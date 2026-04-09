@@ -67,9 +67,18 @@ public final class SLException extends AbstractTruffleException {
 
     @TruffleBoundary
     public static AbstractTruffleException create(String message, Node location) {
-        return new SLException(message, location);
+        SLException ex = new SLException(message, location);
+        if (location != null) {
+            SourceSection ss = ex.getEncapsulatingSourceSection();
+            if (ss != null && ss.isAvailable()) {
+                String located = message + " at " + ss.getSource().getName()
+                        + " line " + ss.getStartLine()
+                        + " col " + ss.getStartColumn();
+                return new SLException(located, location);
+            }
+        }
+        return ex;
     }
-
     @TruffleBoundary
     public static AbstractTruffleException typeError(Node operation, Object... values) {
         String operationName = null;

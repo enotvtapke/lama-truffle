@@ -1,0 +1,25 @@
+-- Timer.
+-- (C) Dmitry Boulytchev, JetBrains Research, St. Petersburg State University, 2020
+--
+-- This unit provides an implementation for simple timer. A timer is a function which
+-- measures an elapsed time (in microseconds) since its creation.
+
+-- Creates a new timer
+public fun timer () {
+  var t = time ();
+
+  fun () {
+    time () - t
+  }
+}
+
+-- Formats a given time as a floating-point number
+public fun toSeconds (t) {
+  var s = sprintf ("%d", t);
+  
+  if s.length >= 7
+  then
+    sprintf ("%s.%s", substring (s, 0, s.length - 7 + 1), substring (s, s.length - 7 + 1, 6))
+  else sprintf ("0.%s", s)
+  fi
+}

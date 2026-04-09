@@ -16,6 +16,8 @@ import com.oracle.truffle.sl.parser.lama.InfixTable.Associativity;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Interval;
 
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Supplier;
@@ -34,6 +36,7 @@ public class LamaTranslator {
     private final TruffleLanguage.Env env;
     private final List<String> unitSearchPaths;
     private final Set<String> processedInterfaceFiles = new HashSet<>();
+    private int syntaxTmpCounter = 0;
 
     public LamaTranslator(String moduleName, LamaLanguage language, Source source, TruffleLanguage.Env env) {
         this.moduleName = moduleName;
@@ -312,9 +315,13 @@ public class LamaTranslator {
         return parseInfixExpression(ctx.infixOperand(), ctx.infixOp());
     }
 
-    private LamaExpressionNode parseInfixExpression(
+    private LamaExpressionNode parseNoPipeBasicExpression(LamaParser.NoPipeBasicExpressionContext ctx) {
+        return parseInfixExpression(ctx.infixOperand(), ctx.noPipeInfixOp());
+    }
+
+    private <T extends ParserRuleContext> LamaExpressionNode parseInfixExpression(
             List<LamaParser.InfixOperandContext> operandCtxs,
-            List<LamaParser.InfixOpContext> operatorCtxs) {
+            List<T> operatorCtxs) {
         if (operatorCtxs.isEmpty()) return parseInfixOperand(operandCtxs.getFirst());
 
         if (operatorCtxs.getFirst().getText().equals(":=")) {
@@ -407,6 +414,11 @@ public class LamaTranslator {
             case LamaParser.LetPrimaryContext c -> parseLetExpression(c.letExpression());
             case LamaParser.TruePrimaryContext c -> setSrc(new LamaLongLiteralNode(1L), c);
             case LamaParser.FalsePrimaryContext c -> setSrc(new LamaLongLiteralNode(0L), c);
+            case LamaParser.SyntaxExprPrimaryContext c -> parseSyntaxExpression(c.syntaxExpression());
+            case LamaParser.InfixRefPrimaryContext c -> {
+                String mangledName = InfixTable.infixName(c.infixOp().getText());
+                yield setSrc(readVariable(mangledName), c);
+            }
             case LamaParser.WildcardPrimaryContext c -> throw createParseError(c.start, "Wildcard '_' is not a valid expression: " + getOriginalText(ctx));
             default -> throw createParseError(ctx.start, "Unsupported primary type: " + getOriginalText(ctx));
         };
@@ -646,11 +658,257 @@ public class LamaTranslator {
         CaseBranchNode[] branches = ctx.caseBranches().caseBranch().stream().map(b -> {
             scopeManager.enterScope();
             LamaPatternNode pattern = patternTranslator.parsePattern(b.pattern());
-            LamaExpressionNode body = parseScopeExpression(b.scopeExpression());
+            LamaExpressionNode body = parseCaseScopeExpression(b.caseScopeExpression());
             scopeManager.exitScope();
             return setSrc(new CaseBranchNode(pattern, body), b);
         }).toArray(CaseBranchNode[]::new);
         return setSrc(new LamaCaseNode(target, branches), ctx);
+    }
+
+    private LamaExpressionNode parseCaseScopeExpression(LamaParser.CaseScopeExpressionContext ctx) {
+        var definitions = ctx.definition().stream().flatMap(def -> parseDefinition(def).stream()).toList();
+        for (var d : definitions) {
+            if (d.isFunction) {
+                scopeManager.markAsFunction(d.name);
+            }
+        }
+        var declarations = definitions.stream().map((d) -> declareVariable(d.name, d.isPublic, d.ctx)).toList();
+        var result = new ArrayList<>(declarations);
+        var initializers = definitions.stream().map((d) -> setSrc(writeVariable(d.name, d.initializer.get()), d.ctx)).toList();
+        result.addAll(initializers);
+        if (ctx.noPipeExpression() != null) {
+            result.addAll(ctx.noPipeExpression().noPipeBasicExpression().stream()
+                    .map(this::parseNoPipeBasicExpression).toList());
+        }
+        if (result.size() == 1) return result.getFirst();
+        return toExpression(result, ctx);
+    }
+
+    // ---- Syntax expression desugaring ----
+
+    private String freshSyntaxVar() {
+        return "__syntax_tmp_" + (syntaxTmpCounter++);
+    }
+
+    private record AnalyzedBinding(
+            boolean omit,
+            String paramName,
+            boolean needsCaseWrapping,
+            LamaParser.PatternContext casePattern,
+            LamaParser.SyntaxPostfixContext parserCtx,
+            String parserSourceText,
+            ParserRuleContext ctx
+    ) {}
+
+    private LamaExpressionNode parseSyntaxExpression(LamaParser.SyntaxExpressionContext ctx) {
+        return parseSyntaxAlternatives(ctx.syntaxAlternatives());
+    }
+
+    private LamaExpressionNode parseSyntaxAlternatives(LamaParser.SyntaxAlternativesContext ctx) {
+        List<LamaParser.SyntaxSeqContext> alts = ctx.syntaxSeq();
+        LamaExpressionNode result = parseSyntaxSeq(alts.getLast());
+        for (int i = alts.size() - 2; i >= 0; i--) {
+            LamaExpressionNode left = parseSyntaxSeq(alts.get(i));
+            LamaExpressionNode altFunc = setUnavailableSrc(readVariable("alt"));
+            result = setUnavailableSrc(new LamaInvokeNode(altFunc, new LamaExpressionNode[]{left, result}));
+        }
+        return result;
+    }
+
+    private LamaExpressionNode parseSyntaxSeq(LamaParser.SyntaxSeqContext ctx) {
+        List<LamaParser.SyntaxBindingContext> bindingCtxs = ctx.syntaxBinding();
+        boolean hasExplicitSema = ctx.scopeExpression() != null;
+
+        List<AnalyzedBinding> bindings = new ArrayList<>();
+        List<String> autoSemaVarNames = new ArrayList<>();
+
+        for (var bc : bindingCtxs) {
+            bindings.add(analyzeBinding(bc, hasExplicitSema, autoSemaVarNames));
+        }
+
+        Supplier<LamaExpressionNode> semaBuilder;
+        if (hasExplicitSema) {
+            semaBuilder = () -> parseScopeExpression(ctx.scopeExpression());
+        } else {
+            semaBuilder = () -> {
+                if (autoSemaVarNames.size() == 1) {
+                    return setUnavailableSrc(readVariable(autoSemaVarNames.getFirst()));
+                } else {
+                    LamaExpressionNode[] elements = autoSemaVarNames.stream()
+                            .map(name -> setUnavailableSrc(readVariable(name)))
+                            .toArray(LamaExpressionNode[]::new);
+                    return setUnavailableSrc(new LamaArrayLiteralNode(elements));
+                }
+            };
+        }
+
+        return buildSyntaxChain(bindings, 0, semaBuilder, ctx);
+    }
+
+    private AnalyzedBinding analyzeBinding(
+            LamaParser.SyntaxBindingContext bc,
+            boolean hasExplicitSema,
+            List<String> autoSemaVarNames
+    ) {
+        boolean omit;
+        LamaParser.PatternContext patternCtx;
+        LamaParser.SyntaxPostfixContext postfixCtx;
+
+        switch (bc) {
+            case LamaParser.OmitBoundSyntaxBindingContext ctx -> {
+                omit = true;
+                patternCtx = ctx.pattern();
+                postfixCtx = ctx.syntaxPostfix();
+            }
+            case LamaParser.OmitUnboundSyntaxBindingContext ctx -> {
+                omit = true;
+                patternCtx = null;
+                postfixCtx = ctx.syntaxPostfix();
+            }
+            case LamaParser.BoundSyntaxBindingContext ctx -> {
+                omit = false;
+                patternCtx = ctx.pattern();
+                postfixCtx = ctx.syntaxPostfix();
+            }
+            case LamaParser.UnboundSyntaxBindingContext ctx -> {
+                omit = false;
+                patternCtx = null;
+                postfixCtx = ctx.syntaxPostfix();
+            }
+            default -> throw createParseError(bc.start, "Unknown syntax binding type");
+        }
+
+        String parserSourceText = getOriginalText(postfixCtx).replace("\"", " ");
+
+        String paramName;
+        boolean needsCaseWrapping = false;
+        LamaParser.PatternContext casePattern = null;
+
+        if (patternCtx == null) {
+            paramName = freshSyntaxVar();
+            if (!hasExplicitSema && !omit) {
+                autoSemaVarNames.add(paramName);
+            }
+        } else if (patternTranslator.isSimpleVariablePattern(patternCtx)) {
+            paramName = patternTranslator.simpleVariablePatternName(patternCtx);
+            if (!hasExplicitSema && !omit) {
+                autoSemaVarNames.add(paramName);
+            }
+        } else {
+            paramName = freshSyntaxVar();
+            if (!hasExplicitSema && !omit) {
+                autoSemaVarNames.add(paramName);
+            }
+            needsCaseWrapping = true;
+            casePattern = patternCtx;
+        }
+
+        return new AnalyzedBinding(omit, paramName, needsCaseWrapping, casePattern, postfixCtx, parserSourceText, bc);
+    }
+
+    private LamaExpressionNode buildSyntaxChain(
+            List<AnalyzedBinding> bindings,
+            int index,
+            Supplier<LamaExpressionNode> semaBuilder,
+            ParserRuleContext overallCtx
+    ) {
+        AnalyzedBinding binding = bindings.get(index);
+        boolean isLast = index == bindings.size() - 1;
+
+        LamaExpressionNode parserExpr = translateSyntaxPostfix(binding.parserCtx);
+
+        SourceSection lambdaSrc = getSourceSection(overallCtx);
+        scopeManager.enterFunction();
+
+        var argRead = setUnavailableSrc(new LamaReadArgumentNode(1));
+        var prologue = new ArrayList<>(defineVariable(binding.paramName, argRead));
+
+        LamaExpressionNode body;
+        if (binding.needsCaseWrapping) {
+            scopeManager.enterScope();
+            LamaPatternNode patternNode = patternTranslator.parsePattern(binding.casePattern);
+            LamaExpressionNode innerBody = isLast ? semaBuilder.get() : buildSyntaxChain(bindings, index + 1, semaBuilder, overallCtx);
+            CaseBranchNode branch = setUnavailableSrc(new CaseBranchNode(patternNode, innerBody));
+            body = setUnavailableSrc(new LamaCaseNode(setUnavailableSrc(readVariable(binding.paramName)), new CaseBranchNode[]{branch}));
+            scopeManager.exitScope();
+        } else {
+            body = isLast ? semaBuilder.get() : buildSyntaxChain(bindings, index + 1, semaBuilder, overallCtx);
+        }
+
+        var allNodes = new ArrayList<>(prologue);
+        allNodes.add(body);
+
+        var frame = scopeManager.buildFrame();
+        scopeManager.exitFunction();
+
+        var bodyExpr = toExpression(allNodes, overallCtx);
+        var lambda = new LamaFunctionLiteralNode(
+                new LamaRootNode(language, frame, bodyExpr, lambdaSrc, ANONYMOUS_FUN_NAME).getCallTarget()
+        );
+        lambda.setSourceSection(lambdaSrc.getCharIndex(), lambdaSrc.getCharLength());
+
+        if (isLast) {
+            LamaExpressionNode nameStr = setUnavailableSrc(new LamaStringLiteralNode(binding.parserSourceText));
+            LamaExpressionNode nameArray = setUnavailableSrc(new LamaArrayLiteralNode(new LamaExpressionNode[]{nameStr, parserExpr}));
+            LamaExpressionNode atAtFunc = setUnavailableSrc(readVariable(InfixTable.infixName("@@")));
+            return setSrc(new LamaInvokeNode(atAtFunc, new LamaExpressionNode[]{nameArray, lambda}), overallCtx);
+        } else {
+            LamaExpressionNode seqFunc = setUnavailableSrc(readVariable("seq"));
+            return setSrc(new LamaInvokeNode(seqFunc, new LamaExpressionNode[]{parserExpr, lambda}), overallCtx);
+        }
+    }
+
+    private LamaExpressionNode translateSyntaxPostfix(LamaParser.SyntaxPostfixContext ctx) {
+        LamaExpressionNode base = translateSyntaxPrimary(ctx.syntaxPrimary());
+        if (ctx.getChildCount() > 1) {
+            String postfixOp = ctx.getChild(1).getText();
+            LamaExpressionNode func = switch (postfixOp) {
+                case "*" -> setUnavailableSrc(readVariable("rep0"));
+                case "+" -> setUnavailableSrc(readVariable("rep"));
+                case "?" -> setUnavailableSrc(readVariable("opt"));
+                default -> throw createParseError(ctx.start, "Unknown postfix operator: " + postfixOp);
+            };
+            base = setSrc(new LamaInvokeNode(func, new LamaExpressionNode[]{base}), ctx);
+        }
+        return base;
+    }
+
+    private LamaExpressionNode translateSyntaxPrimary(LamaParser.SyntaxPrimaryContext ctx) {
+        return switch (ctx) {
+            case LamaParser.IdentSyntaxPrimaryContext ic -> {
+                LamaExpressionNode result = setUnavailableSrc(readVariable(ic.LIDENT().getText()));
+                List<List<LamaParser.ExpressionContext>> argLists = getSyntaxPrimaryArgLists(ic);
+                for (var argList : argLists) {
+                    LamaExpressionNode[] args = argList.stream()
+                            .map(this::parseExpression)
+                            .toArray(LamaExpressionNode[]::new);
+                    result = setUnavailableSrc(new LamaInvokeNode(result, args));
+                }
+                yield result;
+            }
+            case LamaParser.ParenSyntaxPrimaryContext pc -> parseSyntaxAlternatives(pc.syntaxAlternatives());
+            case LamaParser.EmbeddedExprSyntaxPrimaryContext ec -> parseExpression(ec.expression());
+            default -> throw createParseError(ctx.start, "Unknown syntax primary type");
+        };
+    }
+
+    private List<List<LamaParser.ExpressionContext>> getSyntaxPrimaryArgLists(LamaParser.IdentSyntaxPrimaryContext ctx) {
+        List<List<LamaParser.ExpressionContext>> result = new ArrayList<>();
+        List<LamaParser.ExpressionContext> currentGroup = null;
+        for (int i = 0; i < ctx.getChildCount(); i++) {
+            var child = ctx.getChild(i);
+            if (child instanceof TerminalNode tn && tn.getText().equals("[")) {
+                currentGroup = new ArrayList<>();
+            } else if (child instanceof TerminalNode tn && tn.getText().equals("]")) {
+                if (currentGroup != null) {
+                    result.add(currentGroup);
+                    currentGroup = null;
+                }
+            } else if (child instanceof LamaParser.ExpressionContext ec && currentGroup != null) {
+                currentGroup.add(ec);
+            }
+        }
+        return result;
     }
 
     private String getOriginalText(ParserRuleContext ctx) {

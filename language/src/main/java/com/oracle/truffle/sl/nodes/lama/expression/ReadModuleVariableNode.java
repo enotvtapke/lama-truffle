@@ -22,7 +22,7 @@ public abstract class ReadModuleVariableNode extends LamaExpressionNode {
     public Object readObject(
             @CachedLibrary(limit = "3") DynamicObjectLibrary dynamicObjects,
             @Bind LamaContext context,
-            @Cached(value = "context.findModuleDeclaringVariable(currentModule, variableName)", neverDefault = true)
+            @Cached(value = "context.findModuleDeclaringVariable(currentModule, variableName, this)", neverDefault = true)
             DynamicObject module
     ) {
         return dynamicObjects.getOrDefault(module, variableName, null);

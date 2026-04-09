@@ -1,0 +1,28 @@
+import Ostap;
+import Matcher;
+
+var decimal = createRegexp ("[0-9]+", "decimal"), r;
+
+-- Test $() embedded expression
+var myParser = token (decimal);
+
+r := parseString (
+  syntax (v = $(myParser) -eof { stringInt (v) }),
+  "99"
+);
+
+case r of
+  Succ (v) -> printf ("%d\n", v)
+| Fail (e, l, c) -> printf ("FAIL\n")
+esac;
+
+-- Test parenthesized sub-expression
+r := parseString (
+  syntax (v = (token[decimal] | token["x"]) -eof { v }),
+  "x"
+);
+
+case r of
+  Succ (v) -> printf ("%s\n", v)
+| Fail (e, l, c) -> printf ("FAIL\n")
+esac

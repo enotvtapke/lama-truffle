@@ -1,0 +1,69 @@
+import Ostap;
+import Matcher;
+import List;
+
+var decimal = createRegexp ("[0-9]+", "decimal"),
+    ws      = createRegexp ("[ \t\n]*", "whitespace"),
+    r;
+
+fun wsToken (p) {
+  syntax (token[ws] v=token[p] { v })
+}
+
+-- Test + (one or more)
+r := parseString (
+  syntax (xs=wsToken[decimal]+ -token[ws] -eof {
+    foldl (fun (acc, x) { acc + stringInt (x) }, 0, xs)
+  }),
+  "10 20 30"
+);
+
+case r of
+  Succ (v) -> printf ("%d\n", v)
+| Fail (e, l, c) -> printf ("FAIL at %d:%d\n", l, c)
+esac;
+
+-- Test * (zero or more) with empty input
+r := parseString (
+  syntax (xs=token[decimal]* -eof {
+    foldl (fun (acc, x) { acc + stringInt (x) }, 0, xs)
+  }),
+  ""
+);
+
+case r of
+  Succ (v) -> printf ("%d\n", v)
+| Fail (e, l, c) -> printf ("FAIL at %d:%d\n", l, c)
+esac;
+
+-- Test ? (optional) with value present
+r := parseString (
+  syntax (x=token[decimal]? -eof {
+    case x of
+      Some (v) -> stringInt (v)
+    | None     -> -1
+    esac
+  }),
+  "5"
+);
+
+case r of
+  Succ (v) -> printf ("%d\n", v)
+| Fail (e, l, c) -> printf ("FAIL at %d:%d\n", l, c)
+esac;
+
+-- Test ? (optional) with no value
+r := parseString (
+  syntax (x=token[decimal]? -eof {
+    case x of
+      Some (v) -> stringInt (v)
+    | None     -> -1
+    esac
+  }),
+  ""
+);
+
+case r of
+  Succ (v) -> printf ("%d\n", v)
+| Fail (e, l, c) -> printf ("FAIL at %d:%d\n", l, c)
+esac
