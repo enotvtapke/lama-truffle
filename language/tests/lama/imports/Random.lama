@@ -1,0 +1,69 @@
+-- Random data structures generator.
+-- (C) Dmitry Boulytchev, JetBrains Research, St. Petersburg State University, 2020
+--
+-- This unit provides an implementation for random data structures generator
+
+import Array;
+
+-- Generates a random signed 31-bit integer
+public fun randomInt () {
+  if random (2)
+  then random (1073741823) 
+  else 0 - random (1073741823)
+  fi
+}
+
+-- Generates a printable ASCII string of given length
+public fun randomString (len) {
+  var s = makeString (len);
+
+  for var i = 0;, i < len, i := i+1
+  do
+    s [i] := 32 + random (94) -- printable ASCII set
+  od;
+
+  s
+}
+
+-- Generates a random array of (deep) size n. f is element-generation
+-- function which takes the size of the element
+public fun randomArray (f, n) {
+  mapArray (f, split (n, random (n + 1)))  
+}
+
+-- Splits a number n in a random sequence of k summands
+public fun split (n, k) {
+  var a = makeArray (k),
+        m = n;
+
+  for var i = 0;, i < k, i := i + 1
+  do
+    if i == k - 1
+    then a[i] := m
+    else 
+      a [i] := random (m - k + i + 1) + 1;
+      m := m - a [i]
+    fi
+  od;
+
+  a
+}
+
+-- Generates a (recursive) data structure of size n. nodeSpec is an array of pairs [n, fn] where
+-- fn gets an array of values of length n and generates some node; leaf is a fucntion without
+-- arguments which create a leaf.
+public fun structure (n, nodeSpec, leaf) {
+  var k = nodeSpec.length;
+
+  fun rec (n) {
+    if n <= 1
+    then leaf ()
+    else
+      var ns = nodeSpec [random (k)];
+      
+      ns [1] (mapArray (rec, split (n, ns [0])))
+    fi
+  }
+
+  rec (n)
+}

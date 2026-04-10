@@ -1,0 +1,8 @@
+var path, h;
+
+path := "test818_fio.tmp";
+fwrite (path, "abc");
+printf ("%s\n", fread (path));
+h := fopen (path, "r");
+fclose (h);
+printf ("%s\n", fread (path))

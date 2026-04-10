@@ -1,0 +1,8 @@
+printf ("%d\n", compare (getEnv ("__LAMA_TEST_GETENV_UNDEFINED__"), 0));
+printf ("%d\n", compare (getEnv ("PATH"), 0));
+assert (hash (0) == hash (0), "hash(0)");
+assert (hash (10) == hash (10), "hash(10)");
+assert (hash ("aaa") == hash ("aaa"), "hash(aaa)");
+assert (tagHash ("aaa") == tagHash ("aaa"), "tagHash(aaa)");
+assert (tagHash ("sym") == tagHash ("sym"), "tagHash(sym)");
+assert (tagHash ("a") == tagHash ("b"), "tagHash(a)")

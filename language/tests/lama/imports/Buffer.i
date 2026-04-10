@@ -1,0 +1,12 @@
+I,Std;
+I,List;
+F,emptyBuffer;
+F,singletonBuffer;
+F,listBuffer;
+F,addBuffer;
+F,concatBuffer;
+F,i__Infix_604362;
+F,i__Infix_6043;
+F,getBuffer;
+L,"<+>",A,"=";
+L,"<+",T,"<+>";

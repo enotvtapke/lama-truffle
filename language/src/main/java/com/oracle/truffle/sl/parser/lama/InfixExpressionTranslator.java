@@ -70,6 +70,7 @@ class InfixExpressionTranslator {
         LamaExpressionNode node = switch (op) {
             case ":" -> new LamaCreateSExprNode("cons", new LamaExpressionNode[]{left, right});
             case "+" -> LamaAddNodeGen.create(left, right);
+            case "++" -> LamaStringConcatNodeGen.create(left, right);
             case "-" -> LamaSubNodeGen.create(left, right);
             case "*" -> LamaMulNodeGen.create(left, right);
             case "/" -> LamaDivNodeGen.create(left, right);

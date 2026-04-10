@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.strings.TruffleString;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 @ExportLibrary(InteropLibrary.class)
 public final class LamaString implements TruffleObject {
@@ -67,5 +68,21 @@ public final class LamaString implements TruffleObject {
     @Override
     public String toString() {
         return asString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof LamaString other)) {
+            return false;
+        }
+        return Arrays.equals(this.bytes, other.bytes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(bytes);
     }
 }

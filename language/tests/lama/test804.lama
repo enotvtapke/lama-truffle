@@ -1,0 +1,17 @@
+write (uppercase (97));
+write (uppercase (122));
+write (uppercase (65));
+write (uppercase (48));
+
+write (lowercase (97));
+write (lowercase (122));
+write (lowercase (65));
+write (lowercase (48));
+
+write (stringInt ("0"));
+write (stringInt ("42"));
+write (stringInt ("  -17  "));
+
+assert (1);
+write (2);
+assert (0, "bad value %d", 42)

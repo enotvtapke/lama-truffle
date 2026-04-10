@@ -1,0 +1,7 @@
+var t1, t2, i;
+
+t1 := time ();
+for i := 0, i < 1000000, i := i + 1 do 0 od;
+t2 := time ();
+assert (t2 > t1, "wrong time measurement");
+write (1)

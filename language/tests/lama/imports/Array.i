@@ -1,0 +1,11 @@
+I,Std;
+I,List;
+F,initArray;
+F,mapArray;
+F,arrayList;
+F,listArray;
+F,foldlArray;
+F,foldrArray;
+F,iterArray;
+F,iteriArray;
+F,findArray;

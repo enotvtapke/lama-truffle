@@ -24,6 +24,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SplittableRandom;
 
 import static com.oracle.truffle.sl.LamaLanguage.buildUnitSearchPaths;
 
@@ -36,6 +37,8 @@ public final class LamaContext {
     private final BufferedReader input;
     private final PrintWriter output;
     private final List<String> unitSearchPaths;
+    private final long startNanos = System.nanoTime();
+    private final SplittableRandom random = new SplittableRandom();
 
     public LamaContext(LamaLanguage language, Env env) {
         this.env = env;
@@ -60,8 +63,19 @@ public final class LamaContext {
         return input;
     }
 
+    public long elapsedMicrosSinceStart() {
+        return (System.nanoTime() - startNanos) / 1000L;
+    }
+    public long nextRandomBelow(long bound) {
+        return random.nextLong(bound);
+    }
+
     public Env getEnv() {
         return env;
+    }
+
+    public LamaLanguage getLanguage() {
+        return language;
     }
 
     @TruffleBoundary
@@ -155,6 +169,52 @@ public final class LamaContext {
         registerBuiltIn(LamaReadBuiltinNodeFactory.create());
         registerBuiltIn(LamaLengthBuiltinNodeFactory.create());
         registerBuiltIn(LamaStringBuiltinNodeFactory.create());
+        registerBuiltIn(LamaUppercaseBuiltinNodeFactory.create());
+        registerBuiltIn(LamaLowercaseBuiltinNodeFactory.create());
+        registerBuiltIn(new LamaAssertBuiltinNode());
+        registerBuiltIn(LamaStringIntBuiltinNodeFactory.create());
+        registerBuiltIn(LamaFstBuiltinNodeFactory.create());
+        registerBuiltIn(LamaSndBuiltinNodeFactory.create());
+        registerBuiltIn(LamaHdBuiltinNodeFactory.create());
+        registerBuiltIn(LamaTlBuiltinNodeFactory.create());
+        registerBuiltIn(LamaReadLineBuiltinNodeFactory.create());
+        registerBuiltIn(LamaFreadBuiltinNodeFactory.create());
+        registerBuiltIn(LamaFexistsBuiltinNodeFactory.create());
+        registerBuiltIn(LamaFwriteBuiltinNodeFactory.create());
+        registerBuiltIn(new LamaPrintfBuiltinNode());
+        registerBuiltIn(new LamaSprintfBuiltinNode());
+        registerBuiltIn(new LamaFailureBuiltinNode());
+        registerBuiltIn(new LamaFprintfBuiltinNode());
+        registerBuiltIn(LamaTimeBuiltinNodeFactory.create());
+        registerBuiltIn(LamaMakeArrayBuiltinNodeFactory.create());
+        registerBuiltIn(LamaMakeStringBuiltinNodeFactory.create());
+        registerBuiltIn(LamaStringCatBuiltinNodeFactory.create());
+        registerBuiltIn(LamaMatchSubStringBuiltinNodeFactory.create());
+        registerBuiltIn(LamaSubstringBuiltinNodeFactory.create());
+        registerBuiltIn(LamaCloneBuiltinNodeFactory.create());
+        registerBuiltIn(LamaHashBuiltinNodeFactory.create());
+        registerBuiltIn(LamaTagHashBuiltinNodeFactory.create());
+        registerBuiltIn(LamaCompareBuiltinNodeFactory.create());
+        registerBuiltIn(LamaFlatCompareBuiltinNodeFactory.create());
+        registerBuiltIn(LamaRegexpBuiltinNodeFactory.create());
+        registerBuiltIn(LamaRegexpMatchBuiltinNodeFactory.create());
+        registerBuiltIn(LamaFopenBuiltinNodeFactory.create());
+        registerBuiltIn(LamaFcloseBuiltinNodeFactory.create());
+        registerBuiltIn(LamaGetEnvBuiltinNodeFactory.create());
+        registerBuiltIn(LamaRandomBuiltinNodeFactory.create());
+        registerBuiltIn(LamaMakeLazyBuiltinNodeFactory.create());
+        registerBuiltIn(LamaForceBuiltinNodeFactory.create());
+        registerSysargs();
+    }
+
+    @TruffleBoundary
+    private void registerSysargs() {
+        String[] app = env.getApplicationArguments();
+        Object[] elems = new Object[app.length];
+        for (int i = 0; i < app.length; i++) {
+            elems[i] = LamaString.from(app[i]);
+        }
+        DynamicObjectLibrary.getUncached().put(builtins, "sysargs", new LamaArray(elems));
     }
 
     private void registerBuiltIn(LamaBuiltinNode builtin) {

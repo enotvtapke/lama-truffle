@@ -1,0 +1,17 @@
+I,Std;
+F,size;
+F,foldl;
+F,foldr;
+F,iter;
+F,map;
+F,i__Infix_434343;
+F,reverse;
+F,assoc;
+F,find;
+F,flatten;
+F,deepFlatten;
+F,zip;
+F,unzip;
+F,remove;
+F,filter;
+L,"+++",T,"+";

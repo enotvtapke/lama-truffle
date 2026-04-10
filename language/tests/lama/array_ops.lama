@@ -1,0 +1,11 @@
+import Array;
+
+var a = initArray (5, fun (i) { i * 10 });
+var b;
+
+write (a[0]);
+write (a[4]);
+iterArray (fun (x) { write (x) }, a);
+write (foldlArray (fun (acc, x) { acc + x }, 0, a));
+b := mapArray (fun (x) { x + 1 }, a);
+write (b[0])

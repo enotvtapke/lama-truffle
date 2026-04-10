@@ -1,0 +1,140 @@
+-- Lists.
+-- (C) Dmitry Boulytchev, JetBrains Research, St. Petersburg State University, 2020
+--
+-- This unit provides a set of list-manipulation primitives.
+
+public fun size (l) {
+  case l of
+    {}    -> 0
+  | _ : t -> 1 + size (t)
+  esac
+}
+
+public fun foldl (f, acc, l) {
+  case l of
+    {}     -> acc
+  | x : xs -> foldl (f, f (acc, x), xs)
+  esac
+}
+
+public fun foldr (f, acc, l) {
+  case l of
+    {}     -> acc
+  | x : xs -> f (foldr (f, acc, xs), x)
+  esac
+}
+
+public fun iter (f, l) {
+  case l of
+    {}     -> skip
+  | x : xs -> f (x); iter (f, xs)
+  esac
+}
+
+public fun map (f, l) {
+  case l of
+    {}     -> {}
+  | x : xs -> f (x) : map (f, xs)
+  esac
+}
+
+public infix +++ at + (x, y) {
+  case x of
+    {}     -> y
+  | x : xs -> x : xs +++ y
+  esac
+}
+
+public fun reverse (l) {
+  fun inner (acc, l) {
+    case l of
+      {}     -> acc
+    | x : xs -> inner (x : acc, xs)
+    esac
+  }
+
+  inner ({}, l)
+}
+
+public fun assoc (l, x) {
+  case l of
+    {}     -> None
+  | [y, z] : ys -> if compare (x, y) == 0 then Some (z) else assoc (ys, x) fi
+  esac
+}
+
+public fun find (f, l) {
+  case l of
+    {}     -> None
+  | x : xs -> if f (x) then Some (x) else find (f, xs) fi
+  esac
+}
+
+public fun flatten (l) {
+  var res = [0, {}], curr = [res];
+
+  fun append (x) {
+    var new = x : {};
+
+    curr [0][1] := new;
+    curr [0] := new
+  }
+
+  iter (fun (x) {iter (append, x)}, l);
+
+  res [1]
+}
+
+public fun deepFlatten (l) {
+  var res = [0, {}], curr = [res];
+
+  fun append (x) {
+    var new = x : {};
+
+    curr [0][1] := new;
+    curr [0] := new
+  }
+
+  fun traverse (l) {
+    case l of
+      _ : _ -> iter (traverse, l)
+    | {}    -> skip
+    | _     -> append (l)
+    esac
+  }
+
+  traverse (l);
+
+  res [1]
+}
+
+public fun zip (a, b) {
+  case [a, b] of
+    [{}, {}]         -> {}
+  | [a : aa, b : bb] -> [a, b] : zip (aa, bb)
+  esac
+}
+
+public fun unzip (a) {
+  case a of
+    {}          -> [{}, {}]
+  | [a, b] : aa ->
+     case unzip (aa) of
+       [aa, bb] -> [a : aa, b : bb]
+     esac
+  esac
+}
+
+public fun remove (f, l) {
+  case l of
+    {}    -> {}
+  | h : t -> if f (h) then t else h : remove (f, t) fi
+  esac
+}
+
+public fun filter (f, l) {
+  case l of
+    {}    -> {}
+  | h : t -> if f (h) then h : filter (f, t) else filter (f, t) fi
+  esac
+}
