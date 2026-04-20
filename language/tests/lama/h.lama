@@ -1,8 +1,0 @@
-import Array;
-public fun size (l) {
-  case l of
-    {}    -> 0
-  | _ : t -> 1 + size (t)
-  esac
-}
-write({"a"}.size)

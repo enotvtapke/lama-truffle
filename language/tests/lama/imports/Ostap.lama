@@ -12,7 +12,7 @@ import Matcher;
 import Data;
 
 var tab, hct, restab = false;
-var log = true;
+var log = false;
 
 public fun logOn () {
   log := true
