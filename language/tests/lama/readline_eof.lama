@@ -1,0 +1,9 @@
+-- Reference Lama `readLine` returns the unboxed integer 0 on EOF,
+-- NOT the string "0". Using pattern matching reveals the type.
+
+var x = readLine ();
+
+case x of
+  0      -> printf ("eof\n")
+| _      -> printf ("something\n")
+esac

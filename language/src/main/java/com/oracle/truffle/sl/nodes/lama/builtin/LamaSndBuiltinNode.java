@@ -1,6 +1,5 @@
 package com.oracle.truffle.sl.nodes.lama.builtin;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -9,19 +8,19 @@ import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
-import java.util.Arrays;
-
+/**
+ * Reference: {@code Lsnd(v) = Belem(v, BOX(1))}. For strings {@code Belem}
+ * returns the character at the given index, not a substring.
+ */
 @NodeInfo(shortName = "snd")
 public abstract class LamaSndBuiltinNode extends LamaBuiltinNode {
 
     @Specialization
-    @TruffleBoundary
-    public LamaString sndString(LamaString s) {
+    public long sndString(LamaString s) {
         if (s.length() < 2) {
             throw SLException.create("snd: string too short", this);
         }
-        byte[] b = s.getBytes();
-        return new LamaString(Arrays.copyOfRange(b, 1, b.length));
+        return s.readByte(1);
     }
 
     @Specialization

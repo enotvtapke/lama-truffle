@@ -1,0 +1,36 @@
+-- Reference Lama `compare` treats closures as compound values: the
+-- function slot is compared first, then captured values are compared
+-- element-wise (see runtime.c Lcompare, CLOSURE_TAG branch).
+
+fun makeAdder (n) {
+  var f;
+  f := fun (x) { x + n };
+  f
+}
+
+fun makeSub (n) {
+  var f;
+  f := fun (x) { x - n };
+  f
+}
+
+var f;
+var g;
+var h;
+var d;
+
+f := makeAdder (10);
+g := makeAdder (10);
+h := makeAdder (20);
+d := makeSub (10);
+
+-- Same callable and same captures.
+printf ("%d\n", compare (f, g));
+-- Same callable, different captures: sign is driven by captured values.
+printf ("%d\n", compare (f, h) < 0);
+printf ("%d\n", compare (h, f) > 0);
+-- Different callables: result is driven by the function slot, never 0.
+printf ("%d\n", compare (f, d) == 0);
+-- flatCompare only compares identities of the closure cells; two
+-- references to the same closure value are always equal.
+printf ("%d\n", flatCompare (f, f))

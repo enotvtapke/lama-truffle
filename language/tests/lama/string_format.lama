@@ -1,0 +1,21 @@
+-- Reference Lama: `string` delegates to printValue (runtime.c). Key points:
+--   * strings are quoted;
+--   * arrays are rendered as [a, b, c];
+--   * S-expressions tagged "cons" are rendered as {a, b, c} by walking
+--     the linked list;
+--   * all other S-expressions are rendered as Tag (a, b, ...);
+--   * a nullary S-expression prints just its tag.
+
+printf ("%s\n", string (42));
+printf ("%s\n", string (-7));
+printf ("%s\n", string ("hello"));
+printf ("%s\n", string ([1, 2, 3]));
+printf ("%s\n", string ([]));
+printf ("%s\n", string ({1, 2, 3}));
+printf ("%s\n", string (A (1, "b", [3])));
+printf ("%s\n", string (A));
+
+-- Improper list: reference stops walking at the first unboxed tail and
+-- drops it. cons(1, 2) -> "{1}"; cons(1, cons(2, 3)) -> "{1, 2}".
+printf ("%s\n", string (1 : 2));
+printf ("%s\n", string (1 : 2 : 3))

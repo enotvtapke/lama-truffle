@@ -1,0 +1,24 @@
+-- Reference Lama: Lhd(v) = Lfst(v) = Belem(v, 0)
+--                 Ltl(v) = Lsnd(v) = Belem(v, 1)
+-- For strings this means a character is returned, not a substring.
+
+-- Strings: return the byte at index 0 / 1 as an integer.
+printf ("%d\n", hd ("abc"));
+printf ("%d\n", fst ("abc"));
+printf ("%d\n", tl ("abc"));
+printf ("%d\n", snd ("abc"));
+
+-- Arrays: return the element at index 0 / 1 directly.
+printf ("%d\n", hd ([10, 20, 30]));
+printf ("%d\n", fst ([10, 20, 30]));
+printf ("%d\n", tl ([10, 20, 30]));
+printf ("%d\n", snd ([10, 20, 30]));
+
+-- Cons lists: tl returns the rest of the list.
+printf ("%d\n", hd ({1, 2, 3}));
+printf ("%d\n", hd (tl ({1, 2, 3})));
+printf ("%d\n", hd (tl (tl ({1, 2, 3}))));
+
+-- S-expressions: element access by index.
+printf ("%d\n", fst (Pair (11, 22)));
+printf ("%d\n", snd (Pair (11, 22)))

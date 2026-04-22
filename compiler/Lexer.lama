@@ -41,25 +41,30 @@ var keywords =
           });
 
 -- Regular expression definitions
-public rSkip        = createRegexp ("skip\\b", "skip"),
-       rWhiteSpace  = createRegexp ("\\(\\([ \n\r\t]*\\)\\|\\(--[^\n]*[ \n\r\t]*\\)\\)*", "whitespace"),
+-- NOTE: Lama's runtime compiles these with POSIX regcomp(REG_EXTENDED),
+-- which does NOT support the \b word-boundary escape. Keyword regexps
+-- therefore do not end with "\\b"; the keyword-vs-identifier check is
+-- performed inside `lident` below (it rejects matches that hit `keywords`).
+public rSkip        = createRegexp ("skip", "skip"),
+       rWhiteSpace  = createRegexp ("(([ \n\r\t]*)|(--[^\n]*[ \n\r\t]*))*", "whitespace"),
        rDecimal     = createRegexp ("-?[0-9]+", "decimal constant"),
-       rStrlit      = createRegexp ("""\\([^""]\\|""""\\)*""", "string constant"),
-       rChar        = createRegexp ("'\\([^']\\|''\\|\\\\n\\|\\\\t\\)'", "character constant"),
+       rStrlit      = createRegexp ("""([^""]|"""")*""", "string constant"),
+       rChar        = createRegexp ("'([^']|''|\\\\n|\\\\t)'", "character constant"),
        rLident      = createRegexp ("[a-z][a-z_A-Z0-9']*", "lowercase identifier"),
        rUident      = createRegexp ("[A-Z][a-z_A-Z0-9']*", "uppercase identifier"),
-       rIf          = createRegexp ("if\\b", """if"""),
-       rThen        = createRegexp ("then\\b", """then"""),
-       rElse        = createRegexp ("else\\b", """else"""),
-       rElif        = createRegexp ("elif\\b", """elif"""),
-       rFi          = createRegexp ("fi\\b", """fi"""),
-       rWhile       = createRegexp ("while\\b", """while"""),
-       rDo          = createRegexp ("do\\b", """do"""),
-       rOd          = createRegexp ("od\\b", """od"""),
-       rFor         = createRegexp ("for\\b", """for"""),
-       rVar         = createRegexp ("var\\b", """var"""),
-       rVal         = createRegexp ("val\\b", """val"""),
-       rFun         = createRegexp ("fun\\b", """fun""");
+       rRead        = createRegexp ("read", """read"""),
+       rIf          = createRegexp ("if", """if"""),
+       rThen        = createRegexp ("then", """then"""),
+       rElse        = createRegexp ("else", """else"""),
+       rElif        = createRegexp ("elif", """elif"""),
+       rFi          = createRegexp ("fi", """fi"""),
+       rWhile       = createRegexp ("while", """while"""),
+       rDo          = createRegexp ("do", """do"""),
+       rOd          = createRegexp ("od", """od"""),
+       rFor         = createRegexp ("for", """for"""),
+       rVar         = createRegexp ("var", """var"""),
+       rVal         = createRegexp ("val", """val"""),
+       rFun         = createRegexp ("fun", """fun""");
       
 var whiteSpace = token (rWhiteSpace);
 

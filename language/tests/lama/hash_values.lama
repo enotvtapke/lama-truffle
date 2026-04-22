@@ -1,0 +1,22 @@
+-- Reference Lama `hash` is the recursive value hash from runtime.c
+-- (inner_hash / Lhash). The top-level result is masked with 0x3fffff.
+-- Equal structures must produce equal hashes; unequal structures that
+-- happen to hash to the same low-bit digest are acceptable, so the
+-- test focuses on equality, not on specific values (except for the
+-- few values that are well-defined by the algorithm).
+
+printf ("%d\n", hash (0));
+printf ("%d\n", hash (42));
+printf ("%d\n", hash ("abc"));
+printf ("%d\n", hash ("abc") == hash ("abc"));
+printf ("%d\n", hash ([1, 2, 3]));
+printf ("%d\n", hash ([1, 2, 3]) == hash ([1, 2, 3]));
+printf ("%d\n", hash ({1, 2, 3}) == hash ({1, 2, 3}));
+printf ("%d\n", hash (A (1, 2)) == hash (A (1, 2)));
+
+-- tagHash is alphabet-based: every character gets a 6-bit slot.
+-- The tags "a" and "b" are distinct positions in the alphabet.
+printf ("%d\n", tagHash ("a"));
+printf ("%d\n", tagHash ("b"));
+printf ("%d\n", tagHash ("cons"));
+printf ("%d\n", tagHash (""))

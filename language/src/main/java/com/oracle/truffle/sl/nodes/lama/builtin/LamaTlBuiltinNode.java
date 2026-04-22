@@ -1,15 +1,18 @@
 package com.oracle.truffle.sl.nodes.lama.builtin;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
+import com.oracle.truffle.sl.runtime.lama.LamaString;
 
-import java.util.Arrays;
-
+/**
+ * Reference: {@code Ltl(v) = Belem(v, BOX(1))}. For arrays and strings,
+ * {@code Belem} returns the element at index 1 (not the "rest" of the
+ * sequence). Only S-expression cons cells produce a list-like tail.
+ */
 @NodeInfo(shortName = "tl")
 public abstract class LamaTlBuiltinNode extends LamaBuiltinNode {
 
@@ -19,23 +22,25 @@ public abstract class LamaTlBuiltinNode extends LamaBuiltinNode {
     }
 
     @Specialization
-    @TruffleBoundary
-    public LamaArray tlArray(LamaArray a) {
-        if (a.getSize() < 1) {
-            throw SLException.create("tl: empty array", this);
+    public long tlString(LamaString s) {
+        if (s.length() < 2) {
+            throw SLException.create("tl: string too short", this);
         }
-        int n = a.getSize() - 1;
-        if (n == 0) {
-            return new LamaArray(0);
-        }
-        Object[] src = (Object[]) a.storage;
-        return new LamaArray(Arrays.copyOfRange(src, 1, src.length));
+        return s.readByte(1);
     }
 
     @Specialization
-    public Object tlCons(LamaSExpr e) {
-        if (!"cons".equals(e.tag) || e.elements.length != 2) {
-            throw SLException.create("tl: expected list (cons cell)", this);
+    public Object tlArray(LamaArray a) {
+        if (a.getSize() < 2) {
+            throw SLException.create("tl: array too short", this);
+        }
+        return a.readElement(1);
+    }
+
+    @Specialization
+    public Object tlSExpr(LamaSExpr e) {
+        if (e.elements.length < 2) {
+            throw SLException.create("tl: expected cons cell or non-empty s-expression", this);
         }
         return e.elements[1];
     }

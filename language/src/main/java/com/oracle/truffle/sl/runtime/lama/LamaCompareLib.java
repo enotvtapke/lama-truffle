@@ -4,6 +4,11 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
 /**
  * Helpers aligned with the reference Lama {@code runtime.c} (tagHash, compare, hash, clone).
+ *
+ * <p>Reference tag ordering comes from {@code runtime_common.h}:
+ * {@code STRING_TAG=1 < ARRAY_TAG=3 < SEXP_TAG=5 < CLOSURE_TAG=7}. The
+ * {@link #typeRank(Object)} helper preserves this ordering so that values of
+ * different kinds compare in the same direction as in the C runtime.
  */
 public final class LamaCompareLib {
 
@@ -58,8 +63,8 @@ public final class LamaCompareLib {
         if (a == b) {
             return 0;
         }
-        long tagHa = a.tag.hashCode();
-        long tagHb = b.tag.hashCode();
+        long tagHa = LamaHashLib.tagHash(a.tag);
+        long tagHb = LamaHashLib.tagHash(b.tag);
         if (tagHa != tagHb) {
             return tagHa - tagHb;
         }
@@ -77,6 +82,16 @@ public final class LamaCompareLib {
         return 0;
     }
 
+    /**
+     * Compare closures in the same spirit as the reference C runtime:
+     *   1. compare the first closure slot (the "function pointer");
+     *   2. compare the captured-slot count;
+     *   3. compare each captured value element-wise (deep).
+     *
+     * The Truffle implementation stores the parent lexical scope as the first
+     * element of the scope array. We recurse into it via {@link #compareValue},
+     * so it is treated like any other captured reference.
+     */
     @TruffleBoundary
     public static long compareFunction(LamaFunction a, LamaFunction b) {
         if (a == b) {
@@ -86,7 +101,18 @@ public final class LamaCompareLib {
         if (c != 0) {
             return c;
         }
-        return Long.compare(System.identityHashCode(a.lexicalScope), System.identityHashCode(b.lexicalScope));
+        int la = a.lexicalScope == null ? 0 : a.lexicalScope.length;
+        int lb = b.lexicalScope == null ? 0 : b.lexicalScope.length;
+        if (la != lb) {
+            return la - lb;
+        }
+        for (int i = 0; i < la; i++) {
+            long cc = compareValue(a.lexicalScope[i], b.lexicalScope[i]);
+            if (cc != 0) {
+                return cc;
+            }
+        }
+        return 0;
     }
 
     @TruffleBoundary
@@ -120,22 +146,29 @@ public final class LamaCompareLib {
         if (p instanceof LamaFunction a && q instanceof LamaFunction b) {
             return compareFunction(a, b);
         }
+        // Treat unknown boxed values (e.g. raw Object[] scope arrays, file
+        // handles, regex handles) like the reference does for foreign pointer
+        // comparison: difference of their identity.
         return flatCompare(p, q);
     }
 
+    /**
+     * Type ranking that mirrors the numeric ordering of the reference tags:
+     * STRING(1) < ARRAY(3) < SEXP(5) < CLOSURE(7).
+     */
     private static int typeRank(Object o) {
         if (o instanceof LamaString) {
-            return 0;
-        }
-        if (o instanceof LamaFunction) {
             return 1;
         }
         if (o instanceof LamaArray) {
-            return 2;
-        }
-        if (o instanceof LamaSExpr) {
             return 3;
         }
-        return 4;
+        if (o instanceof LamaSExpr) {
+            return 5;
+        }
+        if (o instanceof LamaFunction) {
+            return 7;
+        }
+        return 9;
     }
 }

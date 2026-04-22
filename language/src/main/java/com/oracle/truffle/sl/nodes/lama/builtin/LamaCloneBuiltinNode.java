@@ -47,7 +47,11 @@ public abstract class LamaCloneBuiltinNode extends LamaBuiltinNode {
     @Specialization
     @TruffleBoundary
     public LamaFunction doFunction(LamaFunction value) {
-        return new LamaFunction(value.callTarget, value.lexicalScope);
+        // Reference: `clone` does a memcpy of the closure cell, so each
+        // clone owns its copy of the captured-value slots.
+        Object[] scope = value.lexicalScope;
+        Object[] copy = scope == null ? null : Arrays.copyOf(scope, scope.length);
+        return new LamaFunction(value.callTarget, copy);
     }
 
     @Fallback
