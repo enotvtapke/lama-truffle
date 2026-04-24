@@ -15,7 +15,6 @@ import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.sl.LamaLanguage;
-import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.nodes.lama.LamaRootNode;
 import com.oracle.truffle.sl.nodes.lama.builtin.*;
 
@@ -130,8 +129,8 @@ public final class LamaContext {
         }
 
         List<String> wildcards = currentModule.imports;
-        for (String importedModuleName : wildcards) {
-            LamaModule importedModule = getModule(importedModuleName);
+        for (int i = wildcards.size() - 1; i >= 0; i--) {
+            LamaModule importedModule = getModule(wildcards.get(i));
             if (DynamicObjectLibrary.getUncached().containsKey(importedModule.exports, variableName)) {
                 return importedModule.exports;
             }
@@ -190,6 +189,7 @@ public final class LamaContext {
         registerBuiltIn(LamaMakeArrayBuiltinNodeFactory.create());
         registerBuiltIn(LamaMakeStringBuiltinNodeFactory.create());
         registerBuiltIn(LamaStringCatBuiltinNodeFactory.create());
+        registerBuiltIn(LamaStringConcatNodeFactory.create());
         registerBuiltIn(LamaMatchSubStringBuiltinNodeFactory.create());
         registerBuiltIn(LamaSubstringBuiltinNodeFactory.create());
         registerBuiltIn(LamaCloneBuiltinNodeFactory.create());
