@@ -644,7 +644,7 @@ public fun compileX86 (args, code) {
            runtime = case getEnv ("LAMA_RUNTIME") of
                        #val -> "../runtime/"
                      | path -> path
-                     esac ++ "/runtime.o";
+                     esac ++ "/runtime.a";
 
        fwrite (asmFile,
                map (insnString, 
@@ -655,6 +655,6 @@ public fun compileX86 (args, code) {
                       codeSection (code)                   
                     ).stringcat);
                     
-       system ({"gcc -g -m32 -o ", args.getBaseName, " ", runtime, " ", asmFile}.stringcat)
+       system ({"gcc -g -m32 -Wa,--noexecstack -o ", args.getBaseName, " ", asmFile, " ", runtime}.stringcat)
   esac
 }

@@ -1,0 +1,12 @@
+-- Reference: `system(cmd)` returns the raw `wait(2)` status from
+--   extern aint Lsystem (char *cmd) { return BOX(system(cmd)); }
+-- For a normal termination on Linux that is `exit_code << 8`.
+-- Verified on the reference lamac:
+--   system("true")     -> 0
+--   system("false")    -> 256
+--   system("exit 42")  -> 10752
+
+printf ("%d\n", system ("true"));
+printf ("%d\n", system ("false"));
+printf ("%d\n", system ("exit 42"));
+printf ("%d\n", system ("exit 3"))

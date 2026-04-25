@@ -205,6 +205,7 @@ public final class LamaContext {
         registerBuiltIn(LamaRandomBuiltinNodeFactory.create());
         registerBuiltIn(LamaMakeLazyBuiltinNodeFactory.create());
         registerBuiltIn(LamaForceBuiltinNodeFactory.create());
+        registerBuiltIn(LamaSystemBuiltinNodeFactory.create());
         registerSysargs();
     }
 

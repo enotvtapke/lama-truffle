@@ -1,0 +1,14 @@
+-- Reference Lama resolves wildcard `import` declarations so that the LAST
+-- import wins — later imports shadow earlier ones (verified against lamac).
+-- ShadowA and ShadowB both export a public name `shared`; each also owns a
+-- unique public name (`aOnly` / `bOnly`) that must stay reachable.
+
+import ShadowA;
+import ShadowB;
+
+-- `shared` must resolve to ShadowB.shared (defined AFTER ShadowA).
+printf ("%d\n", shared (1));
+
+-- Names that exist in only one of the imports are unaffected by shadowing.
+printf ("%d\n", aOnly);
+printf ("%d\n", bOnly)
