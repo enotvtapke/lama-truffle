@@ -25,6 +25,7 @@ public final class LamaMain {
         List<String> unitSearchPaths = new ArrayList<>();
         String file = null;
         boolean launcherOutput = true;
+        List<String> explicitAppArgs = null;
 
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
@@ -36,6 +37,12 @@ public final class LamaMain {
                     System.exit(1);
                 }
                 unitSearchPaths.add(new File(args[++i]).getAbsolutePath());
+            } else if (arg.equals("--args")) {
+                if (i + 1 >= args.length) {
+                    printUsage(System.err);
+                    System.exit(1);
+                }
+                explicitAppArgs = splitArgString(args[++i]);
             } else if (arg.equals("-h")) {
                 printUsage(System.out);
                 System.exit(0);
@@ -64,8 +71,23 @@ public final class LamaMain {
             options.put("lama.UnitSearchPath", unitSearchPathOption);
         }
 
-        String[] appArgs = Arrays.copyOfRange(args, 1, args.length);
-        System.exit(executeSource(source, System.in, System.out, options, launcherOutput, prepend(appArgs, file)));
+        String[] appArgs = new String[]{};
+        if (explicitAppArgs != null) {
+            appArgs = prepend(explicitAppArgs.toArray(new String[0]), file == null ? "-" : file);
+        }
+
+        System.exit(executeSource(source, System.in, System.out, options, launcherOutput, appArgs));
+    }
+
+    private static List<String> splitArgString(String raw) {
+        if (raw.isEmpty()) {
+            return List.of();
+        }
+        String[] parts = raw.trim().split("\\s+");
+        if (parts.length == 1 && parts[0].isEmpty()) {
+            return List.of();
+        }
+        return Arrays.asList(parts);
     }
 
     public static String[] prepend(String[] original, String element) {
@@ -116,7 +138,8 @@ public final class LamaMain {
         err.println("Usage: LamaMain <options> <input file>");
         err.println("When no options are specified, interprets the input file.");
         err.println("Options:");
-        err.println("  -I <path>       --- add <path> into unit search path list");
+        err.println("  -I <path>                --- add <path> into unit search path list");
+        err.println("  --args \"<a1> <a2> ...\"   --- pass whitespace-separated args to the Lama program (sysargs)");
         err.println("  --disable-launcher-output");
     }
 
