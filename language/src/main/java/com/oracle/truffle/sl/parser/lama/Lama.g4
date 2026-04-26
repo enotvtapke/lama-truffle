@@ -197,7 +197,7 @@ WHILE: 'while' ;
 LET: 'let' ;
 IN: 'in' ;
 
-COMMENT : '(*' ( COMMENT | . )*? '*)' -> skip;
+COMMENT : '(*' ( COMMENT | ~[*)] | '*' ~[)] | ')' )*? '*)' -> skip;
 LINE_COMMENT : '--' (~[\r\n])* -> skip;
 WS : [ \n\r\t]+ -> skip;
 

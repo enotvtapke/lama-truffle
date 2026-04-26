@@ -451,9 +451,39 @@ public class LamaTranslator {
     }
 
     static String parseStringLiteral(String rawText) {
+        // Reference Lama's runtime semantics (see X86_64.ml, `method string`):
+        // the assembler interprets `\n`, `\t`, `\r` inside `.string`
+        // directives as the corresponding control bytes, but any other
+        // `\X` sequence is emitted with an escaped backslash — i.e. it
+        // stays as two characters at runtime. So `"var\b"` is a 5-byte
+        // string at runtime (the `\b` stays literal, which the POSIX /
+        // Java regex engine then treats as a word boundary), while
+        // `"a\nb"` is a 3-byte string (newline between `a` and `b`).
+        //
+        // `""` escapes a single double quote (Ostap string-lexer rule).
         String inner = rawText.substring(1, rawText.length() - 1);
-        String javaLike = inner.replace("\"\"", "\\\"");
-        return javaLike.translateEscapes();
+        StringBuilder out = new StringBuilder(inner.length());
+        int i = 0;
+        while (i < inner.length()) {
+            char c = inner.charAt(i);
+            if (c == '"' && i + 1 < inner.length() && inner.charAt(i + 1) == '"') {
+                out.append('"');
+                i += 2;
+                continue;
+            }
+            if (c == '\\' && i + 1 < inner.length()) {
+                char next = inner.charAt(i + 1);
+                switch (next) {
+                    case 'n' -> { out.append('\n'); i += 2; continue; }
+                    case 't' -> { out.append('\t'); i += 2; continue; }
+                    case 'r' -> { out.append('\r'); i += 2; continue; }
+                    default  -> { /* preserve both chars verbatim */ }
+                }
+            }
+            out.append(c);
+            i++;
+        }
+        return out.toString();
     }
 
     static long parseCharLiteral(String rawText) {

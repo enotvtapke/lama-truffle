@@ -1,16 +1,12 @@
--- Closure comparison in the Truffle port is identity-based, NOT value
--- based like the reference runtime.
+-- Reference Lama `compare` treats closures as compound values: the
+-- callTarget is compared first, then captured values are compared
+-- element-wise (runtime.c Lcompare, CLOSURE_TAG branch).
 --
--- Reference Lama compares closures element-wise over their captured
--- slots (runtime.c Lcompare, CLOSURE_TAG branch). The Truffle port
--- cannot reproduce that exactly: every closure snapshots the full
--- enclosing frame, which is allowed to keep mutating (ref cells,
--- module vars, ...). A value-based compare would drift and break
--- `Collection.addHashTab / findHashTab`, which Ostap's memo relies
--- on. So a closure is compared here by its `callTarget` identity
--- first and by object identity second — a closure is always equal to
--- itself, and two closures that share a callTarget compare stably but
--- differently.
+-- The Truffle port mirrors that as closely as the snapshot-the-whole-
+-- frame capture model permits: callTarget identity, then element-wise
+-- compare over lexicalScope, with the parent-scope pointer at slot 0
+-- compared by identity (so unrelated outer-scope mutations don't
+-- destabilise hash-table keys that Ostap's memo depends on).
 
 fun makeAdder (n) {
   var f;
@@ -30,7 +26,7 @@ var h;
 var d;
 
 f := makeAdder (10);
-g := makeAdder (10);   -- different closure instance, same callTarget+captures
+g := makeAdder (10);   -- different instance, same callTarget + captured n
 h := makeAdder (20);
 d := makeSub   (10);
 
@@ -38,16 +34,23 @@ d := makeSub   (10);
 printf ("%d\n", compare (f, f));
 printf ("%d\n", compare (d, d));
 
--- flatCompare agrees: two references to the same closure value are equal.
+-- flatCompare: identity-only, so two references to the same closure
+-- value are still equal.
 printf ("%d\n", flatCompare (f, f));
 
--- Two DIFFERENT closure instances are never 0 (even when the reference
--- compiler would return 0 because captures agree).
-printf ("%d\n", compare (f, g) == 0);
-printf ("%d\n", compare (f, h) == 0);
+-- Same callTarget + same captured slot values -> equal (reference
+-- behaviour).
+printf ("%d\n", compare (f, g));
+
+-- Same callTarget, different captures -> non-zero, sign driven by
+-- the captured value (10 - 20 = -10 in the reference).
+printf ("%d\n", compare (f, h) < 0);
+printf ("%d\n", compare (h, f) > 0);
+
+-- Different callTarget -> never 0.
 printf ("%d\n", compare (f, d) == 0);
 
--- Comparison is antisymmetric: compare(a, b) and compare(b, a) have
--- opposite signs.
+-- compare is antisymmetric: compare(a, b) + compare(b, a) == 0.
 printf ("%d\n", compare (f, g) + compare (g, f));
+printf ("%d\n", compare (f, h) + compare (h, f));
 printf ("%d\n", compare (f, d) + compare (d, f))

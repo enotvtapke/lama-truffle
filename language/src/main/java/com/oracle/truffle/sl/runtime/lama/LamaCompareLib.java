@@ -83,24 +83,15 @@ public final class LamaCompareLib {
     }
 
     /**
-     * Compare closures by identity rather than by value.
-     *
-     * <p>The reference runtime compares closures element-wise over their
-     * captured slots. That works there because a closure only stores the
-     * values it actually captures. In this Truffle implementation every
-     * closure snapshots the full enclosing frame (see
-     * {@code Utils.capture}), and some of those slots can legitimately be
-     * mutated after the closure is built (e.g. {@code var} cells or
-     * {@code ref} cells shared with other definitions). A value-based
-     * compare would then see the same closure as "different" at two
-     * points in time, which breaks {@code Collection.addHashTab} /
-     * {@code findHashTab} — the {@code Ostap} memoisation table relies on
-     * the same closure being a stable key across look-ups.</p>
-     *
-     * <p>We therefore compare a closure first by {@code callTarget} and
-     * then by object identity, matching what the original Graal port did
-     * before the reference-alignment pass. {@link #compareValue} still
-     * delegates here so {@code typeRank} ordering stays consistent.</p>
+     * Compare closures in the same spirit as the reference runtime
+     * ({@code runtime.c}, {@code Lcompare} CLOSURE_TAG branch): compare
+     * the callable identity first, then compare captured slot values
+     * element-wise. Slot 0 of {@link LamaFunction#lexicalScope} is the
+     * parent-scope chain — we compare it by identity so that unrelated
+     * outer-scope mutations don't spoil equality. That keeps Ostap's
+     * memoisation table (which uses closures and matcher values as
+     * keys) functional while still letting two closures that share a
+     * callable and the same directly-captured values compare equal.
      */
     @TruffleBoundary
     public static long compareFunction(LamaFunction a, LamaFunction b) {
@@ -111,7 +102,27 @@ public final class LamaCompareLib {
         if (c != 0) {
             return c;
         }
-        return Long.compare(System.identityHashCode(a), System.identityHashCode(b));
+        int la = a.lexicalScope == null ? 0 : a.lexicalScope.length;
+        int lb = b.lexicalScope == null ? 0 : b.lexicalScope.length;
+        if (la != lb) {
+            return la - lb;
+        }
+        for (int i = 0; i < la; i++) {
+            Object sa = a.lexicalScope[i];
+            Object sb = b.lexicalScope[i];
+            long cc;
+            if (i == 0 && ((sa != null && sa.getClass().isArray()) || (sb != null && sb.getClass().isArray()))) {
+                // Parent scope pointer — identity, not value, to keep hash
+                // tables stable when outer-scope mutations happen.
+                cc = Long.compare(System.identityHashCode(sa), System.identityHashCode(sb));
+            } else {
+                cc = compareValue(sa, sb);
+            }
+            if (cc != 0) {
+                return cc;
+            }
+        }
+        return 0;
     }
 
     @TruffleBoundary

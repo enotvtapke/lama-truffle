@@ -1,0 +1,7 @@
+public infix <+> at + (a, b) { a + b * 10 }
+public infixr ** before * (a, b) {
+  if b == 0 then 1
+  elif b == 1 then a
+  else a * (a ** (b - 1))
+  fi
+}

@@ -1,0 +1,7 @@
+public fun square(x) {
+    x * x
+}
+public ten = 10;
+public fun writeTen() {
+    write(ten)
+}

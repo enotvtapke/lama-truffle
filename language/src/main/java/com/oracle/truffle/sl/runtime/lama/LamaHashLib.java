@@ -104,13 +104,24 @@ public final class LamaHashLib {
         }
         if (p instanceof LamaFunction f) {
             acc = hashAppend(acc, 7 /* CLOSURE_TAG */);
-            // Truffle snapshots the whole enclosing frame as lexicalScope,
-            // so the recursive value hash used by the reference runtime is
-            // not stable when any captured slot is mutated after the
-            // closure was built. Fall back to identity hashing for closures
-            // so that a given closure value is a stable hash-table key.
             acc = hashAppend(acc, System.identityHashCode(f.callTarget));
-            acc = hashAppend(acc, System.identityHashCode(f));
+            // Truffle snapshots the full enclosing frame as lexicalScope
+            // (slot 0 is the parent scope chain). Hashing the parent scope
+            // by identity keeps the hash stable when unrelated outer vars
+            // change; hashing the directly-captured slot values recursively
+            // matches the reference Lama `inner_hash` semantics and lets
+            // memo tables in Ostap find parser / matcher values built by
+            // distinct createMatcher/eta calls.
+            int len = f.lexicalScope == null ? 0 : f.lexicalScope.length;
+            acc = hashAppend(acc, len);
+            for (int i = 0; i < len; i++) {
+                Object slot = f.lexicalScope[i];
+                if (i == 0 && slot != null && slot.getClass().isArray()) {
+                    acc = hashAppend(acc, System.identityHashCode(slot));
+                } else {
+                    acc = innerHash(depth + 1, acc, slot);
+                }
+            }
             return acc;
         }
         // Foreign objects (Object[] scope chain, file handles, regex handles, …)
