@@ -111,15 +111,23 @@ public final class LamaMain {
             out.println("== running on " + context.getEngine());
         }
 
+        // Lama programs — especially ones that use the Ostap parser combinators
+        // or deeply recursive stdlib routines — can produce very deep Truffle
+        // call stacks. Running evaluation on a dedicated Java thread with a
+        // large explicit stack size insulates us from the JVM's default, which
+        // on Linux is typically 512 KB–1 MB and not enough for e.g. compiling
+        // anything non-trivial via the self-hosted compiler/Driver.lama.
+        // Override with -J-Dlama.launcher.StackSize=<bytes> (or 0 to inherit).
+        long stackSizeBytes = resolveLauncherStackSize();
+
         try {
-            Value result = context.eval(source);
+            Value result = runEvalOnDedicatedThread(context, source, stackSizeBytes);
             if (launcherOutput) {
                 out.println(result);
             }
             return 0;
         } catch (PolyglotException ex) {
             if (ex.isInternalError()) {
-                // for internal errors we print the full stack trace
                 ex.printStackTrace();
             } else {
                 err.println(ex.getMessage());
@@ -128,6 +136,45 @@ public final class LamaMain {
         } finally {
             context.close();
         }
+    }
+
+    private static long resolveLauncherStackSize() {
+        String property = System.getProperty("lama.launcher.StackSize");
+        if (property != null) {
+            try {
+                return Long.parseLong(property.trim());
+            } catch (NumberFormatException e) {
+                System.err.println("lama.launcher.StackSize: not a number, ignoring: " + property);
+            }
+        }
+        return 64L * 1024 * 1024;
+    }
+
+    private static Value runEvalOnDedicatedThread(Context context, Source source, long stackSizeBytes) {
+        if (stackSizeBytes <= 0) {
+            return context.eval(source);
+        }
+        Object[] result = new Object[1];
+        Throwable[] thrown = new Throwable[1];
+        Thread worker = new Thread(null, () -> {
+            try {
+                result[0] = context.eval(source);
+            } catch (Throwable t) {
+                thrown[0] = t;
+            }
+        }, "lama-main", stackSizeBytes);
+        worker.start();
+        try {
+            worker.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for evaluation thread", e);
+        }
+        if (thrown[0] instanceof PolyglotException pe) throw pe;
+        if (thrown[0] instanceof RuntimeException re) throw re;
+        if (thrown[0] instanceof Error err) throw err;
+        if (thrown[0] != null) throw new RuntimeException(thrown[0]);
+        return (Value) result[0];
     }
 
     private static String buildUnitSearchPathOption(List<String> unitSearchPaths) {

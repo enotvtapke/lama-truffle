@@ -11,9 +11,39 @@ import List;
 -- pairs [line, column]
 var srcTab = emptyHashTab (1024, hash, flatCompare);
 
+-- Adds a location info for given iten
+public fun addLoc (x, loc) {
+  srcTab := addHashTab (srcTab, x, loc)
+}
+
 -- A custom combinator to additionally add location info
 public fun located (p) {
-  syntax(l=pos x=p {srcTab := addHashTab (srcTab, x, l); x})
+  syntax(l=pos x=p {addLoc (x, l); x})
+}
+
+-- Attaches location info for x to y
+public fun reLoc (x, y) {
+  srcTab := addHashTab (srcTab, y, getLoc (getRepr $ x))
+}
+
+-- Gets a representation for a name
+public fun getRepr (name) {
+  case name of
+    Infix (_, inf, _) -> inf
+  | Infix (_, inf)    -> inf
+  | Qname (_, qn    ) -> qn
+  | _                 -> name
+  esac
+}
+
+-- Gets an inner name for a name
+public fun getInner (name) {
+  case name of
+    Infix (fn, _, _) -> fn
+  | Infix (fn, _)    -> fn
+  | Qname (qn, _)    -> qn
+  | _                -> name
+  esac
 }
 
 -- Retrieves location info; fail if no info found
@@ -37,34 +67,73 @@ var keywords =
            "for",
            "var",
            "val",
-           "fun"
-          });
+           "fun",
+           "case",
+           "of",
+           "esac",
+           "true",
+           "false",
+           "str",
+           "sexp",
+           "array",
+           "box",
+           "at",
+           "after",
+           "before",
+           "infix",
+           "infixl",
+           "infixr",
+           "lazy",
+           "eta",
+           "let",
+           "in",
+           "public",
+           "import",
+           "syntax"});
 
 -- Regular expression definitions
--- NOTE: Lama's runtime compiles these with POSIX regcomp(REG_EXTENDED),
--- which does NOT support the \b word-boundary escape. Keyword regexps
--- therefore do not end with "\\b"; the keyword-vs-identifier check is
--- performed inside `lident` below (it rejects matches that hit `keywords`).
-public rSkip        = createRegexp ("skip", "skip"),
-       rWhiteSpace  = createRegexp ("(([ \n\r\t]*)|(--[^\n]*[ \n\r\t]*))*", "whitespace"),
+public rSkip        = createRegexp ("skip\b", "skip"),
+       rWhiteSpace  = createRegexp ("(([ \n\t]*)|(--[^\n]*[ \n\t]*))*", "whitespace"),
        rDecimal     = createRegexp ("-?[0-9]+", "decimal constant"),
        rStrlit      = createRegexp ("""([^""]|"""")*""", "string constant"),
-       rChar        = createRegexp ("'([^']|''|\\\\n|\\\\t)'", "character constant"),
-       rLident      = createRegexp ("[a-z][a-z_A-Z0-9']*", "lowercase identifier"),
-       rUident      = createRegexp ("[A-Z][a-z_A-Z0-9']*", "uppercase identifier"),
-       rRead        = createRegexp ("read", """read"""),
-       rIf          = createRegexp ("if", """if"""),
-       rThen        = createRegexp ("then", """then"""),
-       rElse        = createRegexp ("else", """else"""),
-       rElif        = createRegexp ("elif", """elif"""),
-       rFi          = createRegexp ("fi", """fi"""),
-       rWhile       = createRegexp ("while", """while"""),
-       rDo          = createRegexp ("do", """do"""),
-       rOd          = createRegexp ("od", """od"""),
-       rFor         = createRegexp ("for", """for"""),
-       rVar         = createRegexp ("var", """var"""),
-       rVal         = createRegexp ("val", """val"""),
-       rFun         = createRegexp ("fun", """fun""");
+       rChar        = createRegexp ("'([^']|''|\n|\t)'", "character constant"),
+       rLident      = createRegexp ("[a-z][a-z_A-Z0-9]*", "lowercase identifier"),
+       rUident      = createRegexp ("[A-Z][a-z_A-Z0-9]*", "uppercase identifier"),
+       rIf          = createRegexp ("if\b", """if"""),
+       rThen        = createRegexp ("then\b", """then"""),
+       rElse        = createRegexp ("else\b", """else"""),
+       rElif        = createRegexp ("elif\b", """elif"""),
+       rFi          = createRegexp ("fi\b", """fi"""),
+       rWhile       = createRegexp ("while\b", """while"""),
+       rDo          = createRegexp ("do\b", """do"""),
+       rOd          = createRegexp ("od\b", """od"""),
+       rFor         = createRegexp ("for\b", """for"""),
+       rVar         = createRegexp ("var\b", """var"""),
+       rVal         = createRegexp ("val\b", """val"""),
+       rFun         = createRegexp ("fun\b", """fun"""),
+       rCase        = createRegexp ("case\b", """case"""),
+       rOf          = createRegexp ("of\b", """of"""),
+       rEsac        = createRegexp ("esac\b", """esac"""),
+       rAt          = createRegexp ("at\b", """at"""),
+       rAfter       = createRegexp ("after\b", """after"""),
+       rBefore      = createRegexp ("before\b", """before"""),
+       rInfix       = createRegexp ("infix\b", """infix"""),
+       rInfixl      = createRegexp ("infixl\b", """infixl"""),
+       rInfixr      = createRegexp ("infixr\b", """infixr"""),
+       rTrue        = createRegexp ("true\b", """true"""),
+       rFalse       = createRegexp ("false\b", """false"""),
+       rStr         = createRegexp ("str\b", """str"""),
+       rSexp        = createRegexp ("sexp\b", """sexp"""),
+       rArray       = createRegexp ("array\b", """array"""),
+       rBox         = createRegexp ("box\b", """box"""),
+       rInfixx      = createRegexp ("[+*/%$#@!|&^~?<>:=\\-]+", """infix operator"""),
+       rLazy        = createRegexp ("lazy\b", """lazy"""),
+       rEta         = createRegexp ("eta\b", """eta"""),
+       rLet         = createRegexp ("let\b", """let"""),
+       rIn          = createRegexp ("in\b", """in"""),
+       rPublic      = createRegexp ("public\b", """public"""),
+       rImport      = createRegexp ("import\b", """import"""),
+       rSyntax      = createRegexp ("syntax\b", """syntax""");
       
 var whiteSpace = token (rWhiteSpace);
 
@@ -86,7 +155,30 @@ public kSkip    = s (rSkip),
        kVar     = s (rVar),
        kVal     = s (rVal),       
        kFun     = s (rFun),
-       decimal  = s (rDecimal),
+       kCase    = s (rCase),
+       kOf      = s (rOf),
+       kEsac    = s (rEsac),
+       kAt      = s (rAt),
+       kAfter   = s (rAfter),
+       kBefore  = s (rBefore),
+       kInfix   = s (rInfix),
+       kInfixl  = s (rInfixl),
+       kInfixr  = s (rInfixr),
+       kTrue    = s (rTrue),
+       kFalse   = s (rFalse),
+       kStr     = s (rStr),
+       kSexp    = s (rSexp),
+       kArray   = s (rArray),
+       kBox     = s (rBox),
+       kLazy    = s (rLazy),
+       kEta     = s (rEta),
+       kLet     = s (rLet),
+       kIn      = s (rIn),       
+       kPublic  = s (rPublic),       
+       kImport  = s (rImport),
+       kSyntax  = s (rSyntax),
+       infixx   = memo $ syntax (-whiteSpace located[token(rInfixx)]),
+       decimal  = s (rDecimal),       
        chrlit   = syntax (x=s[rChar] {case substring (x, 1, x.length - 2) of
                                         "\\t" -> '\t'
                                       | "\\n" -> '\n'
@@ -105,7 +197,7 @@ public kSkip    = s (rSkip),
                                         substring (x, 0, j)}), 
        pos      = memo $ syntax (-whiteSpace loc),
        end      = memo $ syntax (-whiteSpace eof),
-       uident   = s (rUident), 
+       uident   = memo $ syntax (-whiteSpace located[token(rUident)]), 
        lident   = memo $ syntax (-whiteSpace located[
                                    fun (k) {
                                      fun (s) {
@@ -117,8 +209,7 @@ public kSkip    = s (rSkip),
                                           | a             -> a
                                           esac)
                                      }
-                                   }
-       
+                                   }       
                                 ]);
 
 

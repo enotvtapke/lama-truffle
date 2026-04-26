@@ -149,7 +149,7 @@ public final class LamaContext {
             Source source = Source.newBuilder(LamaLanguage.ID, file).name(path).build();
             return env.parsePublic(source);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load module: " + path, e);
+            throw new RuntimeException("Failed to load module " + path + "(" + e.getMessage() + ")", e);
         }
     }
 

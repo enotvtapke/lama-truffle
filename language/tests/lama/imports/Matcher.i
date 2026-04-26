@@ -1,0 +1,9 @@
+I,Std;
+F,createRegexp;
+F,showMatcher;
+F,endOfMatcher;
+F,matchString;
+F,matchRegexp;
+F,getLine;
+F,getCol;
+F,initMatcher;

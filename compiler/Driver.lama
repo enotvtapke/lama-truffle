@@ -18,12 +18,21 @@ import Manifest;
 -- returns an environment. The environment's interface is
 -- defined in the unit Manifest
 fun parseArgs (args) {
-  var mode     = ref (Comp),
-      infile   = ref ({}),
-      smDump   = ref (false),
-      astDump  = ref (false),
-      timeDump = ref (false);
+  var mode      = ref (Build),
+      infile    = ref ({}),
+      outfile   = ref ({}),
+      paths     = ref (case getEnv ("LAMA") of 0 -> {} | s@#str -> {s} esac),
+      basename  = ref ({}),
+      unit      = ref ({}),
+      noImports = ref (false),
+      smDump    = ref (false),
+      astDump   = ref (false),
+      timeDump  = ref (false);
 
+  fun setNoImports () {
+    noImports ::= true
+  }
+  
   fun setDump (m) {
     case m of
       SM   -> smDump   
@@ -34,9 +43,13 @@ fun parseArgs (args) {
   
   fun setMode (m) {
     case deref (mode) of
-      Comp -> mode ::= m
-    | _    -> failure ("mode already set: %s\n", deref (mode).string)
+      Build -> mode ::= m
+    | _     -> failure ("mode already set: %s\n", deref (mode).string)
     esac
+  }
+
+  fun setPath (p) {
+    paths ::= deref (paths) +++ {p}
   }
 
   fun setInFile (fn) {
@@ -45,21 +58,38 @@ fun parseArgs (args) {
     | _    -> failure ("omitting ""%s"", input file name already set to ""%s""\n", fn, deref (infile))
     esac
   }
+
+  fun setOutFile (fn) {
+    case deref (outfile) of
+      {} -> outfile ::= fn
+    | _  -> failure ("omitting ""%s"", output file name already set to ""%s""\n", fn, deref (outfile))
+    esac
+  }
   
   fix (fun (rec) {
          fun (args) {
             case args of
               {}    -> skip
             | h : t ->
+               rec $
                case h of
-                 "-i"  -> setMode (Int)
-               | "-s"  -> setMode (SM)
-               | "-ds" -> setDump (SM)
-               | "-dp" -> setDump (AST)
-               | "-dt" -> setDump (TIME)
-               | fn    -> setInFile (fn)
-               esac;
-               rec (t)
+                 "-i"         -> setMode (Int); t
+               | "-c"         -> setMode (Comp); t
+               | "-o"         -> case t of
+                                   {}     -> failure ("file name expected after ""-o"" option\n")
+                                 | fn : t -> setOutFile (fn); t
+                                 esac
+               | "-s"         -> setMode (SM); t
+               | "-ds"        -> setDump (SM); t
+               | "-dp"        -> setDump (AST); t
+               | "-dt"        -> setDump (TIME); t
+               | "-noimports" -> setNoImports (); t
+               | "-I"         -> case t of
+                                   {}    -> failure ("path expected after ""-I"" option\n")
+                                 | p : t -> setPath (p); t
+                                 esac
+               | fn           -> setInFile (fn); t
+               esac
             esac
          }
       })(args);
@@ -68,7 +98,19 @@ fun parseArgs (args) {
    fun () {case deref(infile) of #val -> failure ("input file name not set\n") | fn -> fn esac},
    fun () {deref (smDump)},
    fun () {deref (astDump)},
-   fun () {deref (timeDump)}
+   fun () {deref (timeDump)},
+   fun () {deref (basename)},
+   fun () {deref (unit)},
+   fun () {deref (paths)},
+   fun () {
+     case deref (outfile) of
+       {} -> deref (basename)
+     | fn -> fn
+     esac
+   },
+   fun () {
+     deref (noImports)
+   }
   ]        
 }
 
@@ -164,40 +206,58 @@ var args = parseArgs (arrayList (sysargs).tl), t = timer (), log = createLog (ar
 
 -- The main part: parses input file, invokes interpreter/stack machine interpreter/x86
 -- code generator
-case parseString (syntax (parse -end), fread (args.getInFile)) of
-  Succ (program) ->
-    log.logAST (program, t ()); log.print;
-    t := timer ();
-    case args.getMode of
-      Comp -> var sm = log.logSM (compileSM (program), t ());
-              t := timer ();
-              compileX86 (args, sm);
-              log.logX86 (t ())
+
+fun native (args, context, program) {
+  case log.logSM (compileSM (args, context, program), t ()) of
+    sm -> t := timer ();
+          compileX86 (args, context, sm);
+          log.logX86 (t ())
+  esac
+}
+
+var tt = timer ();
+-- printf ("Parsing...");
+
+case parseString (syntax (parseUnit[args] -end), fread (args.getInFile)) of
+  Succ (f) ->
+--    printf ("Parsing time: %s\n", toSeconds $ tt ());
+--    printf ("done\n");
+--    printf ("Making AST...");
+    case f () of
+      [context, program] ->
+  --  printf ("done\n");
+    log.logAST (program, t ());
+    t := timer (); 
+    case args.getMode of 
+      Comp  -> native (args, context, program)
+               
+    | Build -> native (args, context, program)
+               
     | mode ->
-       var input =
-          reverse (fix (fun (f) {
-                          fun (acc) {
-                            case readLine () of
-                              #val -> acc
-                            | arg  -> f (stringInt (arg) : acc) esac
-                          }
-                        }) ({}));
+        var input =
+           reverse (fix (fun (f) {
+                           fun (acc) {
+                             case readLine () of
+                               #val -> acc
+                             | arg  -> f (stringInt (arg) : acc) esac
+                           }
+                         }) ({}));
 
-       iter (fun (x) {printf ("%d\n", x)},
-             case mode of
-               Int -> var out = evalExpr (input, program);
-                      log.logEval (t ());
-                      out
-
-             | SM  -> var sm = log.logSM (compileSM (program), t ()), out;
-                      t := timer ();
-                      out := evalSM (input, sm);
-                      log.logSMEval (t ());
-                      out
-             esac)
-    esac;
+        iter (fun (x) {printf ("%d\n", x)},
+              case mode of
+                Int -> var out = evalExpr (input, program);
+                       log.logEval (t ());
+                       out
+                      
+              | SM  -> var sm = log.logSM (compileSM (args, context, program), t ()), out;                      
+                       t := timer ();  log.print;
+                       out := evalSM (input, sm);
+                       log.logSMEval (t ());
+                       out
+              esac) 
+    esac; 
     log.print
-    
+    esac
 | x@Fail (err, line, col) ->   
    failure ("%s at %d:%d\n", err.hd, line, col)
 esac

@@ -1,8 +1,0 @@
--- Module intentionally shares the public name `shared` with ShadowB.
--- Used by the `import_shadow` test.
-
-public fun shared (x) {
-  x + 1000
-}
-
-public aOnly = 1;

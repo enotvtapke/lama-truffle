@@ -2,30 +2,31 @@ SHELL := /bin/bash
 
 FILES=$(wildcard *.lama)
 ALL=$(sort $(FILES:.lama=.o))
-LAMAC=lamac
+LAMAC=lamac -g
 
 .PHONY: all clean
 
-all: Parser.o Lexer.o X86.o SM.o Manifest.o
+all: Parser.o Lexer.o Interface.o SM.o X86.o Manifest.o Infix.o 
 	$(LAMAC) -I . -o lama-impl Driver.lama
 
-Parser.o: Lexer.o
+Interface.o: Lexer.o Infix.o
+
+Parser.o: Lexer.o Infix.o Manifest.o Interface.o
+
+Infix.o: Lexer.o Manifest.o 
 
 Builtins.o: World.o
 
-State.o: Lexer.o Parser.o
+State.o: Lexer.o Manifest.o
 
-Expr.o: State.o Builtins.o
+Expr.o: State.o Builtins.o Manifest.lama
 
-SM.o: State.o World.o Expr.o Parser.o Lexer.o Builtins.o
+SM.o: State.o World.o Expr.o Manifest.o Builtins.o Parser.o Interface.o
 
-X86.o: SM.o Manifest.o
+X86.o: SM.o Manifest.o 
 
 %.o: %.lama
 	$(LAMAC) -I . -c $<
-
-variate:
-	for f in $(FILES) ; do cp $$f $$f~ ; cat $$f~ | awk 'BEGIN {skip=0; show=1} $$0 ~ /End \*\)/ {show=1; skip=1} $$0 ~ /\(\* Assignment/ {show=1; skip=1} $$0 ~ /\(\* Implementation/ {show=0; skip=1} {if (! skip && show) print $$0; skip = 0}' > $$f ; done
 
 clean:
 	rm -Rf *.s *.o *.i *~ *.html *.sm lama-impl

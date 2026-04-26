@@ -104,15 +104,13 @@ public final class LamaHashLib {
         }
         if (p instanceof LamaFunction f) {
             acc = hashAppend(acc, 7 /* CLOSURE_TAG */);
-            int len = f.lexicalScope == null ? 0 : f.lexicalScope.length;
-            acc = hashAppend(acc, len);
-            // Reference stores the function pointer in slot 0; we do not
-            // have a stable pointer, but we can use callTarget identity so
-            // that equal function pointers produce equal contributions.
+            // Truffle snapshots the whole enclosing frame as lexicalScope,
+            // so the recursive value hash used by the reference runtime is
+            // not stable when any captured slot is mutated after the
+            // closure was built. Fall back to identity hashing for closures
+            // so that a given closure value is a stable hash-table key.
             acc = hashAppend(acc, System.identityHashCode(f.callTarget));
-            for (int i = 0; i < len; i++) {
-                acc = innerHash(depth + 1, acc, f.lexicalScope[i]);
-            }
+            acc = hashAppend(acc, System.identityHashCode(f));
             return acc;
         }
         // Foreign objects (Object[] scope chain, file handles, regex handles, …)

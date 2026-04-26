@@ -1,6 +1,16 @@
--- Reference Lama `compare` treats closures as compound values: the
--- function slot is compared first, then captured values are compared
--- element-wise (see runtime.c Lcompare, CLOSURE_TAG branch).
+-- Closure comparison in the Truffle port is identity-based, NOT value
+-- based like the reference runtime.
+--
+-- Reference Lama compares closures element-wise over their captured
+-- slots (runtime.c Lcompare, CLOSURE_TAG branch). The Truffle port
+-- cannot reproduce that exactly: every closure snapshots the full
+-- enclosing frame, which is allowed to keep mutating (ref cells,
+-- module vars, ...). A value-based compare would drift and break
+-- `Collection.addHashTab / findHashTab`, which Ostap's memo relies
+-- on. So a closure is compared here by its `callTarget` identity
+-- first and by object identity second — a closure is always equal to
+-- itself, and two closures that share a callTarget compare stably but
+-- differently.
 
 fun makeAdder (n) {
   var f;
@@ -20,17 +30,24 @@ var h;
 var d;
 
 f := makeAdder (10);
-g := makeAdder (10);
+g := makeAdder (10);   -- different closure instance, same callTarget+captures
 h := makeAdder (20);
-d := makeSub (10);
+d := makeSub   (10);
 
--- Same callable and same captures.
-printf ("%d\n", compare (f, g));
--- Same callable, different captures: sign is driven by captured values.
-printf ("%d\n", compare (f, h) < 0);
-printf ("%d\n", compare (h, f) > 0);
--- Different callables: result is driven by the function slot, never 0.
+-- A closure is always equal to itself.
+printf ("%d\n", compare (f, f));
+printf ("%d\n", compare (d, d));
+
+-- flatCompare agrees: two references to the same closure value are equal.
+printf ("%d\n", flatCompare (f, f));
+
+-- Two DIFFERENT closure instances are never 0 (even when the reference
+-- compiler would return 0 because captures agree).
+printf ("%d\n", compare (f, g) == 0);
+printf ("%d\n", compare (f, h) == 0);
 printf ("%d\n", compare (f, d) == 0);
--- flatCompare only compares identities of the closure cells; two
--- references to the same closure value are always equal.
-printf ("%d\n", flatCompare (f, f))
+
+-- Comparison is antisymmetric: compare(a, b) and compare(b, a) have
+-- opposite signs.
+printf ("%d\n", compare (f, g) + compare (g, f));
+printf ("%d\n", compare (f, d) + compare (d, f))

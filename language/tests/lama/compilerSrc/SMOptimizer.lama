@@ -1,0 +1,166 @@
+import List;
+import Manifest;
+import SM;
+import Parser;
+import Matcher;
+import Lexer;
+import Interface;
+import Ostap;
+import Fun;
+
+fun lines (x) {
+  fun linesImpl (x, start, current, acc) {
+    if current == x.length then acc
+    elif x[current] == '\n' then linesImpl (x, current + 1, current + 1, substring (x, start, current - start) : acc)
+    else linesImpl (x, start, current + 1, acc)
+    fi
+  }
+
+  var res = linesImpl (x, 0, 0, {});
+  reverse (res)
+}
+
+fun parseSM (code) {
+  var parsed;
+
+  var identifier = memo $ eta syntax (
+      id=uident { id }
+    | id=lident { id }
+    | s["$"] id=(lident | uident) { "$" ++ id }
+    );
+  
+  var parse_sym = memo $ eta syntax (
+      s["arg["] n=decimal s["]"] { Arg (stringInt(n)) }
+    | s["loc["] n=decimal s["]"] { Loc (stringInt(n)) }
+    | s["acc["] n=decimal s["]"] { Acc (stringInt(n)) }
+    | id=strlit { Glb (id) }
+    );
+
+  var parse_mode = memo $ eta syntax (
+      s["z"] { "z" }
+    | s["nz"] { "nz" }
+    );
+
+  var parse_assoc = memo $ eta syntax (
+      s["Left"] { Left }
+    | s["Right"] { Right }
+    | s["Nona"] { Nona }
+    );
+
+  var parse_priority = memo $ eta syntax (
+      s["At"] s["("] op=strlit s[")"] { At (op) }
+    | s["Before"] s["("] op=strlit s[")"] { Before (op) }
+    | s["After"] s["("] op=strlit s[")"] { After (op) }
+    );
+
+  var parse_fun_export = memo $ eta syntax (
+      s["Init"] { Init }
+    | s["Infix"] s["("] name=strlit s[","] op=strlit s[","] s["["] assoc=parse_assoc s[","] prio=parse_priority s["]"] s[")"] { Infix (name, op, [assoc, prio]) }
+    | name=strlit { name }
+    );
+
+  var parse_export = memo $ eta syntax (
+      s["Fun"] s["("] unit=strlit s[","] name=parse_fun_export s[","] args=decimal s[")"] { Fun (unit, name, stringInt(args)) } 
+    | s["Var"] s["("] unit=strlit s[","] name=strlit s[")"] { Var (unit, name) }
+    );
+
+  var parse_ops = memo $ eta syntax (
+      s["*"] { "*" }
+    | s["+"] { "+" }
+    | s["<="] { "<=" }
+    | s[">="] { ">=" }
+    | s["-"] { "-" }
+    | s["/"] { "/" }
+    | s["%"] { "%" }
+    | s["<"] { "<" }
+    | s[">"] { ">" }
+    | s["=="] { "==" }
+    | s["!="] { "!=" }
+    | s["&&"] { "&&" }
+    );
+
+  var parse_patt = memo $ eta syntax (
+      s["Tag"] s["("] id=identifier s[","] args=decimal s[")"] { Tag (id, stringInt (args)) }
+    | s["Array"] { Array }
+    | s["StrCmp"] { StrCmp }
+    | s["Sexp"] { Sexp }
+    | s["String"] { String }
+    | s["UnBoxed"] { UnBoxed }
+    | s["Boxed"] { Boxed }
+    | s["Closure"] { Closure }
+    );
+
+  var parse_inst = memo $ eta syntax (
+      kLABEL id=identifier s[","] c=decimal { LABEL (id, stringInt(c)) }
+    | s["IMPORT"] name=identifier { IMPORT (name) }
+    | s["PUBLIC"] pb=parse_export { PUBLIC (pb) }
+    | s["BEGIN"] id=identifier s[","] args=decimal s[","] locs=decimal s[","] clo=decimal { BEGIN (id, stringInt(args), stringInt(locs), stringInt(clo)) }
+    | kSTI { STI }
+    | kSTA { STA }
+    | kLDA sym=parse_sym { LDA (sym) }
+    | kST sym=parse_sym { ST (sym) }
+    | kLD sym=parse_sym { LD (sym) }
+    | kDROP { DROP }
+    | kDUP { DUP }
+    | s["ELEM"] { ELEM }
+    | s["BINOP"] op=infixx { BINOP (op) }
+    | s["CALLC"] args=decimal { CALLC (stringInt(args)) }
+    | s["CLOSURE"] name=identifier s[","] captures=decimal { CLOSURE (name, stringInt(captures)) }
+    | s["CALL"] name=identifier s[","] args=decimal { CALL (name, stringInt(args)) }
+    | s["CONST"] c=decimal { CONST (stringInt(c)) }
+    | s["STRING"] v=strlit { STRING (v) }
+    | s["ARRAY"] n=decimal { ARRAY (stringInt(n)) }
+    | s["SEXP"] l=identifier s[","] n=decimal { SEXP (l, stringInt(n))}
+    | kJMP l=identifier { JMP (l) }
+    | s["CJMP"] m=parse_mode s[","] l=identifier { CJMP(m, l) }
+    | s["PATT"] pat=parse_patt { PATT (pat) }
+    | s["META"] s["MF"] s["(["] line=decimal s[","] col=decimal s["])"] { META (MF ([stringInt(line), stringInt(col)])) } 
+    | s["END"] { END }
+    | s["GLOBAL"] id=identifier { GLOBAL (id) }
+    );
+  
+  var split_lines = lines (code);
+
+  Succ (map (
+    fun (x) { 
+      case parseString (parse_inst, x) of
+        Succ (i) -> i
+      | _ -> failure ("failed to to parse line: %s\n", x)
+      esac 
+    }, 
+    split_lines
+  ))
+}
+
+-- args : Args
+-- context : Context 
+-- code : List SMInst 
+-- -> List SMInst
+public fun optimizeSM (args, context, code) {
+  case args.getOptMode of
+    Some (optMode) -> 
+      fwrite (args.getBaseName ++ ".sm", showSM (code));
+  
+      (
+        var dependentUnitsPaths = context.getDependentUnits (args.getPaths);
+        var depArg = fun ([unit, path]) {sprintf (" --dep %s/%s.sm", path, unit)}; 
+        var depsArgs = map (depArg, dependentUnitsPaths).stringcat;
+        var cmd = {
+            "optimizer-exe compile",
+            " --target ", args.getBaseName ++ ".sm",
+            depsArgs,
+            " ", optMode,
+            " > /dev/null"
+          }.stringcat;
+
+        printf ("run optimizer: %s\n", cmd);
+        system (cmd)  
+      );
+      
+      case parseSM (fread (args.getBaseName ++ ".osm")) of
+        Succ (optCode) -> optCode
+      | Err (_) -> code
+      esac 
+  | None -> code 
+  esac
+}

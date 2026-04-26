@@ -1,0 +1,221 @@
+-- Interface file helpers
+
+import Fun;
+import List;
+import Lexer;
+import Ostap;
+import Collection;
+import Ref;
+import Infix;
+
+public fun loadInterface (paths, unit, explicity, callBacks) {
+  fix (fun (rec) {
+         fun (cb, paths) {
+           case paths of
+             {}           -> failure ("no interface file found for unit ""%s""\n", unit)
+           | path : paths ->
+               case sprintf ("%s/%s.i", path, unit) of
+                 fname ->
+                    if fexists (fname)
+                    then case parseString (syntax (intface -end), fread (fname)) of
+                           Succ (make)             -> make (unit, path, explicity, cb)
+                         | x@Fail (err, line, col) -> failure ("interface file: %s at %d:%d\n", err.hd, line, col)
+                         esac
+                    else rec (cb, paths)
+                    fi
+               esac
+           esac
+         }}) (callBacks, paths) 
+}
+
+public fun toInterface (p) {
+  case p of
+    Var (_, name)                           -> sprintf ("V,%s;\n", name)
+  | Val (_, name)                           -> sprintf ("C,%s;\n", name)
+  | Fun (_, Infix (fn, inf, [ass, pos]), n) -> case case pos of
+                                                      At     (x) -> ["T", x]
+                                                    | Before (x) -> ["B", x]
+                                                    | After  (x) -> ["A", x]
+                                                    esac of
+                                                 [p, op] ->
+                                                    sprintf ("F,%s,2;\n%s,""%s"",%s,""%s"";\n",
+                                                             fn,
+                                                             case ass of Left -> "L" | Right -> "R" | Nona -> "N" esac,
+                                                             inf,
+                                                             p,
+                                                             op)
+                                               esac
+  | Fun (_, name@#str, n)                   -> sprintf ("F,%s,%d;\n", name, n)
+  esac
+}
+
+public fun createContext (initInfixTable, onInfix) {
+  makeContext ({}, emptySet (compare), initInfixTable, onInfix)
+}
+
+fun makeContext (decls, imports, infixTable, onInfix_) {
+  fun addDecl (d) {
+    makeContext (d : decls, imports, infixTable, onInfix_)
+  }
+
+  fun addImport (path, i) {
+    makeContext (decls, addSet (imports, [path, i]), infixTable, onInfix_)
+  }
+  
+  fun getDecls () {
+    decls
+  }
+
+  fun getImports () {
+    imports.elements
+  }
+  
+  fun onInfix (ass, op, pos) {
+    makeContext (decls, imports, onInfix_ (infixTable, ass, op, pos), onInfix_)
+  }
+
+  fun getDependentUnits (paths) {
+    var tree      = ref (emptyMap (compare)),
+        unitPaths = ref (emptyMap (compare));
+
+    fun getUnits () {
+      fun rec (acc, unit) {
+        case case findMap (deref (tree), unit) of
+               None           -> acc
+             | Some (coUnits) -> foldl (rec, acc, coUnits.elements)
+             esac of
+          a@[acc, set] -> if compare (unit, "Std") == 0 !! memSet (set, unit)
+                          then a
+                          else [[unit, case findMap (deref (unitPaths), unit) of Some (p) -> p esac] : acc, addSet (set, unit)]
+                          fi
+       esac
+      }
+      
+      reverse $ foldl (fun (acc, [path, i]) {rec (acc, i)}, [{}, emptySet (compare)], imports.elements)[0]
+    }
+    
+    fun addEdge (unit, path, coUnit) {
+      unitPaths ::= addMap (deref (unitPaths), coUnit, path);
+      case deref (tree) of
+        deTree -> tree ::= addMap (deTree,
+                                   unit,
+                                   addSet (case findMap (deTree, unit) of
+                                             Some (s) -> s
+                                           | _        -> emptySet (compare) 
+                                           esac, coUnit))
+      esac
+    }
+    
+    fun localContext (acc) {
+      [fun (Extern (unit, _, decl)) {
+         case decl of
+           Import (path, coUnit) -> case findMap (deref (tree), coUnit) of
+                                      Some (_) -> localContext (acc)
+                                    | None     -> addEdge (unit, path, coUnit);
+                                                  localContext (addSet (acc, coUnit))
+                                    esac
+         | _ -> localContext (acc)
+         esac
+       },
+       fun (_, _, _) {
+         localContext (acc)
+       },
+       fun (_, _) {
+         localContext (acc)
+       },
+       fun () {
+         acc
+       }
+      ]
+    }
+
+    fun getAcc (c) {
+      c [3] ()
+    }
+    
+    fun importContext (acc, unit) {
+      loadInterface (paths, unit, true, localContext (acc)).getAcc
+    }
+
+    fun iterate (units) {
+      fun rec (acc, units) {
+         case units of
+           {}           -> acc.elements
+         | unit : units -> rec (importContext (acc, unit), units)
+         esac
+      }
+
+      case units of
+        {} -> skip
+      | _  -> iterate (rec (emptySet (compare), units))
+      esac
+    }
+    
+    case foldl (fun (coUnits, [path, coUnit]) {
+                  unitPaths ::= addMap (deref (unitPaths), coUnit, path);
+                  addSet (coUnits, coUnit)
+                },
+                emptySet (compare),
+                imports.elements).elements of
+      workingList -> iterate (workingList)
+    esac;
+
+    getUnits ()
+  }
+
+  [addDecl, onInfix, addImport, getDecls, getImports, getDependentUnits, fun () {infixTable}]
+}
+
+fun addDecl (c, d) {
+  c [0] (d)
+}
+
+fun onInfix (c, ass, op, pos) {
+  c [1] (ass, op, pos)
+}
+
+fun addImport (c, p, i) {
+  c [2] (p, i)
+}
+
+public fun getDecls (c) {
+  c [3] ()
+}
+
+public fun getImports (c) {
+  c [4] ()
+}
+
+public fun getDependentUnits (c, p) {
+  c [5] (p)
+}
+
+public fun getInfixTable (c) {
+  c [6] ()
+}
+
+var funspec = memo $ eta syntax (s["F"] token[","] i=lident token[","] n=(k=decimal {stringInt (k)} | token["*"] {Any}) token[";"] {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Fun (i, n)))}}),
+    varspec = memo $ eta syntax (s["V"] token[","] i=lident token[";"]                                   {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Var (i)))}}),
+    valspec = memo $ eta syntax (s["C"] token[","] i=lident token[";"]                                   {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Val (i)))}}),
+    impspec = memo $ eta syntax (s["I"] token[","] i=uident token[";"]                                   {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Import (path, i)))}}),
+    infspec = memo $ eta syntax (a=ass  token[","] op=strlit token[","] p=anchor token[";"]              {fun (unit, path, explicity, c) {c.onInfix (a, op, p)}}),
+    
+    ass     = memo $ eta syntax (  s["L"] {Left}
+                                 | s["R"] {Right}
+                                 | s["N"] {Nona}
+                                ),
+    
+    anchor  = memo $ eta syntax (m=mode token[","] op=strlit {m $ op}),
+    
+    mode    = memo $ eta syntax (  token["T"] {fun (x) {At (x)}} 
+                                 | token["A"] {fun (x) {After (x)}}
+                                 | token["B"] {fun (x) {Before (x)}}
+                                ),
+                                
+    intface = memo $ eta syntax (spec=(funspec | varspec | valspec | impspec | infspec)* -end {
+       fun (unit, path, explicity, c) {
+         foldl (fun (c, x) {x (unit, path, explicity, c)},
+                c.addImport (path, unit),
+                spec)
+       }
+    });

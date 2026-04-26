@@ -83,14 +83,24 @@ public final class LamaCompareLib {
     }
 
     /**
-     * Compare closures in the same spirit as the reference C runtime:
-     *   1. compare the first closure slot (the "function pointer");
-     *   2. compare the captured-slot count;
-     *   3. compare each captured value element-wise (deep).
+     * Compare closures by identity rather than by value.
      *
-     * The Truffle implementation stores the parent lexical scope as the first
-     * element of the scope array. We recurse into it via {@link #compareValue},
-     * so it is treated like any other captured reference.
+     * <p>The reference runtime compares closures element-wise over their
+     * captured slots. That works there because a closure only stores the
+     * values it actually captures. In this Truffle implementation every
+     * closure snapshots the full enclosing frame (see
+     * {@code Utils.capture}), and some of those slots can legitimately be
+     * mutated after the closure is built (e.g. {@code var} cells or
+     * {@code ref} cells shared with other definitions). A value-based
+     * compare would then see the same closure as "different" at two
+     * points in time, which breaks {@code Collection.addHashTab} /
+     * {@code findHashTab} — the {@code Ostap} memoisation table relies on
+     * the same closure being a stable key across look-ups.</p>
+     *
+     * <p>We therefore compare a closure first by {@code callTarget} and
+     * then by object identity, matching what the original Graal port did
+     * before the reference-alignment pass. {@link #compareValue} still
+     * delegates here so {@code typeRank} ordering stays consistent.</p>
      */
     @TruffleBoundary
     public static long compareFunction(LamaFunction a, LamaFunction b) {
@@ -101,18 +111,7 @@ public final class LamaCompareLib {
         if (c != 0) {
             return c;
         }
-        int la = a.lexicalScope == null ? 0 : a.lexicalScope.length;
-        int lb = b.lexicalScope == null ? 0 : b.lexicalScope.length;
-        if (la != lb) {
-            return la - lb;
-        }
-        for (int i = 0; i < la; i++) {
-            long cc = compareValue(a.lexicalScope[i], b.lexicalScope[i]);
-            if (cc != 0) {
-                return cc;
-            }
-        }
-        return 0;
+        return Long.compare(System.identityHashCode(a), System.identityHashCode(b));
     }
 
     @TruffleBoundary

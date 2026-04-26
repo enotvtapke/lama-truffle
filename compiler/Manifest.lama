@@ -23,9 +23,27 @@ public fun dumpAST (args, ast) {
 }
 
 public fun getBaseName (args) {
-  force (lazy ((var name = args.getInFile;
-               if (matchSubString (name, ".lama", name.length - 5))
-               then substring (name, 0, name.length - 5)
-               else name
-               fi)))
+  args [5] ()
 }
+
+public fun getUnitName (args) {
+  args [6] ()
+}
+
+public fun getPaths (args) {
+  args [7] ()
+}
+
+public fun getOutFile (args) {
+  args [8] ()
+}
+
+public fun noImports (args) {
+  args [9] ()
+}
+
+-- Signals an error; takes an error message and location info
+public fun error (msg, loc) {
+  failure ("%s at %d:%d\n", msg, loc.fst, loc.snd)
+}
+

@@ -1,0 +1,10 @@
+I,Std;
+I,List;
+I,Array;
+I,Ostap;
+I,STM;
+I,Fun;
+I,Manifest;
+V,predefinedOps;
+F,predefined;
+F,addInfix;
