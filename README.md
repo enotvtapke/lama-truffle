@@ -48,3 +48,6 @@ captured variables are not seen.
 (late binding). It sees all mutations that happened before that moment, but not mutations that happened after.
 
 To materialize closure of `fun f() { ... }` immediately one can do `var f1 = f`.
+
+Infix references to builtin operations (like +, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||) are not supported. Only references
+to custom infix operators are supported.

@@ -11,19 +11,19 @@ import Builtins;
 
 -- As association map which maps "\otimes" into "\oplus"
 var ops = {
-  ["+" , infix + ],
-  ["-" , infix - ],
-  ["*" , infix * ],
-  ["/" , infix / ],
-  ["%" , infix % ],
-  ["==", infix ==],
-  ["!=", infix !=],
-  ["<" , infix < ],
-  ["<=", infix <=],
-  [">" , infix > ],
-  [">=", infix >=],
-  ["&&", infix &&],
-  ["!!", infix !!]
+  ["+" , fun (x, y) { x + y } ],
+  ["-" , fun (x, y) { x - y } ],
+  ["*" , fun (x, y) { x * y } ],
+  ["/" , fun (x, y) { x / y } ],
+  ["%" , fun (x, y) { x % y } ],
+  ["==", fun (x, y) { x == y } ],
+  ["!=", fun (x, y) { x != y } ],
+  ["<" , fun (x, y) { x < y } ],
+  ["<=", fun (x, y) { x <= y } ],
+  [">" , fun (x, y) { x > y } ],
+  [">=", fun (x, y) { x >= y } ],
+  ["&&", fun (x, y) { x && y } ],
+  ["!!", fun (x, y) { x !! y } ]
 };
 
 -- The evaluator for infix operators: takes an operator as a string

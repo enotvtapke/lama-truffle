@@ -56,7 +56,7 @@ fun parseArgs (args) {
 
   fun setInFile (fn) {
     case deref (infile) of
-      {} -> case parseString (syntax (name=(uident | lident) token[".lama"] eof {name}), fn) of
+      {} -> case parseString (syntax (token["/"]? (token[createRegexp ("[-a-z_A-Z0-9']+", "test")] token["/"])* name=(uident | lident) token[".lama"] eof {name}), fn) of
               Fail (_, _, _) -> failure ("filename ""%s"" does not comply the pattern <uident/lident>.lama\n", fn)
             | Succ (name)    -> infile ::= fn;
                                 basename ::= name;
