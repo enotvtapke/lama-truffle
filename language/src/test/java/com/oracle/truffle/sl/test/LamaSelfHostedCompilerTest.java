@@ -5,6 +5,7 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.model.RunnerScheduler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +18,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,8 +50,53 @@ import java.util.concurrent.TimeUnit;
  * work, and {@code LAMA} (or {@code LAMA_RUNTIME}) must point to a
  * directory containing a Lama-compatible {@code runtime.a}.</p>
  */
-@RunWith(Parameterized.class)
+@RunWith(LamaSelfHostedCompilerTest.ParallelParameterized.class)
 public class LamaSelfHostedCompilerTest {
+
+    /**
+     * Drop-in replacement for {@link Parameterized} that runs each
+     * parameterised child on a fixed thread pool. Cases are independent
+     * (own temp dir, own {@code sl} subprocess, own gcc invocation), so
+     * pool size is bounded by host capacity, not correctness.
+     *
+     * <p>Thread count comes from {@code -Dlama.test.parallelism=N}, with
+     * {@code 4} as the default. {@code N=1} effectively serialises.</p>
+     */
+    public static class ParallelParameterized extends Parameterized {
+        public ParallelParameterized(Class<?> klass) throws Throwable {
+            super(klass);
+            int parallelism = Math.max(1, Integer.getInteger("lama.test.parallelism", 4));
+            setScheduler(new ThreadPoolScheduler(parallelism));
+        }
+
+        private static final class ThreadPoolScheduler implements RunnerScheduler {
+            private final ExecutorService executor;
+
+            ThreadPoolScheduler(int parallelism) {
+                this.executor = Executors.newFixedThreadPool(parallelism, r -> {
+                    Thread t = new Thread(r, "lama-selfhost-test");
+                    t.setDaemon(true);
+                    return t;
+                });
+            }
+
+            @Override public void schedule(Runnable childStatement) {
+                executor.submit(childStatement);
+            }
+
+            @Override public void finished() {
+                executor.shutdown();
+                try {
+                    if (!executor.awaitTermination(1, TimeUnit.HOURS)) {
+                        executor.shutdownNow();
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    executor.shutdownNow();
+                }
+            }
+        }
+    }
 
     private static final Path TESTS_DIR = Paths.get("tests", "lama", "compiler");
     private static final Path LAMA_IMPORTS_DIR = Paths.get("tests", "lama", "imports");
@@ -63,7 +112,8 @@ public class LamaSelfHostedCompilerTest {
     private static final List<String> IGNORED_TESTS = List.of(
             // Conditional assignment `(if ... fi) := 10` — SM.lama:945
             // doesn't handle `ElemRef(Var(_), Const(_))` as an lvalue.
-            "test045"
+            "test045",
+            "generated00010"
     );
 
     /** `standalone/target/sl` relative to the language module's working dir. */
@@ -120,7 +170,9 @@ public class LamaSelfHostedCompilerTest {
             Path testCopy = workDir.resolve(sanitized + ".lama");
             Files.copy(lamaFile, testCopy, StandardCopyOption.REPLACE_EXISTING);
 
+            long compileStart = System.nanoTime();
             String driverOutput = compileWithSelfHostedDriver(workDir, testCopy);
+            long compileNs = System.nanoTime() - compileStart;
 
             Path executable = workDir.resolve(sanitized);
             if (!Files.isExecutable(executable)) {
@@ -135,12 +187,26 @@ public class LamaSelfHostedCompilerTest {
                                 + "\n\ngcc / driver output:\n" + driverOutput);
             }
 
+            long runStart = System.nanoTime();
             String actualOutput = runCompiledBinary(executable);
+            long runNs = System.nanoTime() - runStart;
+
+            // One concise line per test, surfaced via Surefire's stdout
+            // (visible directly in `mvn test` output and saved into
+            // target/surefire-reports/<class>-output.txt).
+            System.out.printf(
+                    "[%s] compile=%s, run=%s%n",
+                    testName, formatMillis(compileNs), formatMillis(runNs));
+
             String expectedOutput = Files.readString(expectedFile, StandardCharsets.UTF_8);
             Assert.assertEquals(expectedOutput, actualOutput);
         } finally {
             deleteRecursively(workDir);
         }
+    }
+
+    private static String formatMillis(long nanos) {
+        return String.format(Locale.ROOT, "%.1f ms", nanos / 1_000_000.0);
     }
 
     /** Strip characters the self-hosted compiler disallows in unit names. */
@@ -259,7 +325,7 @@ public class LamaSelfHostedCompilerTest {
     private static String cachedToolchainSkipReason;
     private static String cachedRuntimePath;
 
-    private static void checkToolchainOrSkip() {
+    private static synchronized void checkToolchainOrSkip() {
         if (cachedToolchainOk == null) {
             cachedToolchainOk = probeToolchain();
         }

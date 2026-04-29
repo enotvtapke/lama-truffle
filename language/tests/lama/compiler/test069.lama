@@ -1,0 +1,16 @@
+fun m (l) {
+  case l of
+    {}     -> write (0)
+  | {x}    -> write (x)
+  | {x, y} -> write (x); write (y)
+  | x : tl -> write (x); m (tl)
+  esac
+}
+
+val n = read ();
+
+m ({});
+m ({1});
+m ({1,2});
+m ({1, 2, 3});
+m ({1, 2, 3, 4})

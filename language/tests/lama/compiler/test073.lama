@@ -1,0 +1,21 @@
+fun f ([a, b], c@{_, _, z}, _ : t) {
+  fun wl (l) {
+    case l of
+     {} -> skip
+    | h : tl -> write (h); wl (tl)
+    esac
+  }
+  
+  write (a);
+  write (b);
+  write (z);
+  case c of
+   {x, y, _} -> write (x); write (y)
+  esac;
+  
+  wl (t)  
+}
+
+var n = read ();
+
+f ([1, 2], {3, 4, 5}, {6, 7, 8})

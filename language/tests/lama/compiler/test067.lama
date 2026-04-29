@@ -1,0 +1,11 @@
+fun wow () {
+  infix =+= before && (x, y) {
+    write (100)
+  }
+
+  infix =+= 
+}
+
+var n = read ();
+
+wow () (2, 3)

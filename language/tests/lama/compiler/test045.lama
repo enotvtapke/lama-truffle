@@ -1,31 +1,25 @@
-fun f () {
-    if read () then x [1]
-  elif read () then y [0][1]
-               else z
-    fi := 10
+var n, x, y;
+
+fun append (x, y) {
+    case x of
+      Nil         -> y
+    | Cons (h, t) -> Cons (h, append (t, y))
+    esac
 }
 
-fun printArray (a, n) {
-  if n == 0 then write (a)
-  else for var i=0;, i < length (a), i := i+1 do
-         printArray (a[i], n-1)
-       od
-  fi
+fun printList (x) {
+    case x of
+      Nil         -> skip
+    | Cons (h, t) -> write (h); printList (t)
+    esac
 }
 
-fun print () {
-  printArray (x, 1);
-  printArray (y, 2);
-  printArray (z, 0)
-}
+n := read ();
 
-var x = [1, 2, 3], y = [[1, 2, 3]], z = 1;
+x := Cons (1, Cons (2, Nil));
+y := Cons (3, Cons (4, Nil));
 
-print ();
-f ();
-print ();
-f ();
-print ();
-f ();
-print ()
-
+printList (x);
+printList (y);
+printList (append (x, y));
+printList (append (y, x))

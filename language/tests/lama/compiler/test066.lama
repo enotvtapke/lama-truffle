@@ -1,0 +1,37 @@
+infixl + before + (x, y) {
+  write (1)  
+}
+
+fun t () {
+  infixl + before + (x, y) {
+    write (2)
+  }
+  
+  1 + 2;
+  
+  (
+
+    infixl + before + (x, y) {
+      write (3)
+    }
+
+    1 + 2;
+
+    (
+        infixl + before + (x, y) {
+          write (4)
+        }
+
+        1+2
+    );
+
+    1+2
+  );
+
+  1 + 2
+}
+
+var n = read ();
+
+t ();
+1 + 2

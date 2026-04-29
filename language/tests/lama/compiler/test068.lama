@@ -1,0 +1,19 @@
+fun test (v) {
+  write (case v of
+           #array -> 1
+         | #sexp  -> 2
+         | #str   -> 3         
+         | #val   -> 4
+         | #fun   -> 5
+         esac);
+  write (case v of #box -> 1 | _ -> 0 esac)
+}
+
+val n = read ();
+
+test ([1, 2, 3]);
+test (S);
+test ("a");
+test ("a");
+test (1);
+test (fun () {0})

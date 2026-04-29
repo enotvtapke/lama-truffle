@@ -2,7 +2,7 @@ var n, x, i;
 
 fun sort (x) {
   var i, j, y, n;
-  n := length (x);
+  n := x.length;
   
   if n == 0
   then skip
@@ -26,6 +26,6 @@ x := [10, 9, 8, 7, 6, 5];
 
 x := sort (x);
 
-for i:=0, i<length (x), i:=i+1 do
+for i:=0, i<x.length, i:=i+1 do
   write (x[i])
 od

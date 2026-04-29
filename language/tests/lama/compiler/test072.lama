@@ -1,0 +1,15 @@
+fun f (x) {
+  x + 1
+}
+
+fun g (x) {
+  x + 2
+}
+
+fun h (x, y, z) {
+  x + y + z
+}
+
+var n = read ();
+
+write (2.f.g.f.h (3, 5).h (3, 3).g)

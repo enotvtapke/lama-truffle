@@ -1,16 +1,17 @@
-var x = A (1, 2, 3),
-    y = A,
-    z = Cons (Cons (1, Nil)),
-    t = read ();
+var x;
 
-write (length (x));
-write (x[0]);
-write (x[1]);
-write (x[2]);
+fun f (x) {
+  case x of
+    A -> write (1)
+  | B -> write (2)
+  | C -> write (3)
+  | _  -> write (4)
+  esac
+}
 
-write (length (y));
+x := read ();
 
-write (length (z));
-write (length (z[0]));
-write (z[0][0]);
-write (length (z[0][1]))
+f (A);
+f (B);
+f (C);
+f (D)

@@ -1,0 +1,10 @@
+val n = read ();
+
+(let x = 5 in
+write (x));
+
+(let [_, x] = [2, 5] in
+ let y@_ = 4 in
+ write (x+y));
+
+if let x = 5 in let y = 6 in x>y then write (1) else write (0) fi

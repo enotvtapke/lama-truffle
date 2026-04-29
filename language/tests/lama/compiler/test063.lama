@@ -1,0 +1,19 @@
+fun f (l) {
+  infix === at == (a, b) {
+     a == b
+  }
+
+  case l of
+    Nil                    ->  1
+  | Cons (_, Nil)          ->  1
+  | Cons (a, Cons (b, tl)) ->  a === b && f (Cons (b, tl))
+  esac
+}
+
+var x = read ();
+
+write (f (Nil));
+write (f (Cons (1, Nil)));
+write (f (Cons (1, Cons (1, Nil))));
+write (f (Cons (1, Cons (1, Cons (1, Nil)))));
+write (f (Cons (1, Cons (2, Cons (1, Nil)))))

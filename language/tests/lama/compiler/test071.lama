@@ -1,0 +1,5 @@
+val n = read ();
+
+case {1, 2, 3} of
+  x@_ : y : z : {} -> write (x); write (y); write (z)
+esac

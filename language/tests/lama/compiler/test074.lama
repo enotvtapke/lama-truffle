@@ -1,0 +1,7 @@
+fun f (x) {
+  write (x)
+}
+
+var n = read ();
+
+(eta f) (3)

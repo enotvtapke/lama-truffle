@@ -1,0 +1,14 @@
+var x = read ();
+
+infixl +-+ at + ({x}, {y, z}) {
+  {x, y, z}
+}
+
+fun p (l) {
+  case l of
+    {}    -> skip
+  | h : t -> write (h); p (t)
+  esac
+}
+
+p ({1} +-+ {2, 3})
