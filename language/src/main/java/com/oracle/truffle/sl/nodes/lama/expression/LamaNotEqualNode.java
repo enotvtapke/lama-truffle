@@ -16,8 +16,8 @@ public abstract class LamaNotEqualNode extends LamaBinaryExpressionNode {
         return left != right ? 1L : 0L;
     }
 
-    @Fallback
-    public static Object typeError(Object left, Object right, @Bind Node node) {
-        throw SLException.typeError(node, "!=", left, right);
+    @Specialization
+    public static long doGeneric(Object left, Object right) {
+        return left != right ? 1L : 0L;
     }
 }
