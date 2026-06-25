@@ -1098,12 +1098,12 @@ public fun compileX86 (args, context, code) {
                                     listBuffer (map (intDef   , getGlobals (env)))) <+>
                         codeSection (code)                   
                       ).stringcat);
-                      
+
         case args.getMode of
-          Build -> var dependentUnits = map (fun ([unit, path]) {sprintf (" %s/%s.o", path, unit)}, 
+          Build -> var dependentUnits = map (fun ([unit, path]) {sprintf (" ""%s/%s.o""", path, unit)},
                                               context.getDependentUnits (args.getPaths)).stringcat;
-                    system ({"gcc -g -m32 -o ", args.getOutFile, " ", runtime, " ", dependentUnits, " ", asmFile}.stringcat)
-        | Comp  -> system ({"gcc -g -m32 -c ", asmFile}.stringcat)
+                    system (sprintf ("gcc -g -m32 -o ""%s"" ""%s""%s ""%s""", args.getOutFile, runtime, dependentUnits, asmFile))
+        | Comp  -> system (sprintf ("gcc -g -m32 -c ""%s""", asmFile))
         esac
     esac
   esac

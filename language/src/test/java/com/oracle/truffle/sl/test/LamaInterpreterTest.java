@@ -67,6 +67,7 @@ public class LamaInterpreterTest {
                 .in(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
                 .out(out)
                 .options(Map.of("lama.UnitSearchPath", lamaFile.getParent().resolve("imports").toAbsolutePath().toString()))
+                .environment("EXISTING_ENV_VAR", "42")
                 .allowIO(IOAccess.ALL)
                 .build()) {
             Source source = Source.newBuilder("lama", lamaFile.toFile()).build();

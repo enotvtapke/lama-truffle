@@ -1,106 +1,31 @@
 package com.oracle.truffle.sl.test;
 
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.model.RunnerScheduler;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.nio.file.*;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Drives the self-hosted Lama compiler (in
- * {@code language/tests/lama/compilerSrc/}) on the programs under
- * {@code language/tests/lama/compiler/}, parameterised the same way as
- * {@link LamaInterpreterTest}.
- *
- * <p>For every test file {@code name.lama}:
- * <ol>
- *   <li>Copy it into a fresh temp dir (so the compiler's
- *       {@code .s}/{@code .i}/ELF outputs are isolated per test and
- *       don't pollute the source tree).</li>
- *   <li>Spawn the {@code standalone/target/sl} launcher from inside the
- *       temp dir. It runs {@code compilerSrc/Driver.lama} under the
- *       Graal Lama runtime with
- *       {@code sysargs = [driverPath, copyOfTestLama, -noimports]},
- *       producing the compiled 32-bit ELF alongside the source
- *       file.</li>
- *   <li>Execute that ELF, feeding it {@code name.input} on stdin.</li>
- *   <li>Assert stdout equals {@code name.log}.</li>
- * </ol>
- *
- * <p>The test quietly skips (via {@link Assume}) when the host doesn't
- * have the pieces the self-hosted compiler needs: the Graal launcher
- * binary must already be built, the 32-bit {@code gcc} toolchain must
- * work, and {@code LAMA} (or {@code LAMA_RUNTIME}) must point to a
- * directory containing a Lama-compatible {@code runtime.a}.</p>
- */
-@RunWith(LamaSelfHostedCompilerTest.ParallelParameterized.class)
+@RunWith(Parameterized.class)
 public class LamaSelfHostedCompilerTest {
 
-    /**
-     * Drop-in replacement for {@link Parameterized} that runs each
-     * parameterised child on a fixed thread pool. Cases are independent
-     * (own temp dir, own {@code sl} subprocess, own gcc invocation), so
-     * pool size is bounded by host capacity, not correctness.
-     *
-     * <p>Thread count comes from {@code -Dlama.test.parallelism=N}, with
-     * {@code 4} as the default. {@code N=1} effectively serialises.</p>
-     */
-    public static class ParallelParameterized extends Parameterized {
-        public ParallelParameterized(Class<?> klass) throws Throwable {
-            super(klass);
-            int parallelism = Math.max(1, Integer.getInteger("lama.test.parallelism", 4));
-            setScheduler(new ThreadPoolScheduler(parallelism));
-        }
-
-        private static final class ThreadPoolScheduler implements RunnerScheduler {
-            private final ExecutorService executor;
-
-            ThreadPoolScheduler(int parallelism) {
-                this.executor = Executors.newFixedThreadPool(parallelism, r -> {
-                    Thread t = new Thread(r, "lama-selfhost-test");
-                    t.setDaemon(true);
-                    return t;
-                });
-            }
-
-            @Override public void schedule(Runnable childStatement) {
-                executor.submit(childStatement);
-            }
-
-            @Override public void finished() {
-                executor.shutdown();
-                try {
-                    if (!executor.awaitTermination(1, TimeUnit.HOURS)) {
-                        executor.shutdownNow();
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    executor.shutdownNow();
-                }
-            }
-        }
-    }
+    private static final String LANGUAGE_ID = "lama";
 
     private static final Path TESTS_DIR = Paths.get("tests", "lama", "compiler");
     private static final Path LAMA_IMPORTS_DIR = Paths.get("tests", "lama", "imports");
     private static final Path COMPILER_DIR = Paths.get("tests", "lama", "compilerSrc");
+    private static final Path BUNDLED_RUNTIME_DIR = Paths.get("..", "runtime").toAbsolutePath().normalize();
 
     /**
      * Programs the self-hosted compiler in {@code compilerSrc/} currently
@@ -110,17 +35,10 @@ public class LamaSelfHostedCompilerTest {
      * feature.
      */
     private static final List<String> IGNORED_TESTS = List.of(
-            // Conditional assignment `(if ... fi) := 10` — SM.lama:945
-            // doesn't handle `ElemRef(Var(_), Const(_))` as an lvalue.
-            "test045",
-            "generated00010"
+            "test045"
+//            , "generated00010"
     );
 
-    /** `standalone/target/sl` relative to the language module's working dir. */
-    private static final Path SL_LAUNCHER = Paths.get("..", "standalone", "target", "sl");
-
-    /** Overall ceiling for `sl + compiled ELF` per test. */
-    private static final long COMPILE_TIMEOUT_SECONDS = 120;
     /** Time budget for the compiled binary to consume its input and exit. */
     private static final long RUN_TIMEOUT_SECONDS = 30;
 
@@ -159,27 +77,17 @@ public class LamaSelfHostedCompilerTest {
 
     @Test
     public void testSelfHostedCompiler() throws Exception {
-        checkToolchainOrSkip();
-
         Path workDir = Files.createTempDirectory("lama-selfhost-" + testName + "-");
         try {
-            // The self-hosted compiler rejects filenames that don't match
-            // its `<uident/lident>.lama` regex — `-` is not allowed.
-            // Rewrite the copy under a compiler-friendly name.
-            String sanitized = toValidUnitName(testName);
-            Path testCopy = workDir.resolve(sanitized + ".lama");
+            Path testCopy = workDir.resolve(testName + ".lama");
             Files.copy(lamaFile, testCopy, StandardCopyOption.REPLACE_EXISTING);
 
             long compileStart = System.nanoTime();
             String driverOutput = compileWithSelfHostedDriver(workDir, testCopy);
             long compileNs = System.nanoTime() - compileStart;
 
-            Path executable = workDir.resolve(sanitized);
+            Path executable = workDir.resolve(testName);
             if (!Files.isExecutable(executable)) {
-                // Driver.lama's `system("gcc …")` return code is not checked
-                // by the compiler itself, so a link failure leaves Driver
-                // exiting 0 with no ELF produced. Surface the driver/gcc
-                // output to make the cause actionable.
                 throw new AssertionError(
                         "self-hosted compiler did not produce an executable: " + executable
                                 + "\nThis usually means the linker step inside Driver.lama failed"
@@ -209,78 +117,63 @@ public class LamaSelfHostedCompilerTest {
         return String.format(Locale.ROOT, "%.1f ms", nanos / 1_000_000.0);
     }
 
-    /** Strip characters the self-hosted compiler disallows in unit names. */
-    private static String toValidUnitName(String raw) {
-        StringBuilder out = new StringBuilder(raw.length());
-        for (char c : raw.toCharArray()) {
-            boolean ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-                    || (c >= '0' && c <= '9') || c == '_' || c == '\'';
-            out.append(ok ? c : '_');
-        }
-        if (out.length() == 0
-                || !((out.charAt(0) >= 'a' && out.charAt(0) <= 'z')
-                     || (out.charAt(0) >= 'A' && out.charAt(0) <= 'Z'))) {
-            out.insert(0, 't');
-        }
-        return out.toString();
-    }
-
     /**
-     * Spawns {@code ./sl} inside {@code workDir}, pointing it at
-     * {@code compilerSrc/Driver.lama} with the test file as the sole
-     * user argument. We run through the launcher (rather than driving
-     * Graal {@code Context} directly) so the compiler's CWD, env vars,
-     * and thread stack size all match real-world usage — including the
-     * generous stack size that parser-combinator-heavy Lama code needs.
+     * Runs {@code compilerSrc/Driver.lama} on a fresh Graal {@link Context}
+     * inside this JVM (no {@code sl} subprocess), with the test file as its
+     * sole user argument. The Context's working directory is {@code workDir}
+     * and {@code LAMA} points at the bundled runtime, so the compiler's file
+     * IO and its {@code gcc} link step both happen there.
+     *
+     * <p>Evaluation runs on a dedicated thread with a large stack, since the
+     * parser-combinator-heavy compiler overflows the default test-thread
+     * stack. Returns whatever the driver wrote to stdout/stderr, for use in
+     * failure diagnostics.</p>
      */
-    private String compileWithSelfHostedDriver(Path workDir, Path testCopy) throws IOException, InterruptedException {
-        Path slLauncher = SL_LAUNCHER.toAbsolutePath().normalize();
-        Assert.assertTrue("sl launcher missing (run `mvn package` first): " + slLauncher,
-                Files.isExecutable(slLauncher));
-
+    private String compileWithSelfHostedDriver(Path workDir, Path testCopy) {
         Path driverFile = COMPILER_DIR.resolve("Driver.lama").toAbsolutePath().normalize();
         Assert.assertTrue("Driver.lama missing: " + driverFile, Files.exists(driverFile));
 
-        String runtimePath = resolveLamaRuntimePath();
+        String unitSearchPath = String.join(File.pathSeparator,
+                LAMA_IMPORTS_DIR.toAbsolutePath().normalize().toString(),
+                COMPILER_DIR.toAbsolutePath().normalize().toString());
 
-        List<String> command = List.of(
-                slLauncher.toString(),
-                "--disable-launcher-output",
-                "-I", LAMA_IMPORTS_DIR.toAbsolutePath().normalize().toString(),
-                "-I", COMPILER_DIR.toAbsolutePath().normalize().toString(),
-                "--args", testCopy.getFileName() + " -noimports",
-                driverFile.toString()
-        );
+        // Driver.lama drops sysargs[0] (the program name), so the test file and
+        // -noimports must follow the driver path.
+        String[] appArgs = {
+                driverFile.toString(),
+                testCopy.getFileName().toString(),
+                "-noimports"
+        };
 
-        ProcessBuilder pb = new ProcessBuilder(command)
-                .directory(workDir.toFile())
-                .redirectErrorStream(true);
-        // Driver.lama reads LAMA (X86.lama) / LAMA_RUNTIME (older compiler).
-        // Set both so either compiler flavour works.
-        pb.environment().put("LAMA", runtimePath);
-        pb.environment().put("LAMA_RUNTIME", runtimePath);
-
-        Process proc = pb.start();
-        proc.getOutputStream().close();
-        boolean finished = proc.waitFor(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        byte[] output = proc.getInputStream().readAllBytes();
-        String outputStr = new String(output, StandardCharsets.UTF_8);
-        if (!finished) {
-            proc.destroyForcibly();
-            throw new AssertionError(
-                    "self-hosted compiler timed out after " + COMPILE_TIMEOUT_SECONDS
-                            + "s\ncommand: " + String.join(" ", command)
-                            + "\noutput so far:\n" + outputStr);
+        ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        Source source;
+        try {
+            source = Source.newBuilder(LANGUAGE_ID, driverFile.toFile()).build();
+        } catch (IOException e) {
+            throw new AssertionError("could not read Driver.lama: " + driverFile, e);
         }
-        int exit = proc.exitValue();
-        if (exit != 0) {
+
+        try {
+            try (Context context = Context.newBuilder(LANGUAGE_ID)
+                    .out(captured)
+                    .err(captured)
+                    .currentWorkingDirectory(workDir.toAbsolutePath())
+                    .options(Map.of("lama.UnitSearchPath", unitSearchPath))
+                    .environment("LAMA", BUNDLED_RUNTIME_DIR.toString())
+                    .allowIO(IOAccess.ALL)
+                    .allowAllAccess(true)
+                    .arguments(LANGUAGE_ID, appArgs)
+                    .build()) {
+                context.eval(source);
+            }
+        } catch (PolyglotException e) {
             throw new AssertionError(
-                    "self-hosted compiler exited with status " + exit
-                            + "\ncommand: " + String.join(" ", command)
-                            + "\noutput:\n" + outputStr);
+                    "self-hosted compiler failed for " + testName + ":\n"
+                            + captured.toString(StandardCharsets.UTF_8), e);
         }
-        return outputStr;
+        return captured.toString(StandardCharsets.UTF_8);
     }
+
 
     /** Runs the produced 32-bit ELF and returns its stdout. */
     private String runCompiledBinary(Path executable) throws IOException, InterruptedException {
@@ -314,143 +207,6 @@ public class LamaSelfHostedCompilerTest {
                             + "stderr: " + new String(stderr, StandardCharsets.UTF_8));
         }
         return new String(stdout, StandardCharsets.UTF_8);
-    }
-
-    // ---------------------------------------------------------------
-    //  Environment probes: skip rather than fail when the 32-bit Lama
-    //  toolchain isn't available on the host running the tests.
-    // ---------------------------------------------------------------
-
-    private static Boolean cachedToolchainOk;
-    private static String cachedToolchainSkipReason;
-    private static String cachedRuntimePath;
-
-    private static synchronized void checkToolchainOrSkip() {
-        if (cachedToolchainOk == null) {
-            cachedToolchainOk = probeToolchain();
-        }
-        Assume.assumeTrue(cachedToolchainSkipReason, cachedToolchainOk);
-    }
-
-    private static boolean probeToolchain() {
-        Path slLauncher = SL_LAUNCHER.toAbsolutePath().normalize();
-        if (!Files.isExecutable(slLauncher)) {
-            cachedToolchainSkipReason =
-                    "sl launcher not built yet at " + slLauncher
-                            + "; run `mvn package` to enable self-hosted compiler tests";
-            return false;
-        }
-        String runtime;
-        try {
-            runtime = resolveLamaRuntimePath();
-        } catch (IOException e) {
-            cachedToolchainSkipReason = "failed to prepare Lama runtime copy: " + e.getMessage();
-            return false;
-        }
-        if (runtime == null) {
-            cachedToolchainSkipReason =
-                    "no usable Lama runtime found. Either set LAMA (preferred) or LAMA_RUNTIME"
-                            + " to a directory containing runtime.a with LStd_* symbols,"
-                            + " or provide one at <project-root>/runtime/runtime.a.";
-            return false;
-        }
-        Path runtimeArchive = Paths.get(runtime, "runtime.a");
-        if (!Files.exists(runtimeArchive)) {
-            cachedToolchainSkipReason = "runtime.a not found under " + runtime;
-            return false;
-        }
-        if (runtime.contains(" ")) {
-            cachedToolchainSkipReason =
-                    "LAMA path contains spaces (" + runtime + ") — the self-hosted compiler "
-                            + "builds an unescaped gcc command line, so whitespace-free paths are required."
-                            + " Set LAMA to a path without whitespace or delete the explicit env var so the"
-                            + " harness copies the bundled runtime/ into a scratch dir automatically.";
-            return false;
-        }
-        if (!runtimeDefinesStdSymbols(runtimeArchive)) {
-            cachedToolchainSkipReason =
-                    "runtime.a at " + runtime + " does not export LStd_* symbols (e.g. LStd_read)."
-                            + " The self-hosted compiler in compilerSrc/ emits calls into LStd_*;"
-                            + " point LAMA at a runtime built for it, or drop a compatible runtime into"
-                            + " <project-root>/runtime/ to let the harness pick it up automatically.";
-            return false;
-        }
-        if (!gccMultilibWorks()) {
-            cachedToolchainSkipReason =
-                    "gcc with -m32 support is required but not functional on this host "
-                            + "(install e.g. gcc-multilib on Debian/Ubuntu)";
-            return false;
-        }
-        cachedRuntimePath = runtime;
-        return true;
-    }
-
-    private static String resolveLamaRuntimePath() throws IOException {
-        if (cachedRuntimePath != null) return cachedRuntimePath;
-
-        String env = System.getenv("LAMA");
-        if (env != null && !env.isBlank()) return env;
-        env = System.getenv("LAMA_RUNTIME");
-        if (env != null && !env.isBlank()) return env;
-        String prop = System.getProperty("lama.test.runtimePath");
-        if (prop != null && !prop.isBlank()) return prop;
-
-        // Fall back to the repo's own runtime/ directory. If it lives under a
-        // path containing whitespace (common on "virtual machines/...") we
-        // copy it into a space-free scratch dir once per JVM, since the
-        // self-hosted compiler's gcc invocation is not shell-escaped.
-        Path bundled = Paths.get("..", "runtime").toAbsolutePath().normalize();
-        if (Files.exists(bundled.resolve("runtime.a"))) {
-            if (bundled.toString().contains(" ")) {
-                Path scratch = Files.createTempDirectory("lama-rt-");
-                for (Path p : Files.newDirectoryStream(bundled)) {
-                    Path target = scratch.resolve(p.getFileName());
-                    if (Files.isRegularFile(p)) {
-                        Files.copy(p, target, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
-                scratch.toFile().deleteOnExit();
-                return scratch.toString();
-            }
-            return bundled.toString();
-        }
-        return null;
-    }
-
-    private static boolean runtimeDefinesStdSymbols(Path runtimeArchive) {
-        try {
-            Process p = new ProcessBuilder("nm", runtimeArchive.toString())
-                    .redirectErrorStream(true).start();
-            byte[] out = p.getInputStream().readAllBytes();
-            p.waitFor(10, TimeUnit.SECONDS);
-            String text = new String(out, StandardCharsets.UTF_8);
-            // The self-hosted compilerSrc/ emits LStd_read, LStd_write, ...
-            return text.contains("LStd_");
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
-            return true; // Give up probing; let the compile succeed/fail on its own.
-        }
-    }
-
-    private static boolean gccMultilibWorks() {
-        try {
-            Path tmpC = Files.createTempFile("lama-probe-", ".c");
-            Path tmpBin = Files.createTempFile("lama-probe-", "");
-            try {
-                Files.writeString(tmpC, "int main(void){return 0;}", StandardCharsets.UTF_8);
-                Process p = new ProcessBuilder(
-                        "gcc", "-m32", "-o", tmpBin.toString(), tmpC.toString())
-                        .redirectErrorStream(true).start();
-                boolean finished = p.waitFor(15, TimeUnit.SECONDS);
-                return finished && p.exitValue() == 0;
-            } finally {
-                Files.deleteIfExists(tmpC);
-                Files.deleteIfExists(tmpBin);
-            }
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
-            return false;
-        }
     }
 
     private static void deleteRecursively(Path root) throws IOException {
