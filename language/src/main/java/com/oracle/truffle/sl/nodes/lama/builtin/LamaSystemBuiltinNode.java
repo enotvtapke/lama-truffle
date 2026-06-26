@@ -1,6 +1,7 @@
 package com.oracle.truffle.sl.nodes.lama.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -8,6 +9,7 @@ import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -32,6 +34,15 @@ public abstract class LamaSystemBuiltinNode extends LamaBuiltinNode {
                 .redirectInput(ProcessBuilder.Redirect.INHERIT)
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                 .redirectError(ProcessBuilder.Redirect.INHERIT);
+        // Run the child in the Context's current working directory, the same
+        // directory that the language's file IO (e.g. fwrite) resolves relative
+        // paths against. Without this the child would inherit the JVM cwd, so a
+        // command like `gcc foo.s` could fail to find files just written by the
+        // guest program when the Context's cwd differs from the JVM's.
+        TruffleFile cwd = context.getEnv().getCurrentWorkingDirectory();
+        if (cwd != null) {
+            pb.directory(new File(cwd.getPath()));
+        }
         // Flush our own buffered writer so that child output is ordered
         // after any pending interpreter output (printf buffers through it).
         context.getOutput().flush();
