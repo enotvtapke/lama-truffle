@@ -34,15 +34,15 @@ fun parseArgs (args) {
   fun setNoImports () {
     noImports ::= true
   }
-  
+
   fun setDump (m) {
     case m of
-      SM   -> smDump   
-    | AST  -> astDump  
-    | TIME -> timeDump 
+      SM   -> smDump
+    | AST  -> astDump
+    | TIME -> timeDump
     esac ::= true
   }
-  
+
   fun setMode (m) {
     case deref (mode) of
       Build -> mode ::= m
@@ -62,7 +62,7 @@ fun parseArgs (args) {
                                 basename ::= name;
                                 unit     ::= case clone (name) of name -> name[0] := uppercase (name [0]); name esac
             esac
-            
+
     | _  -> failure ("omitting ""%s"", input file name already set to ""%s""\n", fn, deref (infile))
     esac
   }
@@ -92,6 +92,7 @@ fun parseArgs (args) {
                                  | fn : t -> setOutFile (fn); t
                                  esac
                | "-s"         -> setMode (SM); t
+               | "-ast"       -> setMode (AST); t
                | "-ds"        -> setDump (SM); t
                | "-dp"        -> setDump (AST); t
                | "-dt"        -> setDump (TIME); t
@@ -100,7 +101,7 @@ fun parseArgs (args) {
                                    {}    -> failure ("path expected after ""-I"" option\n")
                                  | p : t -> setPath (p); t
                                  esac
-               | "-O"         -> case t of 
+               | "-O"         -> case t of
                                    {} -> failure ("optimization settings expected after ""-O"" option\n")
                                  | h : t -> setOptMode (Some (h)); t
                                  esac
@@ -130,7 +131,7 @@ fun parseArgs (args) {
    fun () {
     deref (optMode)
    }
-  ]        
+  ]
 }
 
 -- Logging
@@ -142,7 +143,7 @@ fun createLog (args) {
       x86Time    = ref (None),
       evalTime   = ref (None),
       evalSMTime = ref (None);
-        
+
   fun logAST (p, t) {
     ast ::= p;
     parseTime ::= Some (t);
@@ -193,7 +194,7 @@ fun createLog (args) {
    logEval,
    logSMEval,
    print
-  ]   
+  ]
 }
 
 -- Accessor functions
@@ -246,12 +247,13 @@ case parseString (syntax (parseUnit[args] -end), fread (args.getInFile)) of
       [context, program] ->
   --  printf ("done\n");
     log.logAST (program, t ());
-    t := timer (); 
-    case args.getMode of 
-      Comp  -> native (args, context, program)
-               
+    t := timer ();
+    case args.getMode of
+      AST -> skip
+    | Comp  -> native (args, context, program)
+
     | Build -> native (args, context, program)
-               
+
     | mode ->
         var input =
            reverse (fix (fun (f) {
@@ -267,14 +269,14 @@ case parseString (syntax (parseUnit[args] -end), fread (args.getInFile)) of
                 Int -> var out = evalExpr (input, program);
                        log.logEval (t ());
                        out
-                      
-              | SM  -> var sm = log.logSM (compileSM (args, context, program), t ()), out;                      
+
+              | SM  -> var sm = log.logSM (compileSM (args, context, program), t ()), out;
                        t := timer ();  log.print;
                        out := evalSM (input, optimizeSM (args, context, sm));
                        log.logSMEval (t ());
                        out
-              esac) 
-    esac; 
+              esac)
+    esac;
     log.print
     esac
 | x@Fail (err, line, col) ->   

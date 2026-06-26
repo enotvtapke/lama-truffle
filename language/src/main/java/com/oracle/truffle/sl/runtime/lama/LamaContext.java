@@ -140,7 +140,7 @@ public final class LamaContext {
             return builtins;
         }
 
-        throw new IllegalArgumentException("Undefined variable '" + variableName + "'");
+        throw new IllegalArgumentException("Undefined variable '" + variableName + "' at " + node.toString());
     }
 
     private CallTarget parseModule(String path) {

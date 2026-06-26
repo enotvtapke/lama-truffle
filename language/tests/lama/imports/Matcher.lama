@@ -20,7 +20,7 @@ public fun createRegexp (r, name) {
 -- This function is internal, do not use it directly.
 -- To initially create a matcher use initMatcher function (see below).
 fun createMatcher (buf, pos, line, col) {
-  -- Shows a matcher in a readable form
+-- Shows a matcher in a readable form
   fun show () {
     sprintf ("buf : %-40s\npos : %d\nline: %d\ncol : %d\n", buf, pos, line, col)
   }
@@ -33,15 +33,15 @@ fun createMatcher (buf, pos, line, col) {
   -- Moves the position pointer on given number of characters.
   fun shift (n) {
     var i, l = line, c = col;
-    
+
     for i := pos, i < pos+n, i := i+1 do
       case buf [i] of
-        '\n' -> l := l + 1; c := 1
-      | '\t' -> c := c + 8
-      | _    -> c := c + 1
+          '\n' -> l := l + 1; c := 1
+        | '\t' -> c := c + 8
+        | _    -> c := c + 1
       esac
     od;
-    
+
     createMatcher (buf, pos + n, l, c)
   }
 
@@ -49,13 +49,13 @@ fun createMatcher (buf, pos, line, col) {
     fun min (x, y) {
       if x < y then x else y fi
     }
-    
+
     -- printf ("Matching string %s against %s...\n", s, substring (buf, pos, min (10, buf.length - pos)));
 
     if s.length > rest ()
-    then Fail (sprintf ("""%s"" expected", s), line, col)
-    elif matchSubString (buf, s, pos) then Succ (s, shift (s.length)) 
-    else Fail (sprintf ("""%s"" expected at", s), line, col)
+      then Fail (sprintf ("""%s"" expected", s), line, col)
+      elif matchSubString (buf, s, pos) then Succ (s, shift (s.length))
+      else Fail (sprintf ("""%s"" expected at", s), line, col)
     fi
   }
 
@@ -65,28 +65,29 @@ fun createMatcher (buf, pos, line, col) {
     fun min (x, y) {
       if x < y then x else y fi
     }
-    
+
     -- printf ("Matching regexp %x against %s...\n", r, substring (buf, pos, min (10, buf.length - pos)));
 
     if (n := regexpMatch (r[0], buf, pos)) >= 0
-    then Succ (substring (buf, pos, n), shift (n))
-    else Fail (sprintf ("%s expected", r[1]), line, col)
+      then Succ (substring (buf, pos, n), shift (n))
+      else Fail (sprintf ("%s expected", r[1]), line, col)
     fi
   }
 
   fun eof () {
     if rest () == 0
-    then Succ ("", shift (0))
-    else Fail ("EOF expected", line, col)
+      then Succ ("", shift (0))
+      else Fail ("EOF expected", line, col)
     fi
   }
-  
+
   [show,
-   eof,
-   matchString,
-   matchRegexp,
-   fun () {line},
-   fun () {col}]  
+    eof,
+    matchString,
+    matchRegexp,
+    fun () {line},
+    fun () {col},
+    fun () {pos}]
 }
 
 public fun showMatcher (m) {
@@ -114,6 +115,11 @@ public fun getLine (m) {
 -- Gets a column number
 public fun getCol (m) {
   m [5] ()
+}
+
+-- Gets a position
+public fun getPos (m) {
+  m [6] ()
 }
 
 -- Creates a fresh matcher from a string buffer
