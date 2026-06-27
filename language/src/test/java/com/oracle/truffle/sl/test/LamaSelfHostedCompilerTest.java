@@ -1,10 +1,13 @@
 package com.oracle.truffle.sl.test;
 
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,6 +44,29 @@ public class LamaSelfHostedCompilerTest {
 
     /** Time budget for the compiled binary to consume its input and exit. */
     private static final long RUN_TIMEOUT_SECONDS = 30;
+
+    /**
+     * One Engine shared by every test. Lama is registered ContextPolicy.SHARED,
+     * so per-test Contexts built on this engine reuse the already-parsed
+     * compiler and a single initialized runtime; each test still gets its own
+     * isolated Context (own args, cwd, IO, and -- since module-variable tables
+     * are resolved per context -- its own module state).
+     */
+    private static Engine engine;
+    private static Source driverSource;
+
+    @BeforeClass
+    public static void setUpEngine() throws java.io.IOException {
+        engine = Engine.newBuilder().build();
+        Path driverFile = COMPILER_DIR.resolve("Driver.lama").toAbsolutePath().normalize();
+        Assert.assertTrue("Driver.lama missing: " + driverFile, Files.exists(driverFile));
+        driverSource = Source.newBuilder(LANGUAGE_ID, driverFile.toFile()).build();
+    }
+
+    @AfterClass
+    public static void tearDownEngine() {
+        if (engine != null) engine.close();
+    }
 
     private final Path lamaFile;
     private final Path inputFile;
@@ -124,47 +150,41 @@ public class LamaSelfHostedCompilerTest {
      * and {@code LAMA} points at the bundled runtime, so the compiler's file
      * IO and its {@code gcc} link step both happen there.
      *
-     * <p>Evaluation runs on a dedicated thread with a large stack, since the
-     * parser-combinator-heavy compiler overflows the default test-thread
-     * stack. Returns whatever the driver wrote to stdout/stderr, for use in
-     * failure diagnostics.</p>
+     * <p>The Context is built on the shared {@link #engine}, so the compiler is
+     * parsed once for the whole suite. Returns whatever the driver wrote to
+     * stdout/stderr, for use in failure diagnostics.</p>
      */
     private String compileWithSelfHostedDriver(Path workDir, Path testCopy) {
         Path driverFile = COMPILER_DIR.resolve("Driver.lama").toAbsolutePath().normalize();
-        Assert.assertTrue("Driver.lama missing: " + driverFile, Files.exists(driverFile));
 
         String unitSearchPath = String.join(File.pathSeparator,
                 LAMA_IMPORTS_DIR.toAbsolutePath().normalize().toString(),
                 COMPILER_DIR.toAbsolutePath().normalize().toString());
 
-        // Driver.lama drops sysargs[0] (the program name), so the test file and
-        // -noimports must follow the driver path.
+        // Driver.lama drops sysargs[0] (the program name), so the test file
+        // follows the driver path.
         String[] appArgs = {
                 driverFile.toString(),
                 testCopy.getFileName().toString(),
         };
 
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
-        Source source;
-        try {
-            source = Source.newBuilder(LANGUAGE_ID, driverFile.toFile()).build();
-        } catch (IOException e) {
-            throw new AssertionError("could not read Driver.lama: " + driverFile, e);
-        }
 
-        try {
-            try (Context context = Context.newBuilder(LANGUAGE_ID)
-                    .out(captured)
-                    .err(captured)
-                    .currentWorkingDirectory(workDir.toAbsolutePath())
-                    .options(Map.of("lama.UnitSearchPath", unitSearchPath))
-                    .environment("LAMA", BUNDLED_RUNTIME_DIR.toString())
-                    .allowIO(IOAccess.ALL)
-                    .allowAllAccess(true)
-                    .arguments(LANGUAGE_ID, appArgs)
-                    .build()) {
-                context.eval(source);
-            }
+        // Each test gets its own isolated Context (args, cwd, IO, module state)
+        // but builds it on the shared `engine`, so the compiler is parsed once
+        // for the whole suite.
+        try (Context context = Context.newBuilder(LANGUAGE_ID)
+                .engine(engine)
+                .out(captured)
+                .err(captured)
+                .currentWorkingDirectory(workDir.toAbsolutePath())
+                .options(Map.of("lama.UnitSearchPath", unitSearchPath))
+                .environment("LAMA", BUNDLED_RUNTIME_DIR.toString())
+                .allowIO(IOAccess.ALL)
+                .allowAllAccess(true)
+                .arguments(LANGUAGE_ID, appArgs)
+                .build()) {
+            context.eval(driverSource);
         } catch (PolyglotException e) {
             throw new AssertionError(
                     "self-hosted compiler failed for " + testName + ":\n"

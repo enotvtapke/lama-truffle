@@ -1,7 +1,9 @@
 package com.oracle.truffle.sl;
 
+import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Option;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.ContextPolicy;
 import com.oracle.truffle.api.debug.DebuggerTags;
@@ -45,10 +47,28 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
 
     private Env currentEnv;
 
+    /**
+     * Valid while this language instance serves a single context. Once a second
+     * context is initialized on the same engine (e.g. a shared-engine test
+     * suite), it is invalidated, which tells nodes shared across those contexts
+     * that they must NOT cache context-dependent values (see
+     * {@code ReadModuleVariableNode}).
+     */
+    private final Assumption singleContext = Truffle.getRuntime().createAssumption("Single Lama context.");
+
     @Override
     protected LamaContext createContext(Env env) {
         this.currentEnv = env;
         return new LamaContext(this, env);
+    }
+
+    @Override
+    protected void initializeMultipleContexts() {
+        singleContext.invalidate();
+    }
+
+    public boolean isSingleContext() {
+        return singleContext.isValid();
     }
 
     @Override
