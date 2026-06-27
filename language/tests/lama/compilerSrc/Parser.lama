@@ -19,7 +19,7 @@ fun createEnv (id, unitName_, implicitImports) {
   fun freshName () {
     [createEnv (id+1, unitName_, implicitImports), sprintf ("_tmp%d", id)]
   }
- 
+
   fun unitName () {
     unitName_
   }
@@ -33,7 +33,7 @@ fun createEnv (id, unitName_, implicitImports) {
   fun getImplicitImports () {
     elements (implicitImports)
   }
-  
+
   [freshName,
    unitName,
    addImplicitImport,
@@ -96,9 +96,7 @@ fun inbr (l, p, r) {
 
 -- An infixExpression parser table; an ugly hack until
 -- circular structures are fully supported
-var maxLevel = 64;
-
-var infixExpression = makeArray (maxLevel);
+var infixExpression = makeArray (1024);
 
 -- A helper function to reify infix table into a parser
 fun reifyInfixes (infixTable, level) {
@@ -118,13 +116,13 @@ fun reifyInfixes (infixTable, level) {
                           }
     ]
   }
-  
+
   if level >= infixExpression.length
     then failure ("infix table overflow\n")
   fi;
-  
+
   infixExpression[level] := [
-    infixTable, 
+    infixTable,
     expr (
       case foldl (
              fun ([set, acc], [assty, ops]) {
@@ -154,12 +152,12 @@ fun reifyInfixes (infixTable, level) {
                       ops)  of
                   [set, {}]  -> [set, acc]
                |  [set, ops] -> [set, [assty, ops] : acc]
-               esac                                
+               esac
              },
            [emptySet (compare), {}],
            infixTable) of
-        [_, ops] -> reverse (ops)   
-      esac, 
+        [_, ops] -> reverse (ops)
+      esac,
       eta (postfix (level)))]
 }
 
@@ -177,7 +175,7 @@ fun list (item) {
 -- initializers into assignments
 fun expandScope (defs, expr) {
   fun expandVarDefs (defs, expr) {
-    foldr (fun ([defs, expr], def) {     
+    foldr (fun ([defs, expr], def) {
              case def of
                 [ident, None]         -> [ident : defs, expr]
              |  [ident, Some (value)] -> [ident : defs, Seq (Ignore (Set (ident, value)), expr)]
@@ -188,24 +186,24 @@ fun expandScope (defs, expr) {
   }
 
   fun expandValDefs (defs, expr) {
-    foldr (fun ([defs, expr], [ident, value]) {     
+    foldr (fun ([defs, expr], [ident, value]) {
              [ident : defs, Seq (Ignore (Set (ident, value)), expr)]
            },
            [{}, expr],
            defs)
   }
-  
-  case 
+
+  case
     foldr (fun ([defs, expr], def) {
-             case def of 
+             case def of
                f@Fun (_, _, _, _, _) -> [f : defs, expr]
-             
+
              | Val (p, unit, ds) ->
                  case expandValDefs (ds, expr) of
                    [ds, expr] -> [Val (p, unit, ds) : defs, expr]
                  esac
-                 
-             | Var (p, unit, ds) ->             
+
+             | Var (p, unit, ds) ->
                  case expandVarDefs (ds, expr) of
                    [ds, expr] -> [Var (p, unit, ds) : defs, expr]
                  esac
@@ -214,7 +212,7 @@ fun expandScope (defs, expr) {
            [{}, expr],
            defs) of
     [defs, expr] -> Scope (defs, expr)
-  esac  
+  esac
 }
 
 -- Helper AST function: distributes a scope through an expression
@@ -230,19 +228,19 @@ fun distributeScope (expr, exprConstructor) {
 -- pattern-branch pairs
 fun reifyPatternBindings (unit, matched, brs) {
   map (
-    fun ([pat, br]) {      
+    fun ([pat, br]) {
       fun collectBindings (path, p) {
         fun collectList (path, ps) {
           case
             foldl (fun ([acc, i], p) {
-                     [collectBindings (i : path, p) : acc, i+1]                      
+                     [collectBindings (i : path, p) : acc, i+1]
                    },
                    [{}, 0],
                    ps) of
             [acc, _] -> flatten (acc)
-          esac            
+          esac
         }
-        
+
         case p of
           Sexp  (_, ps)   -> collectList (path, ps)
         | Array (ps)      -> collectList (path, ps)
@@ -269,7 +267,7 @@ fun reifyPatternBindings (unit, matched, brs) {
   )
 }
 
--- Helper function: creates a global name 
+-- Helper function: creates a global name
 public fun globalName (unit, localName) {
   unit ++ "_" ++ case localName of Init -> "init" | _ -> localName esac
 }
@@ -278,7 +276,7 @@ public fun globalName (unit, localName) {
 fun withQName (unitName, name, loc, f) {
   case [sprintf ("%s.%s", unitName, name), globalName (unitName, name)] of
     [reprName, innerName] -> addLoc (reprName, loc);
-                             f (Qname (innerName, reprName))                                              
+                             f (Qname (innerName, reprName))
   esac
 }
 
@@ -288,7 +286,7 @@ fun prefixInfixName (p, inf) {
   for var i = 0;, i < inf.length, i := i+1 do
     b := b <+ sprintf ("%d", inf[i])
   od;
-  
+
   b.getBuffer.stringcat
 }
 
@@ -302,29 +300,11 @@ fun registerInfix (level, ass, inf, pos, fn, loc) {
   esac
 }
 
-fun memoLevel (p) {
---  var levels = makeArray (maxLevel);
-p
-(*
-  fun (pa) {
-    memo $ p (pa)
-    (*
-    case levels[pa] of
-      #val -> case memo $ p (pa) of
-                ps -> levels[pa] := ps; ps
-              esac
-    | ps   -> ps
-    esac
-    *)
-  }
-  *)
-}
-
 var
   args = memo $ eta syntax (
     ps=inbr[s("("), list0(syntax (pos pattern)), s(")")] {
       fun (env) {
-        [env, 
+        [env,
          fun (e) {
           case foldr (fun ([acc, i], _) {[sprintf ("_a%d", i) : acc, i+1]}, [{}, 0], ps) [0] of
              args ->
@@ -334,19 +314,18 @@ var
                                                   [a : args, e]
                          | Wildcard -> addLoc (a, loc);
                                        [a : args, e]
-                         |  _       -> addLoc (a, loc); 
+                         |  _       -> addLoc (a, loc);
                                        [a : args, Case (a, reifyPatternBindings (env.unitName, a, {[p, e]}), loc)]
                          esac, i-1]
-                      }, [[{}, e], size (ps)], zip (args, ps)) [0] 
+                      }, [[{}, e], size (ps)], zip (args, ps)) [0]
            esac
          }]
       }
     }
   );
-  
+
   -- let
-  var letexp = memoLevel $
-  fun (pa) {
+  fun letexp (pa) {
     syntax (
       loc=pos kLet p=pattern s["="] e=letexp[pa] kIn b=letexp[pa] {
         fun (a) {
@@ -364,43 +343,42 @@ var
         }
       } |
       exp[pa]
-    )};
+    )}
 
-  var primary = memoLevel $
-  fun (pa) {
+  fun primary (pa) {
     syntax (
       -- Boolean constants
       loc=pos kTrue  {fun (a) {assertValue (a, returnST $ Const (1), loc)}} |
 
       loc=pos kFalse {fun (a) {assertValue (a, returnST $ Const (0), loc)}} |
-    
+
       -- list
       loc=pos x=inbr[s("{"), list0(syntax (e=letexp[pa] {e(Val)})), s("}")] {
         fun (a) {assertValue (a, chainST (x) => fun (x) {
                                    foldr (fun (acc, x) {Sexp ("cons", {x, acc})}, Const (0), x)
                                  }, loc)}
       } |
-    
+
       -- array constant
       loc=pos x=inbr[s("["), list0(syntax (e=letexp[pa] {e(Val)})), s("]")] {
         fun (a) {assertValue (a, chainST (x) => fun (x) {Array (x)}, loc)}
       } |
-                                      
+
       -- string constant
       loc=pos x=strlit {
         fun (a) {assertValue (a, returnST $ String (x), loc)}
       } |
-                                      
+
       -- character literal
       loc=pos x=chrlit {
         fun (a) {assertValue (a, returnST $ Const (x), loc)}
       } |
-                                      
+
       -- decimal constant
       loc=pos x=decimal {
         fun (a) {assertValue (a, returnST $ Const (stringInt (x)), loc)}
       } |
-                                      
+
       -- identifier
       loc=pos x=lident {
         fun (a) {
@@ -422,7 +400,7 @@ var
                                                     case fb (body) of [args, body] -> Lambda (args, body) esac
                                  }}, loc)}
       } |
-      
+
       -- skip
       loc=pos kSkip {
         fun (a) {assertVoid (a, returnST $ Skip, loc)}
@@ -443,11 +421,11 @@ var
                                                case env.addImplicitImport (q) of
                                                  env -> [env, Var (Infix (fn, inf))]
                                                esac
-                                             }, loc)}    
+                                             }, loc)}
             esac
-        esac 
+        esac
       } |
-    
+
       -- while e do b
       loc=pos kWhile e=letexp[pa] b=inbr[kDo, scopeExpr(pa), kOd] {
         fun (a) {
@@ -458,7 +436,7 @@ var
                       loc)
         }
       } |
-                                    
+
       -- repeat s until e
       loc=pos kDo s=scopeExpr[pa] kWhile e=letexp[pa] kOd {
         fun (a) {
@@ -469,7 +447,7 @@ var
                       loc)
         }
       } |
-  
+
       -- for init, cond, step do S od --> init; while cond do S; step od
       loc=pos kFor init=scopeExpr[pa] s[","] cond=letexp[pa] s[","] step=letexp[pa] body=inbr[kDo, scopeExpr(pa), kOd] {
         fun (a) {
@@ -482,10 +460,10 @@ var
                        loc)
         }
       } |
-  
+
       -- if ...
       -kIf ifPart[pa] -kFi |
-                                      
+
       -- case
       kCase loc=pos c=letexp[pa] kOf brs=caseBranches[pa] kEsac {
         fun (a) {
@@ -501,7 +479,7 @@ var
                   ]
               esac}}}
         }} |
-                                      
+
       -- ( e )
       inbr[s ("("), scopeExpr(pa), s (")")] |
 
@@ -539,10 +517,9 @@ var
                        loc)
         }
       }
-    )};
+    )}
 
-  var syntaxExpr = memoLevel $
-  fun (pa) {
+  fun syntaxExpr (pa) {
     expr (
       {[Right, {[s ("|"), fun (l, loc, r) {fun (a) {
                                              l (a) =>> fun (l) {
@@ -550,19 +527,18 @@ var
                                              withQName ("Ostap", "alt", loc, fun (qn) {Call (Var (qn), {l, r}, loc)})
                                              }}
                                            }}]}]
-     }, 
+     },
      syntaxSeq (pa)
     )
-  };
+  }
 
-  var syntaxSeq = memoLevel $
-  fun (pa) {
+  fun syntaxSeq (pa) {
     syntax (
       sq=syntaxBinding[pa]+ loc=pos sema=inbr[s("{"), scopeExpr(pa), s("}")]? {
         fun (a) {
-          case sq of          
-            [loc, omit, pat, p] : ss ->              
-              p (a) =>> fun (p) {              
+          case sq of
+            [loc, omit, pat, p] : ss ->
+              p (a) =>> fun (p) {
                 fun twoHoles (loc, s, p) {
                   fun (f, x) {
                     fun (env) {
@@ -579,7 +555,7 @@ var
                       esac
                   }}
                 }
-                
+
                 fun preprocess (acc, omit, pat) {
                   fun (env) {
                     case omit of
@@ -588,19 +564,19 @@ var
                                     Some (Named (a, _)) -> [env, [Var (a) : acc, pat]]
                                   | _ -> case env.freshName of
                                            [env, a] -> [env, [Var (a) : acc, Some (Named (a, case pat of
-                                                                                               None     -> Wildcard 
-                                                                                             | Some (p) -> p             
+                                                                                               None     -> Wildcard
+                                                                                             | Some (p) -> p
                                                                                              esac))]]
                                          esac
                                   esac
                     esac
                   }
                 }
-                
-                case foldl (fun (acc, [loc, omit, pat, p]) {                              
+
+                case foldl (fun (acc, [loc, omit, pat, p]) {
                               p (a)                          =>> fun (p)     {
                               acc                            =>> fun ([defSem, holes]) {
-                              preprocess (defSem, omit, pat) =>  fun ([acc, pat]) {                           
+                              preprocess (defSem, omit, pat) =>  fun ([acc, pat]) {
                                 [acc, fun (f, x) {
                                         withQName ("Ostap", "seq", loc, fun (qn) {
                                                                           twoHoles (loc, p, pat) (f, x) =>> fun (twoH) {
@@ -628,15 +604,13 @@ var
         }
       }
     )
-  };
+  }
 
-  var syntaxBinding = memoLevel $
-  fun (pa) {
+  fun syntaxBinding (pa) {
     syntax (pos s["-"]? (pattern -s["="])? syntaxPostfix[pa])
-  };
+  }
 
-  var syntaxPostfix = memoLevel $
-  fun (pa) {
+  fun syntaxPostfix (pa) {
     syntax (
       b=syntaxPrimary[pa] loc=pos p=(s["*"] {"rep0"} | s["+"] {"rep"} | s["?"] {"opt"})? {
         fun (a) {
@@ -645,19 +619,18 @@ var
             None       -> b
           | Some (mod) -> withQName ("Ostap", mod, loc, fun (qn) {Call (Var (qn), {b}, loc)})
           esac
-        }}}      
+        }}}
     )
-  };
+  }
 
-  var syntaxPrimary = memoLevel $
-  fun (pa) {
+  fun syntaxPrimary (pa) {
     syntax (
       loc=pos ui=(uident -s["."])? p=lident args=inbr[s("["), list(exp(pa)), s("]")]? {
         fun (a) {
           case case args of
                  None        -> returnST $ fun (p, loc) {p}
                | Some (args) -> chainST $ map (fun (arg) {arg (Val)}, args) => fun (args) {
-                                  fun (p, loc) {(*printf ("args=%s\n", args.string);*) Call (p, args, loc)}
+                                  fun (p, loc) {Call (p, args, loc)}
                                 }
                esac of
             args ->
@@ -672,21 +645,18 @@ var
     | inbr[s("("), syntaxExpr(pa), s(")")]
     | inbr[s("$("), scopeExpr(pa), s(")")]
     )
-  };
+  }
 
-  var elsePart = memoLevel $
-  fun (pa) {
+  fun elsePart (pa) {
     syntax (
       loc=pos {fun (a) {assertVoid (a, returnST $ Skip, loc)}}
     | -kElse scopeExpr[pa]
     | -kElif ifPart[pa]
-    )};
+    )}
 
-  var thenPart = memoLevel $
-  fun (pa) {syntax (-kThen scopeExpr[pa])};
+  fun thenPart (pa) {syntax (-kThen scopeExpr[pa])}
 
-  var ifPart = memoLevel $
-  fun (pa) {
+  fun ifPart (pa) {
     syntax (
       cond=letexp[pa] th=thenPart[pa] el=elsePart[pa] {
         fun (a) {cond (Val) =>> fun (cond) {
@@ -695,9 +665,9 @@ var
                    If (cond, th, el)
                 }}}}
       }
-    )};
+    )}
 
-  var 
+  var
   patternPrimary = memo $ eta syntax (
     c=chrlit                                              {Const (c)}                                                                   |
     s=strlit                                              {String (s)}                                                                  |
@@ -715,24 +685,21 @@ var
     a=inbr[s ("["), list0 (pattern), s ("]")]             {Array (a)}                                                                   |
     l=inbr[s ("{"), list0 (pattern), s ("}")]             {foldr (fun (acc, x) {Sexp ("cons", {x, acc})}, Const (0), l)}         |
     x=lident p=(-s["@"] patternPrimary)?                  {case p of Some (p) -> Named (x, p) | None -> Named (x, Wildcard) esac }      |
-    inbr[s ("("), pattern, s (")")]                       
+    inbr[s ("("), pattern, s (")")]
   ),
 
   pattern = expr ({[Right, {[s (":"), fun (l, loc, r) {Sexp ("cons", {l, r})}]}]}, patternPrimary);
 
-  var caseBranches = memoLevel $
-  fun (pa) {
+  fun caseBranches (pa) {
     syntax (
       listBy [syntax (pattern -s["->"] scopeExpr[pa]), s ("|")]
-    )};
+    )}
 
-  var basic = memoLevel $
-  fun (pa) {
+  fun basic (pa) {
      infixExpression [pa][1]
-  };
+  }
 
-  var postfix = memoLevel $
-  fun (pa) {
+  fun postfix (pa) {
     syntax (
       loc=pos e=primary[pa] ps=(i=inbr[s("["), letexp(pa), s("]")]                          {Index (i (Val))} |
                             s["."] fn=lident                                                {Dot   (fn)     } |
@@ -745,15 +712,15 @@ var
                      | _                         -> e
                      esac
                    }
-                 
-                   [case p of                                                                                                       
+
+                   [case p of
                       Index (i) ->
                        fun (a) {
                          case a of
                            Ref -> e (Val) =>> fun (e) {
                                   i       =>  fun (i) {
                                   ElemRef (fixICall $ e, i)
-                                }} 
+                                }}
                          | _   -> assertValue (a, e (Val) =>> fun (e) {
                                                   i       =>  fun (i) {
                                                   Elem (fixICall $ e, i)
@@ -771,7 +738,7 @@ var
                                                                                         innerName -> reLoc (ui, reprName);
                                                                                                      [env.addImplicitImport (ui), Var (Qname (innerName, reprName))]
                                                                                       esac
-                                                                                  esac       
+                                                                                  esac
                                                                               | _ ->
                                                                                  [env, case rest of
                                                                                          {} -> Call  (Var (fn), {fixICall $ e}, loc)
@@ -792,19 +759,16 @@ var
                     esac, case rest of {} -> {} | _ -> tl $ rest esac]
                  }, [e, case ps of {} -> {} | _ -> tl $ ps esac], ps) [0] (a)
         }}
-  )};
+  )}
 
-  var definitions = memoLevel $
-  fun (pa) {
+  fun definitions (pa) {
     syntax (
       [s, pa_]=definition[pa] [ss, pa__]=definitions[pa_] {[s:ss, pa__]}
     | empty {[{}, pa]}
     )
-  };
+  }
 
-
-  var scopeExpr = memoLevel $  
-  fun (pa) {
+  fun scopeExpr (pa) {
     syntax ([ds, pa_]=definitions[pa]  loc=pos e=letexp[pa_]? {
       fun (a) {
         fun (e) {
@@ -816,15 +780,14 @@ var
                   }}
           esac
         }
-        (case e of 
+        (case e of
           Some (e) -> e (a)
         | _        -> assertVoid (a, returnST $ Skip, loc)
         esac)
-      }}                                                                  
-    )};
+      }}
+    )}
 
-  var infixHeader = memoLevel $
-  fun  (pa) {
+  fun infixHeader (pa) {
     syntax (
       p      = publicity
       loc    = pos
@@ -835,14 +798,13 @@ var
                | kAfter  {fun (x) {After  (x)}})
       anchor = infixx {
         case infixName (inf) of
-          fn -> reLoc (inf, fn);              
+          fn -> reLoc (inf, fn);
                 [p, loc, inf, fn, [ass, level (anchor)], registerInfix (pa, ass, inf, level (anchor), fn, loc)]
         esac
       }
-    )};
+    )}
 
-  var infixdef = memoLevel $ 
-  fun (pa) {
+  fun infixdef (pa) {
     syntax (
       [p, loc, inf, fn, spec, pa_] = infixHeader[pa]
       fb                           = args
@@ -858,12 +820,11 @@ var
                          }}},
          pa_]
       }
-    )};
+    )}
 
   var publicity = memo $ eta syntax (p=kPublic? {case p of None -> false | _ -> true esac});
 
-  var definition = memoLevel $
-  fun (pa) {
+  fun definition (pa) {
     syntax (
       p=publicity  kVar ds=list[syntax (x=lident e=(-s["="] basic[pa])? {case e of
                                                                            None -> returnST $ [x, None]
@@ -883,21 +844,20 @@ var
       } |
       p=publicity kFun name=lident fb=args body=inbr[s("{"), scopeExpr(pa), s("}")] {
         [body (Weak) =>> fun (body) {
-         fb          =>> fun (fb)   {              
+         fb          =>> fun (fb)   {
                          fun (env) {
                            [env,
                             case fb (body) of
                               [args, body] -> Fun (p, env.unitName, name, args, body)
                             esac]
                          }
-                        }},         
+                        }},
          pa]
       } |
       infixdef[pa]
-    )};
+    )}
 
-var exp = memoLevel $
-  fun (pa) {
+  fun exp (pa) {
     syntax (
       basic[pa]
     | s1=basic[pa] s[";"] s2=letexp[pa] {
@@ -908,7 +868,7 @@ var exp = memoLevel $
          }}
        }
      }
-    )};
+    )}
 
 fun imports (noImports, paths, context) {
   memo $ syntax (p=pos is=(pos -kImport uident -s[";"])* {

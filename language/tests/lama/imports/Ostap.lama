@@ -13,6 +13,27 @@ import Data;
 
 var tab, errTab, hct, restab, log = false;
 
+-- Each top-level parse runs in a fresh "epoch". The per-parser memo tables are
+-- captured inside parser closures and so persist across independent parses; the
+-- epoch is mixed into every memo key so that entries from one parse can never be
+-- mistaken for those of another (different input buffer). This mirrors the
+-- reference implementation, which starts each parse with an empty memo table.
+var epochCounter = 0, curEpoch = 0;
+
+-- A source of fresh, stable memo keys for parsers that are built exactly once
+-- (top-level non-terminals bound to a variable). Each such parser calls
+-- freshKey at construction time and keeps that integer for the whole run, so
+-- the outer memo table is keyed by a cheap integer rather than by hashing the
+-- parser closure structurally. Parsers that are reconstructed on every use
+-- (grammar rules parameterised by a precedence level) cannot use a fresh key;
+-- they pass an explicit, stable key to memoK instead (e.g. [SomeTag, level]).
+var keyCounter = 0;
+
+fun freshKey () {
+  keyCounter := keyCounter + 1;
+  keyCounter
+}
+
 public fun logOn () {
   log := true
 }
@@ -31,59 +52,72 @@ fun isBigger(newRes, oldRes) {
   fi
 }
 
-public fun memo (f) {
+-- Memoize parser `p` under the explicit key `key`. The key identifies the
+-- non-terminal in the global table `tab`; it must be a small, cheap value
+-- (an integer from freshKey, or a tag such as [SomeTag, level]) -- NOT the
+-- parser closure, whose structural hash/compare walks the whole captured
+-- environment. Equal keys share one per-position memo table, which is what
+-- gives packrat sharing; reconstructing `p` on every call is fine because the
+-- body only runs on the first probe of a position and is replayed thereafter.
+fun memoCore (key, p) {
   var t;
 
-  if log then printf ("Memoizing %x=%s\n", f, f.string) fi;
-
-  case findHashTab (deref (tab), f) of
-      None      -> if log then printf ("new table...\n") fi;
-      tab ::= addHashTab (deref (tab), f, ref (emptyHashTab (2048, getPos, compare)))
+  case findHashTab (deref (tab), key) of
+      None      -> tab ::= addHashTab (deref (tab), key, ref (emptyHashTab (2048, fun (k) {k [1]}, compare)))
     | Some (tt) -> skip
   esac;
   t :=
-    case findHashTab (deref (tab), f) of
+    case findHashTab (deref (tab), key) of
       Some (t) -> t
     esac;
 
   fun (k) {
     fun (s) {
-      if log then printf ("Applying memoized parser to %s\n", s.string) fi;
-      case findHashTab (deref (t), s) of
+      -- The input buffer is invariant during a parse, so the stream position
+      -- uniquely identifies the matcher state (line/col are functions of pos).
+      -- Key the per-non-terminal memo table by [epoch, pos]; the epoch keeps
+      -- entries from different parses distinct (see curEpoch).
+      var pos = [curEpoch, getPos (s)];
+      case findHashTab (deref (t), pos) of
           None  ->
-            var tmp;
-            if log then printf ("New stream item\n") fi;
-            t ::= addHashTab (deref (t), s, [{k}, {}, {}]);
-            tmp := f (fun (r) {
-            --r := lookupMemo (restab, r);
-
-              if log then printf ("Running continuation with result %s\n", r.string) fi;
-              case findHashTab (deref (t), s) of
-                Some ([ks, rs, failRes]) ->
-                  case r of
-                      Fail (_, _, _) ->
-                        if isBigger(r, failRes) then
-                          t ::= removeHashTab(deref(t), s);
-                          t ::= addHashTab(deref(t), s, [ks, rs, r]);
-                          iter(fun (k) { k(r) }, ks)
-                        fi
-                    | _              ->
-                        t ::= removeHashTab(deref(t), s);
-                        t ::= addHashTab(deref(t), s, [ks, r:rs, failRes]);
-                        iter(fun (k) { k(r) }, ks)
-                  esac
+            -- The memo cell [continuations, results, failRes] is a mutable
+            -- array, updated in place. The continuation below closes over
+            -- `entry` directly, so it always observes the current lists.
+            var entry = [{k}, {}, {}], tmp;
+            t ::= addHashTab (deref (t), pos, entry);
+            tmp := p (fun (r) {
+              case r of
+                  Fail (_, _, _) ->
+                    if isBigger(r, entry[2]) then
+                      entry[2] := r;
+                      iter(fun (k) { k(r) }, entry[0])
+                    fi
+                | _              ->
+                    entry[1] := r : entry[1];
+                    iter(fun (k) { k(r) }, entry[0])
               esac
             }
             );
             tmp(s)
-        | Some ([ks, rs, failRes]) ->
-            t ::= removeHashTab(deref(t), s);
-            t ::= addHashTab (deref (t), s, [k:ks, rs, failRes]);
-            iter (k, rs);
-            if failRes != {} then k(failRes) fi
+        | Some (entry) ->
+            entry[0] := k : entry[0];
+            iter (k, entry[1]);
+            if entry[2] != {} then k(entry[2]) fi
       esac
     }
   }
+}
+
+-- For parsers built once (bound to a variable): assign a fresh stable key.
+public fun memo (p) {
+  memoCore (freshKey (), p)
+}
+
+-- For parsers reconstructed on every use (level-parameterised grammar rules):
+-- pass an explicit, stable key (e.g. [SomeTag, level]) so that all
+-- reconstructions of the same non-terminal share one memo table.
+public fun memoK (key, p) {
+  memoCore (key, p)
 }
 
 public fun token (x) {
@@ -110,8 +144,14 @@ public fun empty (k) {
   fun (s) {k (Succ ({}, s))}
 }
 
+-- Alternation is NOT memoized. Memoization is applied selectively, at the
+-- top-level non-terminals (via memo / memoK), not at every combinator. An
+-- alternation is just one node of a non-terminal's body and is reconstructed
+-- together with it; memoizing it separately would flood the global table with
+-- single-use entries. The alternatives it combines are themselves memoized
+-- non-terminals, so packrat sharing across the branches is preserved.
 public fun alt (a, b) {
-  memo $ fun (k) {
+  fun (k) {
     fun (s) {
       if log then printf ("Running alt at %s\n", s.string) fi;
       a (k) (s);
@@ -269,19 +309,23 @@ fun result (acc) {
 }
 
 public fun parse (p, m) {
-  var acc = createResult ();
+  var savedEpoch = curEpoch, acc = createResult ();
+  epochCounter := epochCounter + 1;
+  curEpoch     := epochCounter;
 
   p (acc.k) (m);
 
-  acc.result
+  case acc.result of res -> curEpoch := savedEpoch; res esac
 }
 
 public fun parseString (p, s) {
-  var acc = createResult ();
+  var savedEpoch = curEpoch, acc = createResult ();
+  epochCounter := epochCounter + 1;
+  curEpoch     := epochCounter;
 
   p (acc.k) (initMatcher (s));
 
-  acc.result
+  case acc.result of res -> curEpoch := savedEpoch; res esac
 }
 
 public fun left (op, f) {
@@ -321,21 +365,27 @@ public fun expr (ops, opnd) {
         {}         -> fun (c) {opnd @ c}
       | level : tl ->
         var lops = altl (level),
-            next = inner (tl);
+            next = inner (tl),
+            -- The operand parser for this level, built ONCE and memoized so it
+            -- is shared across every use (both alternation branches and every
+            -- recursive step). This is the only thing that needs memoization;
+            -- the per-continuation alternation below is reconstructed each step
+            -- and so is combined with altNM to avoid polluting the memo table.
+            nId  = memo (next (id));
 
         case level.fst of
             Nona ->
               fun this (c) {
-                next (id) |> fun (l) {lops |> fun (op) {next (id) @ fun (r) {c (op)(id, l)(r)}}}
-                  | next (id) @ c
+                nId |> fun (l) {lops |> fun (op) {nId @ fun (r) {c (op)(id, l)(r)}}}
+                  | nId @ c
               }
 
               this
 
           | _    ->
               fun this (c) {
-                next (id) |> fun (l) {lops |> fun (op) {this (op (c, l))}}
-                  | next (id) @ c
+                nId |> fun (l) {lops |> fun (op) {this (op (c, l))}}
+                  | nId @ c
               }
 
               this
