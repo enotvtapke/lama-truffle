@@ -9,23 +9,28 @@ import Ref;
 import Infix;
 
 public fun loadInterface (paths, unit, explicity, callBacks) {
-  fix (fun (rec) {
-         fun (cb, paths) {
-           case paths of
-             {}           -> failure ("no interface file found for unit ""%s""\n", unit)
-           | path : paths ->
-               case sprintf ("%s/%s.i", path, unit) of
-                 fname ->
-                    if fexists (fname)
-                    then case parseString (syntax (intface -end), fread (fname)) of
-                           Succ (make)             -> make (unit, path, explicity, cb)
-                         | x@Fail (err, line, col) -> failure ("interface file: %s at %d:%d\n", err.hd, line, col)
-                         esac
-                    else rec (cb, paths)
-                    fi
-               esac
-           esac
-         }}) (callBacks, paths) 
+  -- NB: this used `fix` over a two-argument function, but `fix` only supports
+  -- single-argument recursion (it applies f(rec) to one arg), so the recursive
+  -- step read a non-existent second argument and crashed. Hence imports only
+  -- worked under -noimports. A named local recursive function works directly.
+  fun rec (cb, ps) {
+    case ps of
+      {}           -> failure ("no interface file found for unit ""%s""\n", unit)
+    | path : rest ->
+        case sprintf ("%s/%s.i", path, unit) of
+          fname ->
+             if fexists (fname)
+             then case parseString (syntax (intface -end), fread (fname)) of
+                    Succ (make)             -> make (unit, path, explicity, cb)
+                  | x@Fail (err, line, col) -> failure ("interface file: %s at %d:%d\n", err.hd, line, col)
+                  esac
+             else rec (cb, rest)
+             fi
+        esac
+    esac
+  }
+
+  rec (callBacks, paths)
 }
 
 public fun toInterface (p) {
@@ -194,7 +199,7 @@ public fun getInfixTable (c) {
   c [6] ()
 }
 
-var funspec = memo $ eta syntax (s["F"] token[","] i=lident token[","] n=(k=decimal {stringInt (k)} | token["*"] {Any}) token[";"] {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Fun (i, n)))}}),
+var funspec = memo $ eta syntax (s["F"] token[","] i=lident a=(-token[","] (k=decimal {stringInt (k)} | token["*"] {Any}))? token[";"] {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Fun (i, case a of Some (n) -> n | None -> Any esac)))}}),
     varspec = memo $ eta syntax (s["V"] token[","] i=lident token[";"]                                   {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Var (i)))}}),
     valspec = memo $ eta syntax (s["C"] token[","] i=lident token[";"]                                   {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Val (i)))}}),
     impspec = memo $ eta syntax (s["I"] token[","] i=uident token[";"]                                   {fun (unit, path, explicity, c) {c.addDecl (Extern (unit, explicity, Import (path, i)))}}),
