@@ -6,6 +6,7 @@
 
 import List;
 import Collection;
+import Array;
 import Ref;
 import Fun;
 import Matcher;
@@ -28,6 +29,7 @@ var epochCounter = 0, curEpoch = 0;
 -- (grammar rules parameterised by a precedence level) cannot use a fresh key;
 -- they pass an explicit, stable key to memoK instead (e.g. [SomeTag, level]).
 var keyCounter = 0;
+
 
 fun freshKey () {
   keyCounter := keyCounter + 1;
@@ -63,7 +65,7 @@ fun memoCore (key, p) {
   var t;
 
   case findHashTab (deref (tab), key) of
-      None      -> tab ::= addHashTab (deref (tab), key, ref (emptyHashTab (2048, fun (k) {k [1]}, compare)))
+      None      -> tab ::= addHashTab (deref (tab), key, ref ({}))
     | Some (tt) -> skip
   esac;
   t :=
@@ -73,33 +75,42 @@ fun memoCore (key, p) {
 
   fun (k) {
     fun (s) {
-      -- The input buffer is invariant during a parse, so the stream position
-      -- uniquely identifies the matcher state (line/col are functions of pos).
-      -- Key the per-non-terminal memo table by [epoch, pos]; the epoch keeps
-      -- entries from different parses distinct (see curEpoch).
-      var pos = [curEpoch, getPos (s)];
-      case findHashTab (deref (t), pos) of
-          None  ->
-            -- The memo cell [continuations, results, failRes] is a mutable
-            -- array, updated in place. The continuation below closes over
-            -- `entry` directly, so it always observes the current lists.
-            var entry = [{k}, {}, {}], tmp;
-            t ::= addHashTab (deref (t), pos, entry);
-            tmp := p (fun (r) {
+      -- The input buffer is invariant during a parse and positions are dense
+      -- 0..bufLength, so the per-non-terminal memo table is a flat array
+      -- indexed directly by position -- O(1), no hashing, no per-entry list
+      -- cells (which a hashtable would allocate for every memoised position).
+      -- Each slot holds [epoch, cell]; the epoch distinguishes entries from
+      -- different parses, and a fresh, longer buffer triggers reallocation.
+      var pos  = getPos (s),
+          arr  = case deref (t) of
+                   {} -> initArray (bufLength (s) + 1, fun (_) {{}})
+                 | a  -> if pos >= a.length then initArray (bufLength (s) + 1, fun (_) {{}}) else a fi
+                 esac,
+          slot = arr [pos],
+          entry = case slot of
+                    {} -> {}
+                  | _  -> if slot [0] == curEpoch then slot [1] else {} fi
+                  esac;
+      t ::= arr;
+      case entry of
+          {} ->
+            -- First probe of this position: the cell [continuations, results,
+            -- failRes] is mutated in place; the continuation closes over `cell`.
+            var cell = [{k}, {}, {}];
+            arr [pos] := [curEpoch, cell];
+            p (fun (r) {
               case r of
                   Fail (_, _, _) ->
-                    if isBigger(r, entry[2]) then
-                      entry[2] := r;
-                      iter(fun (k) { k(r) }, entry[0])
+                    if isBigger(r, cell[2]) then
+                      cell[2] := r;
+                      iter(fun (k) { k(r) }, cell[0])
                     fi
                 | _              ->
-                    entry[1] := r : entry[1];
-                    iter(fun (k) { k(r) }, entry[0])
+                    cell[1] := r : cell[1];
+                    iter(fun (k) { k(r) }, cell[0])
               esac
-            }
-            );
-            tmp(s)
-        | Some (entry) ->
+            }) (s)
+        | _  ->
             entry[0] := k : entry[0];
             iter (k, entry[1]);
             if entry[2] != {} then k(entry[2]) fi
@@ -121,7 +132,6 @@ public fun memoK (key, p) {
 }
 
 public fun token (x) {
--- printf ("token: %s\n", x.string);
   case x of
       #str -> fun (k) {fun (s) {k $ matchString (s, x)}}
     | _    -> fun (k) {fun (s) {k $ matchRegexp (s, x)}}
@@ -191,14 +201,10 @@ public infix @ at * (a, f) {
 public infix @@ at * ([name, a], f) {
   fun (k) {
     fun (s) {
-      var aa =
-        a (fun (x) {k (case x of
-            Succ (x, s) -> Succ (f (x), s)
-          | _           -> x
-        esac)});
-      --      printf ("aa=%s\n", aa.string);
-      --      printf ("@@: %s\n", name);
-      aa (s)
+      a (fun (x) {k (case x of
+          Succ (x, s) -> Succ (f (x), s)
+        | _           -> x
+      esac)}) (s)
     }
   }
 }
