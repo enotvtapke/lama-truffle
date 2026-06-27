@@ -86,17 +86,17 @@ public class LamaSelfHostedCompilerTest {
             String driverOutput = compileWithSelfHostedDriver(workDir, testCopy);
             long compileNs = System.nanoTime() - compileStart;
 
-//            Path executable = workDir.resolve(testName);
-//            if (!Files.isExecutable(executable)) {
-//                throw new AssertionError(
-//                        "self-hosted compiler did not produce an executable: " + executable
-//                                + "\nThis usually means the linker step inside Driver.lama failed"
-//                                + " (e.g. LAMA points at a runtime.a that doesn't define LStd_* symbols)."
-//                                + "\n\ngcc / driver output:\n" + driverOutput);
-//            }
+            Path executable = workDir.resolve(testName);
+            if (!Files.isExecutable(executable)) {
+                throw new AssertionError(
+                        "self-hosted compiler did not produce an executable: " + executable
+                                + "\nThis usually means the linker step inside Driver.lama failed"
+                                + " (e.g. LAMA points at a runtime.a that doesn't define LStd_* symbols)."
+                                + "\n\ngcc / driver output:\n" + driverOutput);
+            }
 
             long runStart = System.nanoTime();
-//            String actualOutput = runCompiledBinary(executable);
+            String actualOutput = runCompiledBinary(executable);
             long runNs = System.nanoTime() - runStart;
 
             // One concise line per test, surfaced via Surefire's stdout
@@ -107,7 +107,7 @@ public class LamaSelfHostedCompilerTest {
                     testName, formatMillis(compileNs), formatMillis(runNs));
 
             String expectedOutput = Files.readString(expectedFile, StandardCharsets.UTF_8);
-//            Assert.assertEquals(expectedOutput, actualOutput);
+            Assert.assertEquals(expectedOutput, actualOutput);
         } finally {
             deleteRecursively(workDir);
         }
@@ -142,8 +142,6 @@ public class LamaSelfHostedCompilerTest {
         String[] appArgs = {
                 driverFile.toString(),
                 testCopy.getFileName().toString(),
-                "-noimports",
-                "-ast"
         };
 
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
