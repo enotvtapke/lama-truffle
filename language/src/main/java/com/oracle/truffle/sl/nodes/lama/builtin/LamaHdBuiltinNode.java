@@ -8,10 +8,6 @@ import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
-/**
- * Reference: {@code Lhd(v) = Belem(v, BOX(0))}. This is the same as
- * {@code fst}.
- */
 @NodeInfo(shortName = "hd")
 public abstract class LamaHdBuiltinNode extends LamaBuiltinNode {
 

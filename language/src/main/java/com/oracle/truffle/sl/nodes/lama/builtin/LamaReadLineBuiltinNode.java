@@ -10,10 +10,6 @@ import com.oracle.truffle.sl.runtime.lama.LamaString;
 
 import java.io.IOException;
 
-/**
- * Reference {@code LreadLine} returns {@code BOX(0)} on EOF (i.e. the
- * unboxed integer 0) and a fresh string otherwise.
- */
 @NodeInfo(shortName = "readLine")
 public abstract class LamaReadLineBuiltinNode extends LamaBuiltinNode {
 
@@ -22,9 +18,7 @@ public abstract class LamaReadLineBuiltinNode extends LamaBuiltinNode {
     public Object doReadLine(@Bind LamaContext context) {
         try {
             String line = context.getInput().readLine();
-            if (line == null) {
-                return 0L;
-            }
+            if (line == null) return 0L;
             return LamaString.from(line);
         } catch (IOException e) {
             throw SLException.create("readLine: " + e.getMessage(), this);

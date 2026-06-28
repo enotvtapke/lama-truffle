@@ -10,36 +10,13 @@ public final class LamaComparisonHashingLib {
     private LamaComparisonHashingLib() {
     }
 
-    private enum Kind {
-        INT, STRING, ARRAY, SEXP, CLOSURE, FOREIGN
-    }
-
-    private static Kind kind(Object v) {
-        if (v instanceof Long) {
-            return Kind.INT;
-        }
-        if (v instanceof LamaString) {
-            return Kind.STRING;
-        }
-        if (v instanceof LamaArray) {
-            return Kind.ARRAY;
-        }
-        if (v instanceof LamaSExpr) {
-            return Kind.SEXP;
-        }
-        if (v instanceof LamaFunction) {
-            return Kind.CLOSURE;
-        }
-        return Kind.FOREIGN;
-    }
-
     @TruffleBoundary
     public static long compare(Object a, Object b) {
         if (a == b) {
             return 0;
         }
-        Kind ka = kind(a);
-        Kind kb = kind(b);
+        LamaValueTag ka = LamaValueTag.of(a);
+        LamaValueTag kb = LamaValueTag.of(b);
         if (ka != kb) {
             return Integer.compare(ka.ordinal(), kb.ordinal());
         }
@@ -156,7 +133,7 @@ public final class LamaComparisonHashingLib {
     }
 
     private static int hash(Object v, int depth) {
-        Kind k = kind(v);
+        LamaValueTag k = LamaValueTag.of(v);
         int h = k.ordinal();
         if (depth > HASH_DEPTH) {
             return h;

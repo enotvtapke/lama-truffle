@@ -8,10 +8,6 @@ import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
-/**
- * Reference: {@code Lsnd(v) = Belem(v, BOX(1))}. For strings {@code Belem}
- * returns the character at the given index, not a substring.
- */
 @NodeInfo(shortName = "snd")
 public abstract class LamaSndBuiltinNode extends LamaBuiltinNode {
 
