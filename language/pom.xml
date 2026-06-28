@@ -65,6 +65,9 @@
         <configuration>
            <argLine>
                --add-exports=java.base/jdk.internal.module=truffle.tck
+               --add-opens=org.graalvm.truffle/com.oracle.truffle.polyglot=ALL-UNNAMED
+               --add-opens=org.graalvm.truffle/com.oracle.truffle.runtime=ALL-UNNAMED
+               --add-opens=org.graalvm.truffle/com.oracle.truffle.runtime.hotspot=ALL-UNNAMED
             </argLine>
             <includes>
               <include>**/*TestSuite.java</include>
