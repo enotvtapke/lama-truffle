@@ -1,1 +1,0 @@
-printf("%s", stringcat(["a", "b"]))
