@@ -40,5 +40,6 @@
  */
 open module org.graalvm.sl.launcher {
 	requires org.graalvm.polyglot;
+	requires info.picocli;
 	exports com.oracle.truffle.sl.launcher;
 }

@@ -262,7 +262,8 @@ public class LamaTranslator {
 
     private <T extends LamaNode> T setSrc(T node, ParserRuleContext ctx) {
         int startIndex = ctx.getStart().getStartIndex();
-        node.setSourceSection(startIndex, ctx.getStop().getStopIndex() - startIndex + 1);
+        Token stop = ctx.getStop(); // stop may be null if input file is empty
+        node.setSourceSection(startIndex, (stop == null ? 0 : stop.getStopIndex()) - startIndex + 1);
         return node;
     }
 
