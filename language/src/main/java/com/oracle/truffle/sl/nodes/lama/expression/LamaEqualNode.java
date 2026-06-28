@@ -14,6 +14,9 @@ public abstract class LamaEqualNode extends LamaBinaryExpressionNode {
 
     @Specialization
     public static long doGeneric(Object left, Object right) {
+        if (left instanceof Long l && right instanceof Long r) {
+            return l.longValue() == r.longValue() ? 1L : 0L;
+        }
         return left == right ? 1L : 0L;
     }
 }
