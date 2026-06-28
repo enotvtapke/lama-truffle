@@ -3,6 +3,7 @@ package com.oracle.truffle.sl.nodes.lama.expression;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -14,6 +15,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 import com.oracle.truffle.sl.nodes.lama.expression.LamaInvokeNodeFactory.LamaDispatchNodeGen;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaFunction;
 
 import static com.oracle.truffle.sl.runtime.lama.Utils.packScopeIntoArguments;
@@ -54,6 +56,7 @@ public final class LamaInvokeNode extends LamaExpressionNode {
                 limit = "3",
                 guards = "function.callTarget == cachedTarget"
         )
+        @SuppressWarnings("unused")
         protected static Object doDirect(
                 LamaFunction function,
                 Object[] arguments,
@@ -71,12 +74,12 @@ public final class LamaInvokeNode extends LamaExpressionNode {
         }
 
         @Fallback
-        protected static Object doForeign(Object function, Object[] arguments) {
+        protected static Object doForeign(Object function, Object[] arguments, @Bind Node node) {
             try {
                 return InteropLibrary.getUncached().execute(function, arguments);
             } catch (ArityException | UnsupportedTypeException | UnsupportedMessageException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                throw new RuntimeException("TypeError: Target is not callable.", e);
+                throw LamaException.create("Value is not callable: " + function, node);
             }
         }
     }

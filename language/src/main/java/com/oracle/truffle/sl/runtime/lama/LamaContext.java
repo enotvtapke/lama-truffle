@@ -81,7 +81,7 @@ public final class LamaContext {
     @TruffleBoundary
     public LamaModule registerModule(String moduleName) {
         if (moduleRegistry.containsKey(moduleName)) {
-            throw new RuntimeException("Circular import dependency detected involving: " + moduleName);
+            throw LamaException.create("Circular import dependency detected involving: " + moduleName, null);
         }
         LamaModule module = new LamaModule();
         RegistryEntry entry = new RegistryEntry(module);
@@ -93,7 +93,7 @@ public final class LamaContext {
     public void markEvaluated(String moduleName) {
         RegistryEntry entry = moduleRegistry.get(moduleName);
         if (entry == null) {
-            throw new IllegalArgumentException("Module '" + moduleName + "' is not registered");
+            throw LamaException.create("Module '" + moduleName + "' is not registered", null);
         }
         entry.state = RegistryEntry.State.EVALUATED;
     }
@@ -105,7 +105,7 @@ public final class LamaContext {
             CallTarget target = parseModule(moduleName);
             target.call();
         } else if (record.state == RegistryEntry.State.EVALUATING) {
-            throw new RuntimeException("Circular import dependency detected involving: " + moduleName);
+            throw LamaException.create("Circular import dependency detected involving: " + moduleName, null);
         }
     }
 
@@ -113,7 +113,7 @@ public final class LamaContext {
     public LamaModule getModule(String name) {
         RegistryEntry entry = moduleRegistry.get(name);
         if (entry == null) {
-            throw new IllegalArgumentException("Module '" + name + "' is not registered");
+            throw LamaException.create("Module '" + name + "' is not registered", null);
         }
         return entry.module;
     }
@@ -140,7 +140,7 @@ public final class LamaContext {
             return builtins;
         }
 
-        throw new IllegalArgumentException("Undefined variable '" + variableName + "' at " + node.toString());
+        throw LamaException.create("Undefined variable '" + variableName + "'", node);
     }
 
     private CallTarget parseModule(String path) {
@@ -149,7 +149,7 @@ public final class LamaContext {
             Source source = Source.newBuilder(LamaLanguage.ID, file).name(path).build();
             return env.parsePublic(source);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load module " + path + "(" + e.getMessage() + ")", e);
+            throw LamaException.create("Failed to load module " + path + " (" + e.getMessage() + ")", null);
         }
     }
 
@@ -161,7 +161,7 @@ public final class LamaContext {
                 return file;
             }
         }
-        throw new IllegalArgumentException("Module '" + path + "' was not found in unit search path list: " + String.join(", ", unitSearchPaths));
+        throw LamaException.create("Module '" + path + "' was not found in unit search path list: " + String.join(", ", unitSearchPaths), null);
     }
 
     private void registerBuiltins() {

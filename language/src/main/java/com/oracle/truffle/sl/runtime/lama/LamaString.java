@@ -32,10 +32,16 @@ public final class LamaString implements TruffleObject {
     }
 
     public long readByte(int index) {
+        if (index < 0 || index >= bytes.length) {
+            throw LamaException.create("String index " + index + " out of bounds for length " + bytes.length, null);
+        }
         return bytes[index] & 0xFF;
     }
 
     public void writeByte(int index, byte value) {
+        if (index < 0 || index >= bytes.length) {
+            throw LamaException.create("String index " + index + " out of bounds for length " + bytes.length, null);
+        }
         bytes[index] = value;
     }
 

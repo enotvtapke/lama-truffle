@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
  * that Java doesn't support natively ({@code %i}, {@code %u}) and converting
  * Lama runtime values to the Java types that {@code String.format} expects.
  */
+// TODO This class is ugly and must be refactored
 public final class LamaFormat {
 
     private LamaFormat() {
@@ -77,8 +78,14 @@ public final class LamaFormat {
     private static long toLong(Object raw) {
         if (raw instanceof Long l) return l;
         if (raw instanceof Integer i) return i.longValue();
-        if (raw instanceof LamaString s) return Long.parseLong(s.toString().trim());
-        throw new IllegalArgumentException("printf: expected numeric argument, got " + raw);
+        if (raw instanceof LamaString s) {
+            try {
+                return Long.parseLong(s.toString().trim());
+            } catch (NumberFormatException e) {
+                throw LamaException.create("printf: cannot parse numeric argument '" + s + "'", null);
+            }
+        }
+        throw LamaException.create("printf: expected numeric argument, got " + raw, null);
     }
 
     private static String stringify(Object raw) {
