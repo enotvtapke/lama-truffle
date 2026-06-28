@@ -10,8 +10,6 @@ import org.antlr.v4.runtime.Token;
 import java.util.List;
 import java.util.function.Function;
 
-import static com.oracle.truffle.sl.parser.lama.LamaTranslator.setUnavailableSrc;
-
 class InfixExpressionTranslator {
     private final ScopeManager scopeManager;
     private final Source source;
@@ -88,7 +86,7 @@ class InfixExpressionTranslator {
             case ":=" -> throw createParseError(opCtx.start, "Unsupported assignment target");
             default -> {
                 String mangledName = InfixTable.infixName(op);
-                LamaExpressionNode func = setUnavailableSrc(readVariable.apply(mangledName));
+                LamaExpressionNode func = readVariable.apply(mangledName);
                 yield new LamaInvokeNode(func, new LamaExpressionNode[]{left, right});
             }
         };

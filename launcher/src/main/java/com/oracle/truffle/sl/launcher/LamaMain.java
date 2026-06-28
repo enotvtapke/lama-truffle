@@ -130,7 +130,7 @@ public final class LamaMain {
             if (ex.isInternalError()) {
                 ex.printStackTrace();
             } else {
-                err.println(ex.getMessage());
+                err.printf("%s at %s", ex.getMessage(), ex.getSourceLocation());
             }
             return 1;
         } finally {
