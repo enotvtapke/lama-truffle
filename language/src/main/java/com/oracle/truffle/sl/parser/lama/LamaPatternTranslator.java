@@ -1,14 +1,18 @@
 package com.oracle.truffle.sl.parser.lama;
 
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.sl.nodes.lama.patterns.*;
+import org.antlr.v4.runtime.Token;
 
 import java.util.List;
 
 class LamaPatternTranslator {
     private final ScopeManager scopeManager;
+    private final Source source;
 
-    LamaPatternTranslator(ScopeManager scopeManager) {
+    LamaPatternTranslator(ScopeManager scopeManager, Source source) {
         this.scopeManager = scopeManager;
+        this.source = source;
     }
 
     boolean isSimpleVariablePattern(LamaParser.PatternContext pattern) {
@@ -34,7 +38,7 @@ class LamaPatternTranslator {
         return switch (ctx) {
             case LamaParser.WildcardPatternContext c -> new WildcardPatternNode();
             case LamaParser.IdentPatternContext c -> {
-                int slot = declarePatternVariable(c.LIDENT().getText());
+                int slot = declarePatternVariable(c.LIDENT().getText(), c.LIDENT().getSymbol());
                 if (c.pattern() != null) {
                     yield new AsPatternNode(slot, parsePattern(c.pattern()));
                 }
@@ -86,8 +90,13 @@ class LamaPatternTranslator {
         };
     }
 
-    private int declarePatternVariable(String name) {
-        VariableRef ref = scopeManager.declareVariable(name);
+    private int declarePatternVariable(String name, Token token) {
+        final VariableRef ref;
+        try {
+            ref = scopeManager.declareVariable(name);
+        } catch (DuplicateVariableException e) {
+            throw LamaTranslator.createParseError(source, token.getLine(), token.getCharPositionInLine(), token, e.getMessage());
+        }
         return ((VariableRef.LocalVariable) ref).slotIndex();
     }
 }

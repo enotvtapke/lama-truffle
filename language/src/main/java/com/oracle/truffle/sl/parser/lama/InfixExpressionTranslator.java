@@ -39,6 +39,7 @@ class InfixExpressionTranslator {
             if (info == null) throw createParseError(chain.peekOperatorCtx().start, "Unknown operator: " + op);
             if (info.precedence() < minPrecedence) break;
 
+            ParserRuleContext opCtx = chain.peekOperatorCtx();
             chain.consumeOperator();
             int nextMinPrecedence = switch (info.associativity()) {
                 case LEFT, NONE -> info.precedence() + 1;
@@ -46,7 +47,7 @@ class InfixExpressionTranslator {
             };
 
             LamaExpressionNode right = buildPrecedenceTree(chain, nextMinPrecedence);
-            left = makeBinaryNode(left, op, right);
+            left = makeBinaryNode(left, op, right, opCtx);
 
             if (info.associativity() == Associativity.NONE) rejectChainedNonAssociativeOperator(chain, op, info);
         }
@@ -66,12 +67,12 @@ class InfixExpressionTranslator {
     private LamaExpressionNode makeBinaryNode(
             LamaExpressionNode left,
             String op,
-            LamaExpressionNode right
+            LamaExpressionNode right,
+            ParserRuleContext opCtx
     ) {
         LamaExpressionNode node = switch (op) {
             case ":" -> new LamaCreateSExprNode("cons", new LamaExpressionNode[]{left, right});
             case "+" -> LamaAddNodeGen.create(left, right);
-//            case "++" -> LamaStringConcatNodeGen.create(left, right);
             case "-" -> LamaSubNodeGen.create(left, right);
             case "*" -> LamaMulNodeGen.create(left, right);
             case "/" -> LamaDivNodeGen.create(left, right);
@@ -84,7 +85,7 @@ class InfixExpressionTranslator {
             case "!=" -> LamaNotEqualNodeGen.create(left, right);
             case "&&" -> new LamaLogicalAndNode(left, right);
             case "!!" -> new LamaLogicalOrNode(left, right);
-            case ":=" -> throw new IllegalArgumentException("Unsupported assignment target: " + left);
+            case ":=" -> throw createParseError(opCtx.start, "Unsupported assignment target");
             default -> {
                 String mangledName = InfixTable.infixName(op);
                 LamaExpressionNode func = setUnavailableSrc(readVariable.apply(mangledName));

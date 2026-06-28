@@ -28,7 +28,7 @@ import static com.oracle.truffle.sl.parser.lama.InfixTable.BUILTIN_INFIX_OPERATO
 public class LamaTranslator {
     public static final String ANONYMOUS_FUN_NAME = "<anonymous>";
     private final ScopeManager scopeManager = new ScopeManager();
-    private final LamaPatternTranslator patternTranslator = new LamaPatternTranslator(scopeManager);
+    private final LamaPatternTranslator patternTranslator;
     private final String moduleName;
     private final LamaLanguage language;
     private final Source source;
@@ -45,6 +45,7 @@ public class LamaTranslator {
         this.env = env;
         this.unitSearchPaths = buildUnitSearchPaths(env);
         this.infixExpressionTranslator = new InfixExpressionTranslator(scopeManager, source, this::readVariable);
+        this.patternTranslator = new LamaPatternTranslator(scopeManager, source);
     }
 
     public LamaModuleRootNode parseLama() {
@@ -202,7 +203,14 @@ public class LamaTranslator {
     }
 
     private LamaExpressionNode declareVariable(String name, Boolean isPublic, ParserRuleContext ctx) {
-        return switch (scopeManager.declareVariable(name)) {
+        final VariableRef ref;
+        try {
+            ref = scopeManager.declareVariable(name);
+        } catch (DuplicateVariableException e) {
+            if (ctx != null) throw createParseError(ctx.start, e.getMessage());
+            throw new LamaParseError(null, 0, 0, 0, "Error(s) parsing script:\n" + e.getMessage());
+        }
+        return switch (ref) {
             case VariableRef.LocalVariable(int slotIndex, int lexicalDepth) -> {
                 if (isPublic && ctx != null) throw createParseError(ctx.start, "Only top-level declarations can be public: " + getOriginalText(ctx));
                 LamaExpressionNode initValue = setUnavailableSrc(new LamaLongLiteralNode(0));
@@ -219,7 +227,11 @@ public class LamaTranslator {
     }
 
     private List<LamaExpressionNode> defineVariable(String name, LamaExpressionNode value) {
-        var x = declareVariable(name, false, null);
+        return defineVariable(name, value, null);
+    }
+
+    private List<LamaExpressionNode> defineVariable(String name, LamaExpressionNode value, ParserRuleContext ctx) {
+        var x = declareVariable(name, false, ctx);
         var y = setUnavailableSrc(writeVariable(name, value));
         return List.of(x, y);
     }
@@ -275,7 +287,7 @@ public class LamaTranslator {
             var pattern = patterns.get(i);
             var argRead = setUnavailableSrc(new LamaReadArgumentNode(i + 1));
             if (patternTranslator.isSimpleVariablePattern(pattern)) {
-                prologue.addAll(defineVariable(patternTranslator.simpleVariablePatternName(pattern), argRead));
+                prologue.addAll(defineVariable(patternTranslator.simpleVariablePatternName(pattern), argRead, pattern));
             } else {
                 String freshName = "__arg" + (i + 1);
                 prologue.addAll(defineVariable(freshName, argRead));

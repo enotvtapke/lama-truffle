@@ -43,7 +43,8 @@ public class LexicalScope {
         while (scope.infixTable.lookup(op) == null) {
             scope = scope.parent;
             if (scope == null) {
-                throw new RuntimeException("Infix '" + op + "' is not found!");
+                // Not found: let the caller report a located "Unknown operator" parse error.
+                return null;
             }
         }
         return scope.infixTable.lookup(op);
@@ -67,7 +68,7 @@ public class LexicalScope {
 
     public int declareVariable(String name) {
         if (variables.containsKey(name)) {
-            throw new RuntimeException("Variable '" + name + "' already declared!");
+            throw new DuplicateVariableException(name);
         }
         int slotIndex = frameBuilder.addSlot(FrameSlotKind.Illegal, name, null);
 
