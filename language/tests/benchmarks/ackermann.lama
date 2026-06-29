@@ -1,0 +1,16 @@
+-- Ackermann function: deeply nested, non-tail recursion with conditionals.
+-- Stresses function-call overhead, the call stack and branch dispatch far more
+-- than the simple linear/binary recursion of fib/fact.
+fun ack (m, n) {
+  if m == 0 then n + 1
+  elif n == 0 then ack (m - 1, 1)
+  else ack (m - 1, ack (m, n - 1))
+  fi
+}
+
+var i, total;
+total := 0;
+for i := 0, i < 4, i := i + 1 do
+  total := total + ack (3, 8)
+od;
+write (total)

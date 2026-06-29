@@ -1,0 +1,31 @@
+-- Recursive interpreter over an expression tree built from S-expression data
+-- constructors (Num/Add/Sub/Mul). Stresses data-constructor allocation,
+-- `case ... of` pattern-matching dispatch and recursive calls.
+fun buildTree (depth, k) {
+  if depth <= 0
+  then Num (k % 7 + 1)
+  else
+    case k % 3 of
+      0 -> Add (buildTree (depth - 1, k + 1), buildTree (depth - 1, k + 2))
+    | 1 -> Sub (buildTree (depth - 1, k + 1), buildTree (depth - 1, k + 2))
+    | _ -> Mul (buildTree (depth - 1, k + 1), buildTree (depth - 1, k + 2))
+    esac
+  fi
+}
+
+fun eval (e) {
+  case e of
+    Num (n)    -> n
+  | Add (a, b) -> eval (a) + eval (b)
+  | Sub (a, b) -> eval (a) - eval (b)
+  | Mul (a, b) -> eval (a) * eval (b)
+  esac
+}
+
+var tree = buildTree (14, 0);
+var iter, total;
+total := 0;
+for iter := 0, iter < 1500, iter := iter + 1 do
+  total := total + eval (tree)
+od;
+write (total)

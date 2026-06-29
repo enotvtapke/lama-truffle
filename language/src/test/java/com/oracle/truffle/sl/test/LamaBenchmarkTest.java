@@ -35,7 +35,36 @@ public class LamaBenchmarkTest {
         runBenchmark("bubble-sort");
     }
 
+    @Test
+    public void sieve() throws IOException {
+        runBenchmark("sieve");
+    }
+
+    @Test
+    public void matrixMul() throws IOException {
+        runBenchmark("matrix-mul", 2);
+    }
+
+    @Test
+    public void higherOrder() throws IOException {
+        runBenchmark("higher-order");
+    }
+
+    @Test
+    public void sexpEval() throws IOException {
+        runBenchmark("sexp-eval");
+    }
+
+    @Test
+    public void ackermann() throws IOException {
+        runBenchmark("ackermann", 4);
+    }
+
     private void runBenchmark(String name) throws IOException {
+        runBenchmark(name, MIN_SPEEDUP);
+    }
+
+    private void runBenchmark(String name, double expectedSpeedup) throws IOException {
         Path programFile = BENCHMARKS_DIR.resolve(name + ".lama");
         String expectedOutput = Files.readString(
                 BENCHMARKS_DIR.resolve(name + ".expected"), StandardCharsets.UTF_8);
@@ -50,9 +79,8 @@ public class LamaBenchmarkTest {
         System.out.printf("[%s] Speedup:     %.1fx%n", name, speedup);
 
         Assert.assertTrue(
-                String.format("Expected at least %.0fx speedup for %s, got %.1fx",
-                        MIN_SPEEDUP, name, speedup),
-                speedup >= MIN_SPEEDUP
+                String.format("Expected at least %.0fx speedup for %s, got %.1fx", expectedSpeedup, name, speedup),
+                speedup >= expectedSpeedup
         );
     }
 
