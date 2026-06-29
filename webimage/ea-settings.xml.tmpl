@@ -1,0 +1,16 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+  <profiles>
+    <profile>
+      <id>ea</id>
+      <repositories>
+        <repository>
+          <id>graalvm-ea-local</id>
+          <url>file:///ABSOLUTE/PATH/TO/ea-repo</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled><updatePolicy>never</updatePolicy></snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+  <activeProfiles><activeProfile>ea</activeProfile></activeProfiles>
+</settings>
