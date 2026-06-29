@@ -8,9 +8,12 @@ fun ack (m, n) {
   fi
 }
 
-var i, total;
-total := 0;
-for i := 0, i < 4, i := i + 1 do
-  total := total + ack (3, 8)
-od;
-write (total)
+fun bench () {
+  var i, total;
+  total := 0;
+  for i := 0, i < 4, i := i + 1 do
+    total := total + ack (3, 8)
+  od;
+  total
+}
+bench

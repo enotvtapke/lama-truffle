@@ -24,4 +24,5 @@ fun generate (n) {
   if n then n : generate (n-1) else {} fi
 }
 
-write(bubbleSort (generate (5000))[0])
+fun bench () { bubbleSort (generate (5000)) [0] }
+bench

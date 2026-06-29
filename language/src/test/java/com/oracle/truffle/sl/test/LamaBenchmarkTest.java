@@ -2,12 +2,12 @@ package com.oracle.truffle.sl.test;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,7 +17,9 @@ public class LamaBenchmarkTest {
 
     private static final String LAMA = "lama";
     private static final Path BENCHMARKS_DIR = Paths.get("tests", "benchmarks");
+    private static final int WARMUP = 3;
     private static final int RUNS = 5;
+    private static final int INTERP_RUNS = 2;
     private static final double MIN_SPEEDUP = 5.0;
 
     @Test
@@ -66,13 +68,13 @@ public class LamaBenchmarkTest {
 
     private void runBenchmark(String name, double expectedSpeedup) throws IOException {
         Path programFile = BENCHMARKS_DIR.resolve(name + ".lama");
-        String expectedOutput = Files.readString(
-                BENCHMARKS_DIR.resolve(name + ".expected"), StandardCharsets.UTF_8);
+        long expected = Long.parseLong(
+                Files.readString(BENCHMARKS_DIR.resolve(name + ".expected"), StandardCharsets.UTF_8).trim());
         Source source = Source.newBuilder(LAMA, programFile.toFile()).build();
 
-        double compiledMs = measureAvg(source, expectedOutput, true);
+        double compiledMs = measureAvg(source, expected, true);
         System.out.printf("[%s] Compiled:    %.1f ms%n", name, compiledMs);
-        double interpretedMs = measureAvg(source, expectedOutput, false);
+        double interpretedMs = measureAvg(source, expected, false);
 
         double speedup = interpretedMs / compiledMs;
         System.out.printf("[%s] Interpreted: %.1f ms%n", name, interpretedMs);
@@ -84,23 +86,33 @@ public class LamaBenchmarkTest {
         );
     }
 
-    private double measureAvg(Source source, String expectedOutput, boolean compiled) {
-        long totalNs = 0;
-        for (int i = 0; i < RUNS; i++) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            try (Context context = Context.newBuilder(LAMA)
-                    .out(out)
-                    .allowExperimentalOptions(true)
-                    .option("engine.Compilation", String.valueOf(compiled))
-                    .build()) {
+    private double measureAvg(Source source, long expected, boolean compiled) {
+        int warmup = compiled ? WARMUP : 0;
+        int runs = compiled ? RUNS : INTERP_RUNS;
+        try (Context context = Context.newBuilder(LAMA)
+                .out(OutputStream.nullOutputStream())
+                .err(OutputStream.nullOutputStream())
+                .allowExperimentalOptions(true)
+                .option("engine.Compilation", String.valueOf(compiled))
+                .build()) {
 
-                long start = System.nanoTime();
-                context.eval(source);
-                totalNs += System.nanoTime() - start;
+            Value bench = context.eval(source);
+            Assert.assertTrue(
+                    "benchmark must end with a no-arg entry function as its final expression",
+                    bench.canExecute());
 
-                Assert.assertEquals(expectedOutput, out.toString(StandardCharsets.UTF_8));
+            for (int i = 0; i < warmup; i++) {
+                Assert.assertEquals(expected, bench.execute().asLong());
             }
+
+            long totalNs = 0;
+            for (int i = 0; i < runs; i++) {
+                long start = System.nanoTime();
+                Value result = bench.execute();
+                totalNs += System.nanoTime() - start;
+                Assert.assertEquals(expected, result.asLong());
+            }
+            return (double) totalNs / runs / 1_000_000.0;
         }
-        return (double) totalNs / RUNS / 1_000_000.0;
     }
 }

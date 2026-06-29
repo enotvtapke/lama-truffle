@@ -19,11 +19,14 @@ fun compose (f, g) {
   fun (x) { f (g (x)) }
 }
 
-var iter, total, lin, h;
-total := 0;
-for iter := 0, iter < 2000, iter := iter + 1 do
-  lin := makeLinear (iter % 13, 1);
-  h := compose (lin, lin);
-  total := total + sumRange (h, 1500)
-od;
-write (total)
+fun bench () {
+  var iter, total, lin, h;
+  total := 0;
+  for iter := 0, iter < 2000, iter := iter + 1 do
+    lin := makeLinear (iter % 13, 1);
+    h := compose (lin, lin);
+    total := total + sumRange (h, 1500)
+  od;
+  total
+}
+bench

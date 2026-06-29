@@ -21,9 +21,12 @@ fun countPrimes (n) {
   count
 }
 
-var iter, result;
-result := 0;
-for iter := 0, iter < 60, iter := iter + 1 do
-  result := countPrimes (100000)
-od;
-write (result)
+fun bench () {
+  var iter, result;
+  result := 0;
+  for iter := 0, iter < 60, iter := iter + 1 do
+    result := countPrimes (100000)
+  od;
+  result
+}
+bench

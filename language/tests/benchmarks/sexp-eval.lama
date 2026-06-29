@@ -23,9 +23,12 @@ fun eval (e) {
 }
 
 var tree = buildTree (14, 0);
-var iter, total;
-total := 0;
-for iter := 0, iter < 1500, iter := iter + 1 do
-  total := total + eval (tree)
-od;
-write (total)
+fun bench () {
+  var iter, total;
+  total := 0;
+  for iter := 0, iter < 1500, iter := iter + 1 do
+    total := total + eval (tree)
+  od;
+  total
+}
+bench
