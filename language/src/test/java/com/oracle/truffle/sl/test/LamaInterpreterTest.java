@@ -66,7 +66,10 @@ public class LamaInterpreterTest {
         try (Context context = Context.newBuilder("lama")
                 .in(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
                 .out(out)
-                .options(Map.of("lama.UnitSearchPath", lamaFile.getParent().resolve("imports").toAbsolutePath().toString()))
+                .options(Map.of(
+                    "lama.UnitSearchPath", lamaFile.getParent().resolve("imports").toAbsolutePath().toString(),
+                    "lama.ReadPrompt", "true"
+                ))
                 .environment("EXISTING_ENV_VAR", "42")
                 .allowIO(IOAccess.ALL)
                 .build()) {

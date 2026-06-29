@@ -45,6 +45,9 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
     @Option(help = "Additional directories used to resolve imported Lama units. Entries are separated using the platform path separator.", category = OptionCategory.USER, stability = OptionStability.STABLE) //
     public static final OptionKey<String> UnitSearchPath = new OptionKey<>("");
 
+    @Option(help = "Print the interactive prompt before each read(). Disable for non-interactive/batch use.", category = OptionCategory.USER, stability = OptionStability.STABLE) //
+    public static final OptionKey<Boolean> ReadPrompt = new OptionKey<>(false);
+
     private Env currentEnv;
 
     /**

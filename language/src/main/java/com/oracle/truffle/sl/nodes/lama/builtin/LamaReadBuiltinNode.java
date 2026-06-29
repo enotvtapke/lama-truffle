@@ -15,8 +15,10 @@ public abstract class LamaReadBuiltinNode extends LamaBuiltinNode {
     @Specialization
     @TruffleBoundary
     public long doRead(@Bind LamaContext context) {
-        context.getOutput().print("> ");
-        context.getOutput().flush();
+        if (context.isReadPrompt()) {
+            context.getOutput().print("> ");
+            context.getOutput().flush();
+        }
         try {
             String line = context.getInput().readLine();
             if (line == null) {

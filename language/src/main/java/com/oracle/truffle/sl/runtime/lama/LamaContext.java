@@ -37,6 +37,7 @@ public final class LamaContext {
     private final BufferedReader input;
     private final PrintWriter output;
     private final List<String> unitSearchPaths;
+    private final boolean readPrompt;
     private final long startNanos = System.nanoTime();
     private final SplittableRandom random = new SplittableRandom();
 
@@ -46,7 +47,13 @@ public final class LamaContext {
         this.output = new PrintWriter(env.out(), true);
         this.language = language;
         this.unitSearchPaths = buildUnitSearchPaths(env);
+        this.readPrompt = LamaLanguage.ReadPrompt.getValue(env.getOptions());
         registerBuiltins();
+    }
+
+    /** Whether read() should print the interactive "> " prompt (lama.ReadPrompt). */
+    public boolean isReadPrompt() {
+        return readPrompt;
     }
 
     private static final ContextReference<LamaContext> REFERENCE = ContextReference.create(LamaLanguage.class);
