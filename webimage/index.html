@@ -3,48 +3,51 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lama Sandbox (Truffle interpreter in WebAssembly)</title>
-<style>
-  :root { color-scheme: light dark; }
-  body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem;
-         display: grid; grid-template-rows: auto auto 1fr auto auto; gap: .5rem; height: 100vh; box-sizing: border-box; }
-  h1 { font-size: 1.1rem; margin: 0; }
-  #status { font-size: .85rem; opacity: .8; }
-  label { font-size: .8rem; opacity: .7; display: block; margin-bottom: .15rem; }
-  textarea { width: 100%; box-sizing: border-box; font-family: ui-monospace, monospace;
-             font-size: 13px; padding: .5rem; resize: vertical; }
-  #code { min-height: 11rem; }
-  #stdin { min-height: 3rem; }
-  #out { background: #111; color: #b9f5b9; font-family: ui-monospace, monospace; font-size: 13px;
-         white-space: pre-wrap; padding: .6rem; border-radius: 4px; overflow: auto; margin: 0; min-height: 5rem; }
-  button { font-size: 14px; padding: .4rem 1rem; cursor: pointer; }
-  .row { display: flex; gap: .5rem; align-items: center; }
-</style>
+<title>Lama Sandbox — Truffle interpreter in WebAssembly</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Lama Sandbox <small style="opacity:.6">— Truffle interpreter compiled to WebAssembly</small></h1>
-  <div class="row">
-    <button id="run" disabled>Run ▶</button>
-    <span id="status">Loading WebAssembly runtime…</span>
-  </div>
-  <div>
-    <label for="code">Program (imports from the standard library work, e.g. <code>import List;</code>)</label>
-    <textarea id="code" spellcheck="false">import List;
+  <header class="appbar">
+    <div class="brand">
+      <h1>Lama Sandbox</h1>
+      <span class="badge">Truffle · WebAssembly</span>
+    </div>
+    <span id="status" class="status loading">Loading runtime…</span>
+    <div class="spacer"></div>
+    <button id="run" class="btn-primary" disabled>▶ Run <kbd>Ctrl</kbd>+<kbd>↵</kbd></button>
+  </header>
 
-fun sumList (l) {
-  foldl (fun (acc, x) { acc + x }, 0, l)
-}
+  <main class="workspace">
+    <section class="pane">
+      <div class="pane-head">
+        <span class="head-label">Program</span>
+        <div class="spacer"></div>
+        <select id="examples" title="Load an example">
+          <option value="">Examples…</option>
+        </select>
+      </div>
+      <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+    </section>
 
-var a = read();
-var b = read();
-write (sumList ({a, b, a * b}))</textarea>
-  </div>
-  <div>
-    <label for="stdin">Standard input (one value per line, consumed by <code>read()</code>)</label>
-    <textarea id="stdin" spellcheck="false">3
-4</textarea>
-  </div>
-  <pre id="out"></pre>
+    <aside class="side">
+      <section class="pane">
+        <div class="pane-head">
+          <span class="head-label">Standard input</span>
+          <span class="hint">consumed by <code>read()</code></span>
+        </div>
+        <textarea id="stdin" spellcheck="false" autocomplete="off"></textarea>
+      </section>
+
+      <section class="pane">
+        <div class="pane-head">
+          <span class="head-label">Output</span>
+          <div class="spacer"></div>
+          <button id="clear" class="btn-ghost">Clear</button>
+        </div>
+        <pre id="out" class="term"></pre>
+      </section>
+    </aside>
+  </main>
 
   <script src="lama.js"></script>
   <script>
@@ -52,35 +55,126 @@ write (sumList ({a, b, a * b}))</textarea>
     const outEl = document.getElementById('out');
     const runBtn = document.getElementById('run');
     const codeEl = document.getElementById('code');
+    const stdinEl = document.getElementById('stdin');
+    const examplesEl = document.getElementById('examples');
+
+    const EXAMPLES = [
+      {
+        name: 'List + read (sum)',
+        stdin: '3\n4',
+        code: `import List;
+
+fun sumList (l) {
+  foldl (fun (acc, x) { acc + x }, 0, l)
+}
+
+var a = read();
+var b = read();
+write (sumList ({a, b, a * b}))`
+      },
+      {
+        name: 'Pattern matching (list length)',
+        stdin: '',
+        code: `fun len (l) {
+  case l of
+       _ : xs -> len (xs) + 1
+    | {}      -> 0
+  esac
+}
+
+write (len ({}));
+write (len ({1, 2, 3}))`
+      },
+      {
+        name: 'Arrays',
+        stdin: '',
+        code: `import Array;
+
+var a = initArray (5, fun (i) { i * i });
+iterArray (fun (x) { write (x) }, a);
+write (foldlArray (fun (acc, x) { acc + x }, 0, a))`
+      },
+      {
+        name: 'Fibonacci (reads n)',
+        stdin: '10',
+        code: `var n = read ();
+var a = 0, b = 1, i;
+for i := 0, i < n, i := i + 1 do
+  var t = a + b;
+  a := b;
+  b := t
+od;
+write (a)`
+      }
+    ];
+
+    // Populate the examples dropdown and load the first one.
+    EXAMPLES.forEach((ex, i) => {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = ex.name;
+      examplesEl.appendChild(opt);
+    });
+    function loadExample(i) {
+      const ex = EXAMPLES[i];
+      if (!ex) return;
+      codeEl.value = ex.code;
+      stdinEl.value = ex.stdin;
+    }
+    loadExample(0);
+    examplesEl.addEventListener('change', () => {
+      if (examplesEl.value !== '') loadExample(Number(examplesEl.value));
+      examplesEl.value = '';
+    });
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text;
+      statusEl.className = 'status' + (kind ? ' ' + kind : '');
+    }
 
     // lama.js auto-runs main() on load, which installs globalThis.runLama.
     // Poll until it is available, then enable the UI.
     (function waitReady(tries) {
       if (typeof globalThis.runLama === 'function') {
-        statusEl.textContent = 'Ready. Edit a Lama program and press Run.';
+        setStatus('Ready', 'ready');
         runBtn.disabled = false;
         if (new URLSearchParams(location.search).get('test') === '1') runProgram();
         return;
       }
-      if (tries <= 0) { statusEl.textContent = 'Failed to initialize runtime.'; return; }
+      if (tries <= 0) { setStatus('Failed to initialize runtime', 'error'); return; }
       setTimeout(() => waitReady(tries - 1), 100);
     })(200);
 
     function runProgram() {
-      outEl.textContent = '';
-      statusEl.textContent = 'Running…';
+      if (runBtn.disabled) return;
+      setStatus('Running…', 'running');
+      outEl.classList.remove('error');
       try {
-        globalThis.setLamaInput(document.getElementById('stdin').value);
-        const result = globalThis.runLama(codeEl.value);
-        outEl.textContent = String(result);
-        statusEl.textContent = 'Done.';
-        console.log('SANDBOX_RESULT_BEGIN\n' + String(result) + '\nSANDBOX_RESULT_END');
+        globalThis.setLamaInput(stdinEl.value);
+        const t0 = performance.now();
+        const result = String(globalThis.runLama(codeEl.value));
+        const ms = Math.round(performance.now() - t0);
+        outEl.textContent = result;
+        const errored = result.includes('[error]') || result.includes('[internal error]');
+        outEl.classList.toggle('error', errored);
+        setStatus(errored ? `Finished with errors (${ms} ms)` : `Done (${ms} ms)`, errored ? 'error' : 'ready');
+        console.log('SANDBOX_RESULT_BEGIN\n' + result + '\nSANDBOX_RESULT_END');
       } catch (e) {
         outEl.textContent = 'JS error: ' + e;
-        statusEl.textContent = 'Error.';
+        outEl.classList.add('error');
+        setStatus('Error', 'error');
       }
     }
+
     runBtn.addEventListener('click', runProgram);
+    document.getElementById('clear').addEventListener('click', () => {
+      outEl.textContent = '';
+      outEl.classList.remove('error');
+    });
+    // Ctrl/Cmd+Enter runs from anywhere (including inside the editor).
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runProgram(); }
+    });
   </script>
 </body>
 </html>

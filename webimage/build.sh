@@ -70,7 +70,7 @@ echo ">> 3/4  native-image --tool:svm-wasm"
     -o "$OUT/lama" )
 
 echo ">> 4/4  Staging the sandbox page"
-cp "$HERE/index.html" "$OUT/index.html"
+cp "$HERE/index.html" "$HERE/styles.css" "$OUT/"
 rm -f "$OUT/lama.js.wat"   # 360MB debug artifact, not needed to run
 
 echo
