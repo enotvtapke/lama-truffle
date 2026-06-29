@@ -3,6 +3,7 @@ package com.oracle.truffle.sl.launcher;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.SourceSection;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import picocli.CommandLine;
@@ -20,9 +21,9 @@ import java.io.PrintStream;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-@Command(name = "lama", mixinStandardHelpOptions = false, sortOptions = false, //
+@Command(name = "lama", sortOptions = false,
                 description = "Run a Lama program on the GraalVM Truffle interpreter.%n" +
-                                "When no input file is given, the program is read from standard input.", //
+                                "When no input file is given, the program is read from standard input.",
                 footer = {"%nGraalVM polyglot options of the form --<group>.<option>[=<value>] " +
                                 "(for example --lama.UnitSearchPath=..., --engine.TraceCompilation, " +
                                 "--compiler.InlineAcrossTruffleBoundary) are forwarded to the polyglot context."})
@@ -153,10 +154,6 @@ public final class LamaMain implements Callable<Integer> {
             return 1;
         }
 
-        if (launcherOutput) {
-            out.println("== running on " + context.getEngine());
-        }
-
         try {
             Value result = context.eval(source);
             if (launcherOutput) {
@@ -165,14 +162,38 @@ public final class LamaMain implements Callable<Integer> {
             return 0;
         } catch (PolyglotException ex) {
             if (ex.isInternalError()) {
-                ex.printStackTrace();
+                ex.printStackTrace(err);
             } else {
-                err.printf("%s at %s", ex.getMessage(), ex.getSourceLocation());
+                err.println(formatGuestError(ex));
             }
             return 1;
         } finally {
             context.close();
         }
+    }
+
+    private static String formatGuestError(PolyglotException ex) {
+        SourceSection location = ex.getSourceLocation();
+        if (location == null) {
+            location = innermostGuestLocation(ex);
+        }
+        if (location != null && location.isAvailable()) {
+            return String.format("%s at %s:%d:%d", ex.getMessage(),
+                            location.getSource().getName(), location.getStartLine(), location.getStartColumn());
+        }
+        return ex.getMessage();
+    }
+
+    private static SourceSection innermostGuestLocation(PolyglotException ex) {
+        for (PolyglotException.StackFrame frame : ex.getPolyglotStackTrace()) {
+            if (frame.isGuestFrame()) {
+                SourceSection location = frame.getSourceLocation();
+                if (location != null) {
+                    return location;
+                }
+            }
+        }
+        return null;
     }
 
     private static String buildUnitSearchPathOption(List<String> unitSearchPaths, String forwarded) {
@@ -182,5 +203,4 @@ public final class LamaMain implements Callable<Integer> {
         }
         return String.join(File.pathSeparator, new LinkedHashSet<>(all));
     }
-
 }
