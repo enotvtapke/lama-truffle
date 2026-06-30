@@ -94,7 +94,7 @@ var keywords =
 -- Regular expression definitions.
 -- NOTE: patterns use POSIX ERE syntax (as compiled by regcomp with REG_EXTENDED
 -- in Lama's runtime). GNU ERE extensions used here: \b = word boundary.
-public rWhiteSpace  = createRegexp ("((([ \n\r\t]*)|(--[^\n]*[ \n\r\t]*))*|(\\(\\*([^*]|\\*[^)])*\\*\\)))*", "whitespace"),
+public rWhiteSpace  = createRegexp ("([ \n\r\t]|--[^\n]*|\\(\\*([^*]|\\*[^)])*\\*\\))*", "whitespace"),
        rComment     = createRegexp ("\\(\\*([^*]|\\*[^)])*\\*\\)", "comment"),
        rSkip        = createRegexp ("skip\b", "skip"),
        rDecimal     = createRegexp ("-?[0-9]+", "decimal constant"),

@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -29,10 +28,9 @@ import java.util.stream.Stream;
  * its arithmetic within 31 bits (via modulo), so the native (31-bit) result
  * equals the {@code .expected} 64-bit oracle and is asserted.
  *
- * <p>Two front-end quirks are worked around: the parser rejects a leading
- * {@code --} line comment (stripped by {@link #toRunnableSource}) and requires
- * the input filename to be a valid Lama identifier (so {@code bubble-sort} is
- * written as {@code bubblesort} — see {@link #unitName}). The compile/run
+ * <p>One front-end quirk is worked around: the self-hosted compiler requires
+ * the input filename to be a valid Lama identifier, so {@code bubble-sort} is
+ * written as {@code bubblesort} (see {@link #unitName}). The compile/run
  * pipeline and shared compiler engine live in {@link LamaSelfHostedDriver}.
  */
 @RunWith(Parameterized.class)
@@ -105,20 +103,11 @@ public class LamaSelfHostedSuiteBenchmarkTest {
     /**
      * Rewrites a benchmark whose final top-level expression is the bare entry
      * function {@code bench} into one that actually invokes it and prints the
-     * result, and drops any leading {@code --} comment lines (which the
-     * self-hosted front-end rejects at 1:1).
+     * result, so the compiled native binary performs the work and produces
+     * verifiable output.
      */
     private static String toRunnableSource(String source) {
-        String[] lines = source.split("\n", -1);
-        int start = 0;
-        while (start < lines.length) {
-            String t = lines[start].trim();
-            if (t.isEmpty() || t.startsWith("--")) start++;
-            else break;
-        }
-        String body = String.join("\n", Arrays.copyOfRange(lines, start, lines.length));
-
-        String trimmed = body.stripTrailing();
+        String trimmed = source.stripTrailing();
         Assert.assertTrue("benchmark must end with a standalone `bench` entry expression",
                 trimmed.endsWith("\nbench") || trimmed.equals("bench"));
         String head = trimmed.substring(0, trimmed.length() - "bench".length());
