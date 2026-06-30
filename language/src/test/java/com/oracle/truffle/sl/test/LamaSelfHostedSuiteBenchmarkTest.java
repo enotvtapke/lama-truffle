@@ -91,8 +91,12 @@ public class LamaSelfHostedSuiteBenchmarkTest {
             String result = LamaSelfHostedDriver.runCompiledBinary(executable, null, RUN_TIMEOUT_SECONDS).trim();
             long runNs = System.nanoTime() - r0;
 
-            System.out.printf(Locale.ROOT, "[%s] parse=%.1f ms compile=%s run=%s result=%s%n",
-                    name, LamaSelfHostedDriver.parseParsingTime(driverOutput),
+            System.out.printf(Locale.ROOT,
+                    "[%s] parse=%.1fms sm=%.1fms x86=%.1fms compile=%s run=%s result=%s%n",
+                    name,
+                    LamaSelfHostedDriver.timeMillis(driverOutput, "Parsing time"),
+                    LamaSelfHostedDriver.timeMillis(driverOutput, "SM compile time"),
+                    LamaSelfHostedDriver.timeMillis(driverOutput, "X86 compile time"),
                     LamaSelfHostedDriver.formatMillis(compileNs), LamaSelfHostedDriver.formatMillis(runNs), result);
 
             Assert.assertEquals("wrong result for " + name, expectedOf(name), result);

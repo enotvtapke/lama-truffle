@@ -155,19 +155,14 @@ final class LamaSelfHostedDriver {
         return new String(stdout, StandardCharsets.UTF_8);
     }
 
-    /** Parses the {@code "Parsing time : <seconds>"} line printed by {@code -dt}. */
-    static double parseParsingTime(String driverOutput) {
+    static double timeMillis(String driverOutput, String label) {
         for (String line : driverOutput.split("\n")) {
             int colon = line.indexOf(':');
-            if (colon > 0 && line.regionMatches(true, 0, "Parsing time", 0, "Parsing time".length())) {
-                try {
-                    return Double.parseDouble(line.substring(colon + 1).trim()) * 1000;
-                } catch (NumberFormatException ignored) {
-                    return Double.NaN;
-                }
+            if (colon > 0 && line.regionMatches(true, 0, label, 0, label.length())) {
+                return Double.parseDouble(line.substring(colon + 1).trim()) * 1000;
             }
         }
-        return Double.NaN;
+        throw new IllegalStateException("Cannot find value for label '%s' in:\n%s".formatted(label, driverOutput));
     }
 
     static Path createWorkDir(String prefix) throws IOException {
@@ -175,7 +170,7 @@ final class LamaSelfHostedDriver {
     }
 
     static String formatMillis(long nanos) {
-        return String.format(Locale.ROOT, "%.1f ms", nanos / 1_000_000.0);
+        return String.format(Locale.ROOT, "%.1fms", nanos / 1_000_000.0);
     }
 
     static void deleteRecursively(Path root) throws IOException {

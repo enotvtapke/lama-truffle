@@ -32,9 +32,6 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
     /** Expression sizes (number of leaf terms) to benchmark. */
     private static final int[] SIZES = {100, 250, 500, 1000, 2000, 4000, 8000};
 
-    /** The native runtime uses 31-bit tagged integers, so keep |value| < 2^30. */
-    private static final long INT_LIMIT = 1L << 30;
-
     private static final long RUN_TIMEOUT_SECONDS = 60;
 
     private final int size;
@@ -52,10 +49,7 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
         List<Object[]> params = new ArrayList<>();
         for (int n : SIZES) {
             Expr e = genExpr(n);
-            // Skip sizes whose value would overflow the native 31-bit integers.
-            if (Math.abs(e.value) < INT_LIMIT) {
-                params.add(new Object[]{n, e.string, e.value});
-            }
+            params.add(new Object[]{n, e.string, e.value});
         }
         return params;
     }
@@ -83,8 +77,11 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
             long runNs = System.nanoTime() - r0;
 
             System.out.printf(Locale.ROOT,
-                    "[expr size=%d depth=%d] parse=%.1f ms compile=%s run=%s result=%s%n",
-                    size, parenDepth(exprString), LamaSelfHostedDriver.parseParsingTime(driverOutput),
+                    "[expr size=%d depth=%d] parse=%.1fms sm=%.1fms x86=%.1fms compile=%s run=%s result=%s%n",
+                    size, parenDepth(exprString),
+                    LamaSelfHostedDriver.timeMillis(driverOutput, "Parsing time"),
+                    LamaSelfHostedDriver.timeMillis(driverOutput, "SM compile time"),
+                    LamaSelfHostedDriver.timeMillis(driverOutput, "X86 compile time"),
                     LamaSelfHostedDriver.formatMillis(compileNs), LamaSelfHostedDriver.formatMillis(runNs), out);
 
             Assert.assertEquals("wrong result for size " + size, Long.toString(expectedValue), out);
