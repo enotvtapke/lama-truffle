@@ -161,7 +161,7 @@ final class LamaSelfHostedDriver {
             int colon = line.indexOf(':');
             if (colon > 0 && line.regionMatches(true, 0, "Parsing time", 0, "Parsing time".length())) {
                 try {
-                    return Double.parseDouble(line.substring(colon + 1).trim());
+                    return Double.parseDouble(line.substring(colon + 1).trim()) * 1000;
                 } catch (NumberFormatException ignored) {
                     return Double.NaN;
                 }

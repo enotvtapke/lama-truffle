@@ -83,7 +83,7 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
             long runNs = System.nanoTime() - r0;
 
             System.out.printf(Locale.ROOT,
-                    "[expr size=%d depth=%d] parse=%.4fs compile=%s run=%s result=%s%n",
+                    "[expr size=%d depth=%d] parse=%.1f ms compile=%s run=%s result=%s%n",
                     size, parenDepth(exprString), LamaSelfHostedDriver.parseParsingTime(driverOutput),
                     LamaSelfHostedDriver.formatMillis(compileNs), LamaSelfHostedDriver.formatMillis(runNs), out);
 
