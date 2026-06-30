@@ -2,24 +2,17 @@ package com.oracle.truffle.sl.test;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Locale;
-import java.util.stream.Stream;
 
 /**
  * Runs the self-hosted Lama compiler over the real benchmark programs under
  * {@code tests/benchmarks} — the same {@code .lama} files exercised by
- * {@link LamaBenchmarkTest} — one JUnit case per benchmark.
+ * {@link LamaBenchmarkTest}, one test method each.
  *
  * <p>The benchmarks end with the bare entry function {@code bench} (so
  * {@link LamaBenchmarkTest} can call it through the polyglot API); a native
@@ -32,36 +25,52 @@ import java.util.stream.Stream;
  * names the compilation unit after the input file). The compile/run pipeline
  * and shared compiler engine live in {@link LamaSelfHostedDriver}.
  */
-@RunWith(Parameterized.class)
 public class LamaSelfHostedSuiteBenchmarkTest {
 
     private static final Path BENCHMARKS_DIR = Paths.get("tests", "benchmarks");
     private static final long RUN_TIMEOUT_SECONDS = 120;
 
-    private final String name;
-
-    public LamaSelfHostedSuiteBenchmarkTest(String name) {
-        this.name = name;
-    }
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> data() throws IOException {
-        List<Object[]> params = new ArrayList<>();
-        if (!Files.isDirectory(BENCHMARKS_DIR)) {
-            return params;
-        }
-        try (Stream<Path> files = Files.list(BENCHMARKS_DIR)) {
-            files.map(p -> p.getFileName().toString())
-                    .filter(f -> f.endsWith(".lama"))
-                    .map(f -> f.substring(0, f.length() - ".lama".length()))
-                    .sorted()
-                    .forEach(n -> params.add(new Object[]{n}));
-        }
-        return params;
+    @Test
+    public void fib() throws Exception {
+        runBenchmark("fib");
     }
 
     @Test
-    public void benchmark() throws Exception {
+    public void fact() throws Exception {
+        runBenchmark("fact");
+    }
+
+    @Test
+    public void bubbleSort() throws Exception {
+        runBenchmark("bubbleSort");
+    }
+
+    @Test
+    public void sieve() throws Exception {
+        runBenchmark("sieve");
+    }
+
+    @Test
+    public void matrixMul() throws Exception {
+        runBenchmark("matrixMul");
+    }
+
+    @Test
+    public void higherOrder() throws Exception {
+        runBenchmark("higherOrder");
+    }
+
+    @Test
+    public void sexpEval() throws Exception {
+        runBenchmark("sexpEval");
+    }
+
+    @Test
+    public void ackermann() throws Exception {
+        runBenchmark("ackermann");
+    }
+
+    private void runBenchmark(String name) throws Exception {
         Path workDir = LamaSelfHostedDriver.createWorkDir("lama-suite-bench-" + name + "-");
         try {
             String runnable = toRunnableSource(
@@ -110,7 +119,7 @@ public class LamaSelfHostedSuiteBenchmarkTest {
         return head + "write (bench ())\n";
     }
 
-    private static String expectedOf(String name) throws IOException {
+    private static String expectedOf(String name) throws java.io.IOException {
         return Files.readString(BENCHMARKS_DIR.resolve(name + ".expected"), StandardCharsets.UTF_8).trim();
     }
 }
