@@ -1,34 +1,27 @@
 package com.oracle.truffle.sl.test;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
+/**
+ * Runs every program under {@code tests/lama/compiler} through the self-hosted
+ * Lama compiler, executes the resulting native binary (feeding it the matching
+ * {@code .input}) and checks its stdout against the {@code .log} oracle.
+ *
+ * <p>The compile/run pipeline and the shared compiler engine live in
+ * {@link LamaSelfHostedDriver}.
+ */
 @RunWith(Parameterized.class)
 public class LamaSelfHostedCompilerTest {
 
-    private static final String LANGUAGE_ID = "lama";
-
     private static final Path TESTS_DIR = Paths.get("tests", "lama", "compiler");
-    private static final Path LAMA_IMPORTS_DIR = Paths.get("tests", "lama", "imports");
-    private static final Path COMPILER_DIR = Paths.get("tests", "lama", "compilerSrc");
-    private static final Path BUNDLED_RUNTIME_DIR = Paths.get("..", "runtime").toAbsolutePath().normalize();
 
     /**
      * Programs the self-hosted compiler in {@code compilerSrc/} currently
@@ -44,29 +37,6 @@ public class LamaSelfHostedCompilerTest {
 
     /** Time budget for the compiled binary to consume its input and exit. */
     private static final long RUN_TIMEOUT_SECONDS = 30;
-
-    /**
-     * One Engine shared by every test. Lama is registered ContextPolicy.SHARED,
-     * so per-test Contexts built on this engine reuse the already-parsed
-     * compiler and a single initialized runtime; each test still gets its own
-     * isolated Context (own args, cwd, IO, and -- since module-variable tables
-     * are resolved per context -- its own module state).
-     */
-    private static Engine engine;
-    private static Source driverSource;
-
-    @BeforeClass
-    public static void setUpEngine() throws java.io.IOException {
-        engine = Engine.newBuilder().build();
-        Path driverFile = COMPILER_DIR.resolve("Driver.lama").toAbsolutePath().normalize();
-        Assert.assertTrue("Driver.lama missing: " + driverFile, Files.exists(driverFile));
-        driverSource = Source.newBuilder(LANGUAGE_ID, driverFile.toFile()).build();
-    }
-
-    @AfterClass
-    public static void tearDownEngine() {
-        if (engine != null) engine.close();
-    }
 
     private final Path lamaFile;
     private final Path inputFile;
@@ -103,13 +73,13 @@ public class LamaSelfHostedCompilerTest {
 
     @Test
     public void testSelfHostedCompiler() throws Exception {
-        Path workDir = Files.createTempDirectory("lama-selfhost-" + testName + "-");
+        Path workDir = LamaSelfHostedDriver.createWorkDir("lama-selfhost-" + testName + "-");
         try {
             Path testCopy = workDir.resolve(testName + ".lama");
             Files.copy(lamaFile, testCopy, StandardCopyOption.REPLACE_EXISTING);
 
             long compileStart = System.nanoTime();
-            String driverOutput = compileWithSelfHostedDriver(workDir, testCopy);
+            String driverOutput = LamaSelfHostedDriver.compileWithSelfHostedDriver(workDir, testCopy, testName);
             long compileNs = System.nanoTime() - compileStart;
 
             Path executable = workDir.resolve(testName);
@@ -122,118 +92,17 @@ public class LamaSelfHostedCompilerTest {
             }
 
             long runStart = System.nanoTime();
-            String actualOutput = runCompiledBinary(executable);
+            String actualOutput = LamaSelfHostedDriver.runCompiledBinary(executable, inputFile, RUN_TIMEOUT_SECONDS);
             long runNs = System.nanoTime() - runStart;
 
-            // One concise line per test, surfaced via Surefire's stdout
-            // (visible directly in `mvn test` output and saved into
-            // target/surefire-reports/<class>-output.txt).
-            System.out.printf(
-                    "[%s] compile=%s, run=%s%n",
-                    testName, formatMillis(compileNs), formatMillis(runNs));
+            // One concise line per test, surfaced via Surefire's stdout.
+            System.out.printf("[%s] compile=%s, run=%s%n",
+                    testName, LamaSelfHostedDriver.formatMillis(compileNs), LamaSelfHostedDriver.formatMillis(runNs));
 
             String expectedOutput = Files.readString(expectedFile, StandardCharsets.UTF_8);
             Assert.assertEquals(expectedOutput, actualOutput);
         } finally {
-            deleteRecursively(workDir);
-        }
-    }
-
-    private static String formatMillis(long nanos) {
-        return String.format(Locale.ROOT, "%.1f ms", nanos / 1_000_000.0);
-    }
-
-    /**
-     * Runs {@code compilerSrc/Driver.lama} on a fresh Graal {@link Context}
-     * inside this JVM (no {@code sl} subprocess), with the test file as its
-     * sole user argument. The Context's working directory is {@code workDir}
-     * and {@code LAMA} points at the bundled runtime, so the compiler's file
-     * IO and its {@code gcc} link step both happen there.
-     *
-     * <p>The Context is built on the shared {@link #engine}, so the compiler is
-     * parsed once for the whole suite. Returns whatever the driver wrote to
-     * stdout/stderr, for use in failure diagnostics.</p>
-     */
-    private String compileWithSelfHostedDriver(Path workDir, Path testCopy) {
-        Path driverFile = COMPILER_DIR.resolve("Driver.lama").toAbsolutePath().normalize();
-
-        String unitSearchPath = String.join(File.pathSeparator,
-                LAMA_IMPORTS_DIR.toAbsolutePath().normalize().toString(),
-                COMPILER_DIR.toAbsolutePath().normalize().toString());
-
-        // Driver.lama drops sysargs[0] (the program name), so the test file
-        // follows the driver path.
-        String[] appArgs = {
-                driverFile.toString(),
-                testCopy.getFileName().toString(),
-        };
-
-        ByteArrayOutputStream captured = new ByteArrayOutputStream();
-
-        // Each test gets its own isolated Context (args, cwd, IO, module state)
-        // but builds it on the shared `engine`, so the compiler is parsed once
-        // for the whole suite.
-        try (Context context = Context.newBuilder(LANGUAGE_ID)
-                .engine(engine)
-                .out(captured)
-                .err(captured)
-                .currentWorkingDirectory(workDir.toAbsolutePath())
-                .options(Map.of("lama.UnitSearchPath", unitSearchPath))
-                .environment("LAMA", BUNDLED_RUNTIME_DIR.toString())
-                .allowIO(IOAccess.ALL)
-                .allowAllAccess(true)
-                .arguments(LANGUAGE_ID, appArgs)
-                .build()) {
-            context.eval(driverSource);
-        } catch (PolyglotException e) {
-            throw new AssertionError(
-                    "self-hosted compiler failed for " + testName + ":\n"
-                            + captured.toString(StandardCharsets.UTF_8), e);
-        }
-        return captured.toString(StandardCharsets.UTF_8);
-    }
-
-
-    /** Runs the produced 32-bit ELF and returns its stdout. */
-    private String runCompiledBinary(Path executable) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder(executable.toAbsolutePath().toString())
-                .redirectErrorStream(false);
-        Process proc = pb.start();
-
-        if (Files.exists(inputFile)) {
-            byte[] inputBytes = Files.readAllBytes(inputFile);
-            try (var os = proc.getOutputStream()) {
-                os.write(inputBytes);
-                os.flush();
-            } catch (IOException ignored) {
-                // child closed stdin early — ok
-            }
-        } else {
-            proc.getOutputStream().close();
-        }
-
-        boolean finished = proc.waitFor(RUN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        if (!finished) {
-            proc.destroyForcibly();
-            throw new AssertionError("Compiled program timed out: " + executable);
-        }
-        byte[] stdout = proc.getInputStream().readAllBytes();
-        byte[] stderr = proc.getErrorStream().readAllBytes();
-        int exit = proc.exitValue();
-        if (exit != 0) {
-            throw new AssertionError(
-                    "Compiled program exited with status " + exit + "\n"
-                            + "stderr: " + new String(stderr, StandardCharsets.UTF_8));
-        }
-        return new String(stdout, StandardCharsets.UTF_8);
-    }
-
-    private static void deleteRecursively(Path root) throws IOException {
-        if (!Files.exists(root)) return;
-        try (var stream = Files.walk(root)) {
-            stream.sorted(Comparator.reverseOrder()).forEach(p -> {
-                try { Files.deleteIfExists(p); } catch (IOException ignored) {}
-            });
+            LamaSelfHostedDriver.deleteRecursively(workDir);
         }
     }
 }

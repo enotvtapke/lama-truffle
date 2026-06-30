@@ -16,9 +16,9 @@ fun buildTree (depth, k) {
 fun eval (e) {
   case e of
     Num (n)    -> n
-  | Add (a, b) -> eval (a) + eval (b)
-  | Sub (a, b) -> eval (a) - eval (b)
-  | Mul (a, b) -> eval (a) * eval (b)
+  | Add (a, b) -> (eval (a) + eval (b)) % 10007
+  | Sub (a, b) -> ((eval (a) - eval (b)) % 10007 + 10007) % 10007
+  | Mul (a, b) -> (eval (a) * eval (b)) % 10007
   esac
 }
 
@@ -27,7 +27,7 @@ fun bench () {
   var iter, total;
   total := 0;
   for iter := 0, iter < 1500, iter := iter + 1 do
-    total := total + eval (tree)
+    total := (total + eval (tree)) % 10007
   od;
   total
 }

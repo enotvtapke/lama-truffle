@@ -102,7 +102,7 @@ public class LamaBenchmarkTest {
                     bench.canExecute());
 
             for (int i = 0; i < warmup; i++) {
-//                Assert.assertEquals(expected, bench.execute().asLong());
+                Assert.assertEquals(expected, bench.execute().asLong());
             }
 
             long totalNs = 0;
@@ -110,7 +110,7 @@ public class LamaBenchmarkTest {
                 long start = System.nanoTime();
                 Value result = bench.execute();
                 totalNs += System.nanoTime() - start;
-//                Assert.assertEquals(expected, result.asLong());
+                Assert.assertEquals(expected, result.asLong());
             }
             return (double) totalNs / runs / 1_000_000.0;
         }

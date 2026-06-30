@@ -1,14 +1,14 @@
 fun fact (n) {
   if n <= 1
   then 1
-  else n * fact(n - 1)
+  else (n * fact (n - 1)) % 10007
   fi
 }
 fun bench () {
   var total = 0;
   var j;
   for j := 0, j < 1000000, j := j + 1 do
-    total := total + fact(20)
+    total := (total + fact (20)) % 10007
   od;
   total
 }

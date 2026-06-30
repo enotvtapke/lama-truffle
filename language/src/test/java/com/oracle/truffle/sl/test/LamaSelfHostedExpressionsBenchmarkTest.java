@@ -1,60 +1,33 @@
 package com.oracle.truffle.sl.test;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.io.IOAccess;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Benchmarks the self-hosted Lama compiler ({@code compilerSrc/Driver.lama}
- * running on the SL/Truffle interpreter) on synthetic arithmetic-expression
- * programs of growing size.
+ * Benchmarks the self-hosted Lama compiler on synthetic arithmetic-expression
+ * programs of growing size, one JUnit case per size.
  *
- * <p>For each size it:
- * <ol>
- *   <li>generates a balanced arithmetic expression with <em>reasonable
- *       (logarithmic) nesting depth</em> — {@code y := <expr>; write(y)};</li>
- *   <li>compiles it with the self-hosted compiler in the default {@code Build}
- *       mode, passing {@code -dt} so the compiler prints its own parsing time,
- *       and measures the whole compilation wall-clock time;</li>
- *   <li>runs the produced 32-bit native executable and measures its run time;</li>
- *   <li>checks the program's output equals the value computed independently
- *       here in Java.</li>
- * </ol>
+ * <p>For each size it generates a balanced arithmetic expression (logarithmic
+ * nesting depth) {@code y := <expr>; write(y)}, compiles it with the self-hosted
+ * compiler in {@code Build} mode (passing {@code -dt} so the compiler reports its
+ * own parsing time), runs the produced 32-bit native executable, and checks its
+ * output equals the value computed independently here in Java.
  *
- * <p>Mirrors {@link LamaSelfHostedCompilerTest}'s in-JVM {@code Context} setup,
- * but uses {@code Build} mode (so the {@code gcc} link step inside Driver.lama
- * actually produces a binary) instead of parse-only {@code -ast}.
- *
- * <p>Compiled with {@code -noimports}: compiling <em>with</em> imports trips a
- * pre-existing interpreter bug in {@code loadInterface}; with {@code -noimports}
- * the {@code write}/{@code read} symbols are resolved at link time from
- * {@code runtime.a}. Requires a working {@code gcc -m32} toolchain; the test
- * skips itself (via {@link Assume}) when that is unavailable.
+ * <p>The compile/run pipeline and shared compiler engine live in
+ * {@link LamaSelfHostedDriver}.
  */
+@RunWith(Parameterized.class)
 public class LamaSelfHostedExpressionsBenchmarkTest {
-
-    private static final String LANGUAGE_ID = "lama";
-
-    private static final Path LAMA_IMPORTS_DIR = Paths.get("tests", "lama", "imports");
-    private static final Path COMPILER_DIR = Paths.get("tests", "lama", "compilerSrc");
-    private static final Path BUNDLED_RUNTIME_DIR = Paths.get("..", "runtime").toAbsolutePath().normalize();
 
     /** Expression sizes (number of leaf terms) to benchmark. */
     private static final int[] SIZES = {100, 250, 500, 1000, 2000, 4000, 8000};
@@ -64,56 +37,60 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
 
     private static final long RUN_TIMEOUT_SECONDS = 60;
 
-    @Test
-    public void benchmarkArithmeticExpressions() throws Exception {
-        Assume.assumeTrue("requires a working `gcc -m32` toolchain", gccM32Works());
+    private final int size;
+    private final String exprString;
+    private final long expectedValue;
 
-        System.out.printf(Locale.ROOT, "%n%6s %5s %10s %12s %9s %12s %8s%n",
-                "size", "depth", "parse(s)", "compile(s)", "run(s)", "result", "correct");
-        System.out.println("-".repeat(70));
+    public LamaSelfHostedExpressionsBenchmarkTest(int size, String exprString, long expectedValue) {
+        this.size = size;
+        this.exprString = exprString;
+        this.expectedValue = expectedValue;
+    }
 
+    @Parameterized.Parameters(name = "size={0}")
+    public static Collection<Object[]> data() {
+        List<Object[]> params = new ArrayList<>();
         for (int n : SIZES) {
             Expr e = genExpr(n);
-            if (Math.abs(e.value) >= INT_LIMIT) {
-                System.out.printf(Locale.ROOT, "%6d  SKIP: value %d exceeds 31-bit range%n", n, e.value);
-                continue;
-            }
-
-            Path workDir = Files.createTempDirectory("lama-bench-" + n + "-");
-            try {
-                String name = "benchexpr" + n;
-                Files.writeString(workDir.resolve(name + ".lama"),
-                        "var y;\ny := " + e.string + ";\nwrite(y)\n", StandardCharsets.UTF_8);
-
-                long t0 = System.nanoTime();
-                String driverOutput = compileWithSelfHostedDriver(workDir, name);
-                long compileNs = System.nanoTime() - t0;
-
-                Path executable = workDir.resolve(name);
-                Assert.assertTrue(
-                        "self-hosted compiler produced no executable for size " + n
-                                + " (gcc link step failed?):\n" + driverOutput,
-                        Files.isExecutable(executable));
-
-                long r0 = System.nanoTime();
-                String out = runCompiledBinary(executable).trim();
-                long runNs = System.nanoTime() - r0;
-
-                boolean correct = out.equals(Long.toString(e.value));
-                System.out.printf(Locale.ROOT, "%6d %5d %10.4f %12.3f %9.4f %12s %8s%n",
-                        n, parenDepth(e.string), parseParsingTime(driverOutput),
-                        compileNs / 1e9, runNs / 1e9, out, correct ? "OK" : "WRONG");
-
-                Assert.assertEquals("wrong result for size " + n, Long.toString(e.value), out);
-            } finally {
-                deleteRecursively(workDir);
+            // Skip sizes whose value would overflow the native 31-bit integers.
+            if (Math.abs(e.value) < INT_LIMIT) {
+                params.add(new Object[]{n, e.string, e.value});
             }
         }
+        return params;
+    }
 
-        System.out.println("-".repeat(70));
-        System.out.println("parse(s)   = parsing time reported by the compiler itself (-dt)");
-        System.out.println("compile(s) = whole wall-clock compile time (parse + SM + X86 + gcc link)");
-        System.out.println("run(s)     = wall-clock time to run the native executable");
+    @Test
+    public void benchmarkArithmeticExpression() throws Exception {
+        Path workDir = LamaSelfHostedDriver.createWorkDir("lama-expr-bench-" + size + "-");
+        try {
+            String name = "benchexpr" + size;
+            Path unitFile = workDir.resolve(name + ".lama");
+            Files.writeString(unitFile, "var y;\ny := " + exprString + ";\nwrite(y)\n", StandardCharsets.UTF_8);
+
+            long t0 = System.nanoTime();
+            String driverOutput = LamaSelfHostedDriver.compileWithSelfHostedDriver(workDir, unitFile, name, "-dt");
+            long compileNs = System.nanoTime() - t0;
+
+            Path executable = workDir.resolve(name);
+            Assert.assertTrue(
+                    "self-hosted compiler produced no executable for size " + size
+                            + " (gcc link step failed?):\n" + driverOutput,
+                    Files.isExecutable(executable));
+
+            long r0 = System.nanoTime();
+            String out = LamaSelfHostedDriver.runCompiledBinary(executable, null, RUN_TIMEOUT_SECONDS).trim();
+            long runNs = System.nanoTime() - r0;
+
+            System.out.printf(Locale.ROOT,
+                    "[expr size=%d depth=%d] parse=%.4fs compile=%s run=%s result=%s%n",
+                    size, parenDepth(exprString), LamaSelfHostedDriver.parseParsingTime(driverOutput),
+                    LamaSelfHostedDriver.formatMillis(compileNs), LamaSelfHostedDriver.formatMillis(runNs), out);
+
+            Assert.assertEquals("wrong result for size " + size, Long.toString(expectedValue), out);
+        } finally {
+            LamaSelfHostedDriver.deleteRecursively(workDir);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -186,148 +163,5 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
             }
         }
         return max;
-    }
-
-    // ------------------------------------------------------------------
-    // Driving the self-hosted compiler (in-JVM, Build mode, -dt)
-    // ------------------------------------------------------------------
-
-    /**
-     * Runs {@code Driver.lama} in {@code Build} mode (the default) with
-     * {@code -dt -noimports} on {@code <name>.lama} in {@code workDir}. The
-     * compiler writes {@code <name>.s}/{@code .i} there and links a native
-     * executable {@code <name>} via its internal {@code gcc} call. Returns the
-     * driver's captured stdout/stderr (which carries the {@code -dt} timings).
-     */
-    private String compileWithSelfHostedDriver(Path workDir, String name) {
-        Path driverFile = COMPILER_DIR.resolve("Driver.lama").toAbsolutePath().normalize();
-        Assert.assertTrue("Driver.lama missing: " + driverFile, Files.exists(driverFile));
-
-        String unitSearchPath = String.join(File.pathSeparator,
-                LAMA_IMPORTS_DIR.toAbsolutePath().normalize().toString(),
-                COMPILER_DIR.toAbsolutePath().normalize().toString());
-
-        // Driver.lama drops sysargs[0] (the program name = driver path), so the
-        // input file and flags follow it. No mode flag => default Build mode.
-        String[] appArgs = {
-                driverFile.toString(),
-                name + ".lama",
-                "-noimports",
-                "-dt"
-        };
-
-        ByteArrayOutputStream captured = new ByteArrayOutputStream();
-        Source source;
-        try {
-            source = Source.newBuilder(LANGUAGE_ID, driverFile.toFile()).build();
-        } catch (IOException ex) {
-            throw new AssertionError("could not read Driver.lama: " + driverFile, ex);
-        }
-
-        // The parser-combinator-heavy compiler recurses deeply on large
-        // expressions, so run the evaluation on a dedicated thread with a big
-        // stack (the standalone `sl` launcher uses -Xss256m for the same reason).
-        Throwable[] failure = new Throwable[1];
-        Runnable task = () -> {
-            try (Context context = Context.newBuilder(LANGUAGE_ID)
-                    .out(captured)
-                    .err(captured)
-                    .currentWorkingDirectory(workDir.toAbsolutePath())
-                    .options(Map.of("lama.UnitSearchPath", unitSearchPath))
-                    .environment("LAMA", BUNDLED_RUNTIME_DIR.toString())
-                    .allowIO(IOAccess.ALL)
-                    .allowAllAccess(true)
-                    .arguments(LANGUAGE_ID, appArgs)
-                    .build()) {
-                context.eval(source);
-            } catch (Throwable t) {
-                failure[0] = t;
-            }
-        };
-        Thread thread = new Thread(null, task, "lama-self-host-compile", 512L * 1024 * 1024);
-        thread.start();
-        try {
-            thread.join();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new AssertionError("interrupted while compiling", ex);
-        }
-        if (failure[0] != null) {
-            throw new AssertionError(
-                    "self-hosted compiler failed:\n" + captured.toString(StandardCharsets.UTF_8), failure[0]);
-        }
-        return captured.toString(StandardCharsets.UTF_8);
-    }
-
-    /** Parses the {@code "Parsing time : <seconds>"} line printed by {@code -dt}. */
-    private static double parseParsingTime(String driverOutput) {
-        for (String line : driverOutput.split("\n")) {
-            int colon = line.indexOf(':');
-            if (colon > 0 && line.regionMatches(true, 0, "Parsing time", 0, "Parsing time".length())) {
-                try {
-                    return Double.parseDouble(line.substring(colon + 1).trim());
-                } catch (NumberFormatException ignored) {
-                    return Double.NaN;
-                }
-            }
-        }
-        return Double.NaN;
-    }
-
-    /** Runs the produced 32-bit ELF (no stdin needed) and returns its stdout. */
-    private String runCompiledBinary(Path executable) throws IOException, InterruptedException {
-        Process proc = new ProcessBuilder(executable.toAbsolutePath().toString())
-                .redirectErrorStream(false)
-                .start();
-        proc.getOutputStream().close();
-        boolean finished = proc.waitFor(RUN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        if (!finished) {
-            proc.destroyForcibly();
-            throw new AssertionError("compiled program timed out: " + executable);
-        }
-        byte[] stdout = proc.getInputStream().readAllBytes();
-        byte[] stderr = proc.getErrorStream().readAllBytes();
-        if (proc.exitValue() != 0) {
-            throw new AssertionError("compiled program exited with status " + proc.exitValue()
-                    + "\nstderr: " + new String(stderr, StandardCharsets.UTF_8));
-        }
-        return new String(stdout, StandardCharsets.UTF_8);
-    }
-
-    // ------------------------------------------------------------------
-    // Toolchain probe / cleanup
-    // ------------------------------------------------------------------
-
-    private static boolean gccM32Works() {
-        Path src = null;
-        Path out = null;
-        try {
-            src = Files.createTempFile("m32probe", ".c");
-            out = Files.createTempFile("m32probe", ".out");
-            Files.writeString(src, "int main(void){return 0;}");
-            Process p = new ProcessBuilder("gcc", "-m32", src.toString(), "-o", out.toString())
-                    .redirectErrorStream(true).start();
-            return p.waitFor(60, TimeUnit.SECONDS) && p.exitValue() == 0;
-        } catch (IOException | InterruptedException ex) {
-            return false;
-        } finally {
-            try {
-                if (src != null) Files.deleteIfExists(src);
-                if (out != null) Files.deleteIfExists(out);
-            } catch (IOException ignored) {
-            }
-        }
-    }
-
-    private static void deleteRecursively(Path root) throws IOException {
-        if (!Files.exists(root)) return;
-        try (var stream = Files.walk(root)) {
-            stream.sorted(Comparator.reverseOrder()).forEach(p -> {
-                try {
-                    Files.deleteIfExists(p);
-                } catch (IOException ignored) {
-                }
-            });
-        }
     }
 }

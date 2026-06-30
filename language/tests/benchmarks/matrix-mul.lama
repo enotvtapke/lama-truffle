@@ -47,7 +47,7 @@ fun bench () {
   var iter, total;
   total := 0;
   for iter := 0, iter < 12, iter := iter + 1 do
-    total := total + trace (multiply (a, b, n), n)
+    total := (total + trace (multiply (a, b, n), n)) % 10007
   od;
   total
 }

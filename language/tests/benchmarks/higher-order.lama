@@ -25,7 +25,7 @@ fun bench () {
   for iter := 0, iter < 2000, iter := iter + 1 do
     lin := makeLinear (iter % 13, 1);
     h := compose (lin, lin);
-    total := total + sumRange (h, 3000)
+    total := (total + sumRange (h, 3000)) % 10007
   od;
   total
 }
