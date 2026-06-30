@@ -9,22 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 
-/**
- * Runs the self-hosted Lama compiler over the real benchmark programs under
- * {@code tests/benchmarks} — the same {@code .lama} files exercised by
- * {@link LamaBenchmarkTest}, one test method each.
- *
- * <p>The benchmarks end with the bare entry function {@code bench} (so
- * {@link LamaBenchmarkTest} can call it through the polyglot API); a native
- * binary instead needs to actually <em>invoke</em> it, so the trailing
- * {@code bench} is rewritten to {@code write (bench ())}. Each benchmark keeps
- * its arithmetic within 31 bits (via modulo), so the native (31-bit) result
- * equals the {@code .expected} 64-bit oracle and is asserted.
- *
- * <p>The benchmark names are valid Lama identifiers (the self-hosted compiler
- * names the compilation unit after the input file). The compile/run pipeline
- * and shared compiler engine live in {@link LamaSelfHostedDriver}.
- */
 public class LamaSelfHostedSuiteBenchmarkTest {
 
     private static final Path BENCHMARKS_DIR = Paths.get("tests", "benchmarks");
@@ -104,10 +88,6 @@ public class LamaSelfHostedSuiteBenchmarkTest {
             LamaSelfHostedDriver.deleteRecursively(workDir);
         }
     }
-
-    // ------------------------------------------------------------------
-    // Benchmark source rewriting
-    // ------------------------------------------------------------------
 
     /**
      * Rewrites a benchmark whose final top-level expression is the bare entry

@@ -13,19 +13,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Benchmarks the self-hosted Lama compiler on synthetic arithmetic-expression
- * programs of growing size, one JUnit case per size.
- *
- * <p>For each size it generates a balanced arithmetic expression (logarithmic
- * nesting depth) {@code y := <expr>; write(y)}, compiles it with the self-hosted
- * compiler in {@code Build} mode (passing {@code -dt} so the compiler reports its
- * own parsing time), runs the produced 32-bit native executable, and checks its
- * output equals the value computed independently here in Java.
- *
- * <p>The compile/run pipeline and shared compiler engine live in
- * {@link LamaSelfHostedDriver}.
- */
 @RunWith(Parameterized.class)
 public class LamaSelfHostedExpressionsBenchmarkTest {
 
@@ -90,30 +77,8 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Expression generation
-    // ------------------------------------------------------------------
+    private record Expr(String string, long value) { }
 
-    /** A generated expression: its fully-parenthesised text and its value. */
-    private static final class Expr {
-        final String string;
-        final long value;
-
-        Expr(String string, long value) {
-            this.string = string;
-            this.value = value;
-        }
-    }
-
-    /**
-     * A balanced binary tree over {@code n} leaf terms. Each leaf is a small
-     * parenthesised {@code (a op b)} of two digits (value &le; 81); the leaves
-     * are folded pairwise with alternating {@code +}/{@code -} into a balanced
-     * tree, so the value stays bounded (&le; 81*n) while the nesting depth is
-     * only ~log2(n). Full parenthesisation makes the value independent of
-     * Lama's precedence/associativity, so the value computed here is a faithful
-     * oracle for the compiled program's output.
-     */
     private static Expr genExpr(int n) {
         String[] ops = {"*", "+", "-"};
         List<Expr> terms = new ArrayList<>(n);
@@ -145,7 +110,7 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
             terms = next;
             level++;
         }
-        return terms.get(0);
+        return terms.getFirst();
     }
 
     private static int parenDepth(String s) {

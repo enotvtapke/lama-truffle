@@ -14,25 +14,14 @@ import java.util.*;
  * Runs every program under {@code tests/lama/compiler} through the self-hosted
  * Lama compiler, executes the resulting native binary (feeding it the matching
  * {@code .input}) and checks its stdout against the {@code .log} oracle.
- *
- * <p>The compile/run pipeline and the shared compiler engine live in
- * {@link LamaSelfHostedDriver}.
  */
 @RunWith(Parameterized.class)
 public class LamaSelfHostedCompilerTest {
 
     private static final Path TESTS_DIR = Paths.get("tests", "lama", "compiler");
 
-    /**
-     * Programs the self-hosted compiler in {@code compilerSrc/} currently
-     * rejects. These are real gaps in the student compiler, not in the
-     * test harness — {@code SM.lama} still misses a few AST shapes. Move
-     * a test out of this list once the compiler gains the corresponding
-     * feature.
-     */
     private static final List<String> IGNORED_TESTS = List.of(
             "test045"
-//            , "generated00010"
     );
 
     /** Time budget for the compiled binary to consume its input and exit. */
@@ -95,7 +84,6 @@ public class LamaSelfHostedCompilerTest {
             String actualOutput = LamaSelfHostedDriver.runCompiledBinary(executable, inputFile, RUN_TIMEOUT_SECONDS);
             long runNs = System.nanoTime() - runStart;
 
-            // One concise line per test, surfaced via Surefire's stdout.
             System.out.printf("[%s] compile=%s, run=%s%n",
                     testName, LamaSelfHostedDriver.formatMillis(compileNs), LamaSelfHostedDriver.formatMillis(runNs));
 

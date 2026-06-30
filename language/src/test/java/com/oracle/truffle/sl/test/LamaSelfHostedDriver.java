@@ -22,23 +22,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Shared in-JVM pipeline for driving the self-hosted Lama compiler
- * ({@code compilerSrc/Driver.lama} running on the SL/Truffle interpreter) and
- * running the native binaries it produces. Extracted from
- * {@code LamaSelfHostedCompilerTest} and reused by it,
- * {@code LamaSelfHostedExpressionsBenchmarkTest} and
- * {@code LamaSelfHostedSuiteBenchmarkTest}.
- *
- * <p>A single {@link Engine} is shared across every test (and every test class):
- * Lama is registered {@code ContextPolicy.SHARED}, so the compiler is parsed
- * only once for the whole suite, while each compilation still runs in its own
- * isolated {@link Context} (own args, cwd, IO and module state). The engine is
- * created lazily on first use and lives for the JVM's lifetime.
- *
- * <p>This is a helper, not a test (its name intentionally does not end in
- * {@code Test}), so Surefire does not try to run it.
- */
 final class LamaSelfHostedDriver {
 
     static final String LANGUAGE_ID = "lama";
@@ -68,18 +51,6 @@ final class LamaSelfHostedDriver {
         engine = Engine.newBuilder().build();
     }
 
-    /**
-     * Runs {@code compilerSrc/Driver.lama} on a fresh {@link Context} (built on
-     * the shared {@link #engine}) with {@code unitFile} as its sole user
-     * argument plus any {@code extraArgs} (e.g. {@code "-dt"}). Build mode is the
-     * default, so the {@code gcc} link step produces a native executable named
-     * after {@code unitFile} in {@code workDir}. {@code LAMA} points at the
-     * bundled runtime and the working directory is {@code workDir}, so the
-     * compiler's file IO and its link step both happen there.
-     *
-     * @param label short identifier used only in failure messages
-     * @return whatever the driver wrote to stdout/stderr (carries {@code -dt} timings)
-     */
     static String compileWithSelfHostedDriver(Path workDir, Path unitFile, String label, String... extraArgs) {
         ensureInitialized();
 
@@ -116,11 +87,6 @@ final class LamaSelfHostedDriver {
         return captured.toString(StandardCharsets.UTF_8);
     }
 
-    /**
-     * Runs the produced 32-bit ELF, feeding {@code inputFile} (when non-null and
-     * present) to its stdin, and returns its stdout. Fails the test if the
-     * program does not exit cleanly within {@code timeoutSeconds}.
-     */
     static String runCompiledBinary(Path executable, Path inputFile, long timeoutSeconds)
             throws IOException, InterruptedException {
         Process proc = new ProcessBuilder(executable.toAbsolutePath().toString())
