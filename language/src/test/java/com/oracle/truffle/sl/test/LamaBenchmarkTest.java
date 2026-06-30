@@ -34,7 +34,7 @@ public class LamaBenchmarkTest {
 
     @Test
     public void bubbleSort() throws IOException {
-        runBenchmark("bubble-sort", 5);
+        runBenchmark("bubbleSort", 5);
     }
 
     @Test
@@ -44,17 +44,17 @@ public class LamaBenchmarkTest {
 
     @Test
     public void matrixMul() throws IOException {
-        runBenchmark("matrix-mul", 1.5);
+        runBenchmark("matrixMul", 1.5);
     }
 
     @Test
     public void higherOrder() throws IOException {
-        runBenchmark("higher-order");
+        runBenchmark("higherOrder");
     }
 
     @Test
     public void sexpEval() throws IOException {
-        runBenchmark("sexp-eval");
+        runBenchmark("sexpEval");
     }
 
     @Test

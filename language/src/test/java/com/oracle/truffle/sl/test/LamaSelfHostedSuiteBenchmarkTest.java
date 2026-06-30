@@ -28,10 +28,9 @@ import java.util.stream.Stream;
  * its arithmetic within 31 bits (via modulo), so the native (31-bit) result
  * equals the {@code .expected} 64-bit oracle and is asserted.
  *
- * <p>One front-end quirk is worked around: the self-hosted compiler requires
- * the input filename to be a valid Lama identifier, so {@code bubble-sort} is
- * written as {@code bubblesort} (see {@link #unitName}). The compile/run
- * pipeline and shared compiler engine live in {@link LamaSelfHostedDriver}.
+ * <p>The benchmark names are valid Lama identifiers (the self-hosted compiler
+ * names the compilation unit after the input file). The compile/run pipeline
+ * and shared compiler engine live in {@link LamaSelfHostedDriver}.
  */
 @RunWith(Parameterized.class)
 public class LamaSelfHostedSuiteBenchmarkTest {
@@ -63,21 +62,18 @@ public class LamaSelfHostedSuiteBenchmarkTest {
 
     @Test
     public void benchmark() throws Exception {
-        // The self-hosted compiler names the compilation unit after the file, so
-        // it must be a valid Lama identifier: "bubble-sort" -> "bubblesort".
-        String unit = unitName(name);
-        Path workDir = LamaSelfHostedDriver.createWorkDir("lama-suite-bench-" + unit + "-");
+        Path workDir = LamaSelfHostedDriver.createWorkDir("lama-suite-bench-" + name + "-");
         try {
             String runnable = toRunnableSource(
                     Files.readString(BENCHMARKS_DIR.resolve(name + ".lama"), StandardCharsets.UTF_8));
-            Path unitFile = workDir.resolve(unit + ".lama");
+            Path unitFile = workDir.resolve(name + ".lama");
             Files.writeString(unitFile, runnable, StandardCharsets.UTF_8);
 
             long t0 = System.nanoTime();
             String driverOutput = LamaSelfHostedDriver.compileWithSelfHostedDriver(workDir, unitFile, name, "-dt");
             long compileNs = System.nanoTime() - t0;
 
-            Path executable = workDir.resolve(unit);
+            Path executable = workDir.resolve(name);
             Assert.assertTrue(
                     "self-hosted compiler produced no executable for " + name + ":\n" + driverOutput,
                     Files.isExecutable(executable));
@@ -116,10 +112,5 @@ public class LamaSelfHostedSuiteBenchmarkTest {
 
     private static String expectedOf(String name) throws IOException {
         return Files.readString(BENCHMARKS_DIR.resolve(name + ".expected"), StandardCharsets.UTF_8).trim();
-    }
-
-    /** A valid Lama compilation-unit identifier derived from a benchmark name (drops {@code -}, {@code _}, …). */
-    private static String unitName(String name) {
-        return name.replaceAll("[^A-Za-z0-9]", "");
     }
 }
