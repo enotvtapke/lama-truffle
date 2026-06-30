@@ -14,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -49,7 +48,7 @@ import java.util.concurrent.TimeUnit;
  * {@code runtime.a}. Requires a working {@code gcc -m32} toolchain; the test
  * skips itself (via {@link Assume}) when that is unavailable.
  */
-public class LamaSelfHostedBenchmarkTest {
+public class LamaSelfHostedExpressionsBenchmarkTest {
 
     private static final String LANGUAGE_ID = "lama";
 
@@ -58,7 +57,7 @@ public class LamaSelfHostedBenchmarkTest {
     private static final Path BUNDLED_RUNTIME_DIR = Paths.get("..", "runtime").toAbsolutePath().normalize();
 
     /** Expression sizes (number of leaf terms) to benchmark. */
-    private static final int[] SIZES = {100, 250, 500, 1000, 2000, 4000};
+    private static final int[] SIZES = {100, 250, 500, 1000, 2000, 4000, 8000};
 
     /** The native runtime uses 31-bit tagged integers, so keep |value| < 2^30. */
     private static final long INT_LIMIT = 1L << 30;
