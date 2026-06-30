@@ -40,7 +40,7 @@ fun trace (m, n) {
   s
 }
 
-var n = 200;
+var n = 175;
 var a = makeMatrix (n, 1);
 var b = makeMatrix (n, 2);
 fun bench () {
