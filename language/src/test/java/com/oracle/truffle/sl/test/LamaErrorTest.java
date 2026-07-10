@@ -77,6 +77,12 @@ public class LamaErrorTest {
     }
 
     @Test
+    public void infixAtWithExplicitAssociativityRejected() {
+        assertSyntaxError("infixl <+> at + (a, b) { a + b * 10 } write(1 <+> 2)",
+                "Associativity for infix \"<+>\" cannot be specified with 'at' (it is inherited from \"+\")");
+    }
+
+    @Test
     public void malformedSyntax() {
         assertSyntaxError("var x = ", "Error(s) parsing script");
     }

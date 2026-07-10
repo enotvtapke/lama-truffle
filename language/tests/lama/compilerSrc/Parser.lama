@@ -797,6 +797,12 @@ var
                | kBefore {fun (x) {Before (x)}}
                | kAfter  {fun (x) {After  (x)}})
       anchor = infixx {
+        case level (anchor) of
+          At (_) -> if compare (ass, Nona) != 0
+                    then error (sprintf ("Associativity for infix ""%s"" cannot be specified with 'at' (it is inherited from ""%s"")", inf, anchor), loc)
+                    fi
+        | _      -> skip
+        esac;
         case infixName (inf) of
           fn -> reLoc (inf, fn);
                 [p, loc, inf, fn, [ass, level (anchor)], registerInfix (pa, ass, inf, level (anchor), fn, loc)]

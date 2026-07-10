@@ -1,6 +1,6 @@
 var x = read ();
 
-infixl +-+ at + ({x}, {y, z}) {
+infix +-+ at + ({x}, {y, z}) {
   {x, y, z}
 }
 

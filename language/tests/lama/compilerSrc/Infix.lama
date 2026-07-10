@@ -32,6 +32,9 @@ public fun predefined (inf) {
 --   After (inf) / Before (inf) / At (inf)
 -- assty is associativity specifier in the form
 --   Left / Right / Nona
+-- For At the associativity is inherited from the anchor
+--   level and assty is ignored (the parser rejects an
+--   explicit associativity combined with "at")
 -- inf is an infix sign
 -- name is an internal function name associated with
 --   the infix
@@ -52,11 +55,7 @@ public fun addInfix (infixes, pos, assty, inf, name, loc) {
             case pos of
               Before (_) -> [assty, {[inf, Custom (name)]}] : current
             | After  (_) -> head : [assty, {[inf, Custom (name)]}] : tail
-            | At     (_) ->
-               if compare (assty, currAssty) != 0
-               then error (sprintf ("the associativity for ""%s"" has to coincide with that for ""%s""", inf, anchor), loc)
-               else [currAssty, [inf, Custom (name)] : ops] : tail
-               fi
+            | At     (_) -> [currAssty, [inf, Custom (name)] : ops] : tail
             esac
         esac
     | {} -> error (sprintf ("no infix operator ""%s"" is found in the scope", anchor), loc)
