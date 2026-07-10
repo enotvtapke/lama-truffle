@@ -77,6 +77,11 @@ public class LamaTranslator {
         if (content == null) return;
 
         InterfaceFileParser.InterfaceFile interfaceFile = InterfaceFileParser.parse(content);
+        // Infix entries may be declared relative to operators coming from the modules
+        // this interface imports, so imported interfaces must be processed first
+        for (String dependency : interfaceFile.imports()) {
+            processInterfaceFile(dependency);
+        }
         for (InterfaceFileParser.InfixEntry entry : interfaceFile.infixEntries()) {
             switch (entry.position()) {
                 case AT -> scopeManager.addInfixAt(entry.operator(), entry.referenceOperator());
