@@ -1,3 +1,3 @@
 I,Std;
-F,makeLazy;
-F,force;
+F,makeLazy,1;
+F,force,1;

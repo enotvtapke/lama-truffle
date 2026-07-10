@@ -1,9 +1,9 @@
-I,Std;
-I,List;
 I,Fun;
-F,i__Infix_6162;
-F,i__Infix_616262;
-F,returnST;
-F,chainST;
-L,"=>",A,":=";
-L,"=>>",T,"=>";
+I,List;
+I,Std;
+F,i__Infix_6162,2;
+L,"=>",B,"$";
+F,i__Infix_616262,2;
+N,"=>>",T,"=>";
+F,returnST,1;
+F,chainST,1;

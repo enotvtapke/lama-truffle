@@ -1,7 +1,7 @@
-I,Std;
 I,Array;
-F,randomInt;
-F,randomString;
-F,randomArray;
-F,split;
-F,structure;
+I,Std;
+F,randomInt,0;
+F,randomString,1;
+F,randomArray,2;
+F,split,2;
+F,structure,3;

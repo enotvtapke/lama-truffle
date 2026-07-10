@@ -830,9 +830,11 @@ var
 
   var publicity = memo $ eta syntax (p=kPublic? {case p of None -> false | _ -> true esac});
 
+  var varIntro = memo $ eta syntax (p=publicity -kVar {p} | -kPublic {true});
+
   fun definition (pa) {
     syntax (
-      p=publicity  kVar ds=list[syntax (x=lident e=(-s["="] basic[pa])? {case e of
+      p=varIntro ds=list[syntax (x=lident e=(-s["="] basic[pa])? {case e of
                                                                            None -> returnST $ [x, None]
                                                                          | Some (e) ->
                                                                            e (Val) => fun (e) {[x, Some (e)]}
