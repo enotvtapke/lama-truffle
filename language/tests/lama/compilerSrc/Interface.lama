@@ -8,7 +8,60 @@ import Collection;
 import Ref;
 import Infix;
 
+-- Registers the infix operators declared in unit's interface file (and,
+-- recursively, in the interfaces it imports) into the context's infix table.
+-- Infix entries may be anchored at operators coming from the imported units,
+-- so imports are processed first; the context remembers which units were
+-- already processed so each unit's infixes are registered at most once.
+fun registerImportedInfixes (paths, unit, c) {
+  fun infixRegContext (c) {
+    [fun (d) {
+       case d of
+         Extern (_, _, Import (_, coUnit)) -> infixRegContext (registerImportedInfixes (paths, coUnit, c))
+       | _                                 -> infixRegContext (c)
+       esac
+     },
+     fun (ass, op, pos) {infixRegContext (onInfix (c, ass, op, pos))},
+     fun (_, _) {infixRegContext (c)},
+     fun () {c}
+    ]
+  }
+
+  fun rec (c, ps) {
+    case ps of
+      {}          -> c
+    | path : rest ->
+        case sprintf ("%s/%s.i", path, unit) of
+          fname ->
+            if fexists (fname)
+            then case parseString (syntax (intface -end), fread (fname)) of
+                   Succ (make)           -> make (unit, path, false, infixRegContext (c)) [3] ()
+                 | Fail (err, line, col) -> failure ("interface file: %s at %d:%d\n", err.hd, line, col)
+                 esac
+            else rec (c, rest)
+            fi
+        esac
+    esac
+  }
+
+  if c.isProcessed (unit)
+  then c
+  else rec (c.markProcessed (unit), paths)
+  fi
+}
+
 public fun loadInterface (paths, unit, explicity, callBacks) {
+  -- Infixes (including those of transitively imported units) are registered
+  -- by registerImportedInfixes above, so the main pass loads declarations
+  -- with infix registration suppressed.
+  fun noInfixContext (c) {
+    [fun (d)       {noInfixContext (addDecl (c, d))},
+     fun (_, _, _) {noInfixContext (c)},
+     fun (p, i)    {noInfixContext (addImport (c, p, i))},
+     fun ()        {c}
+    ]
+  }
+
   -- NB: this used `fix` over a two-argument function, but `fix` only supports
   -- single-argument recursion (it applies f(rec) to one arg), so the recursive
   -- step read a non-existent second argument and crashed. Hence imports only
@@ -21,7 +74,7 @@ public fun loadInterface (paths, unit, explicity, callBacks) {
           fname ->
              if fexists (fname)
              then case parseString (syntax (intface -end), fread (fname)) of
-                    Succ (make)             -> make (unit, path, explicity, cb)
+                    Succ (make)             -> make (unit, path, explicity, noInfixContext (cb)) [3] ()
                   | x@Fail (err, line, col) -> failure ("interface file: %s at %d:%d\n", err.hd, line, col)
                   esac
              else rec (cb, rest)
@@ -30,7 +83,7 @@ public fun loadInterface (paths, unit, explicity, callBacks) {
     esac
   }
 
-  rec (callBacks, paths)
+  rec (registerImportedInfixes (paths, unit, callBacks), paths)
 }
 
 public fun toInterface (p) {
@@ -55,16 +108,16 @@ public fun toInterface (p) {
 }
 
 public fun createContext (initInfixTable, onInfix) {
-  makeContext ({}, emptySet (compare), initInfixTable, onInfix)
+  makeContext ({}, emptySet (compare), initInfixTable, onInfix, emptySet (compare))
 }
 
-fun makeContext (decls, imports, infixTable, onInfix_) {
+fun makeContext (decls, imports, infixTable, onInfix_, processed) {
   fun addDecl (d) {
-    makeContext (d : decls, imports, infixTable, onInfix_)
+    makeContext (d : decls, imports, infixTable, onInfix_, processed)
   }
 
   fun addImport (path, i) {
-    makeContext (decls, addSet (imports, [path, i]), infixTable, onInfix_)
+    makeContext (decls, addSet (imports, [path, i]), infixTable, onInfix_, processed)
   }
   
   fun getDecls () {
@@ -76,7 +129,7 @@ fun makeContext (decls, imports, infixTable, onInfix_) {
   }
   
   fun onInfix (ass, op, pos) {
-    makeContext (decls, imports, onInfix_ (infixTable, ass, op, pos), onInfix_)
+    makeContext (decls, imports, onInfix_ (infixTable, ass, op, pos), onInfix_, processed)
   }
 
   fun getDependentUnits (paths) {
@@ -130,7 +183,12 @@ fun makeContext (decls, imports, infixTable, onInfix_) {
        },
        fun () {
          acc
-       }
+       },
+       0, 0, 0,
+       -- isProcessed/markProcessed: the dependent-units traversal ignores
+       -- infixes, so pretend every unit is already processed
+       fun (_) {true},
+       fun (_) {localContext (acc)}
       ]
     }
 
@@ -168,7 +226,9 @@ fun makeContext (decls, imports, infixTable, onInfix_) {
     getUnits ()
   }
 
-  [addDecl, onInfix, addImport, getDecls, getImports, getDependentUnits, fun () {infixTable}]
+  [addDecl, onInfix, addImport, getDecls, getImports, getDependentUnits, fun () {infixTable},
+   fun (unit) {memSet (processed, unit)},
+   fun (unit) {makeContext (decls, imports, infixTable, onInfix_, addSet (processed, unit))}]
 }
 
 fun addDecl (c, d) {
@@ -177,6 +237,14 @@ fun addDecl (c, d) {
 
 fun onInfix (c, ass, op, pos) {
   c [1] (ass, op, pos)
+}
+
+fun isProcessed (c, unit) {
+  c [7] (unit)
+}
+
+fun markProcessed (c, unit) {
+  c [8] (unit)
 }
 
 fun addImport (c, p, i) {
