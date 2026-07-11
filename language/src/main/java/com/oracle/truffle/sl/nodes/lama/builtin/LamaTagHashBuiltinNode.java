@@ -21,10 +21,18 @@ public abstract class LamaTagHashBuiltinNode extends LamaBuiltinNode {
         }
     }
 
+    /** Low 32 bits, matching the machine word of the (32-bit) code the compiler emits. */
+    private static final long WORD_MASK = 0xFFFFFFFFL;
+
     /**
      * Packs an S-expression tag into an integer. Only the first
      * {@link #MAX_SEXP_TAGLEN} characters contribute; characters outside the
      * 6-bit alphabet throw.
+     *
+     * <p>Ten 6-bit characters would occupy 60 bits, but the compiler targets a
+     * 32-bit machine and emits this value as a {@code movl} immediate, so only
+     * the low 32 bits ever survive (the assembler silently truncates a wider
+     * literal).
      */
     private static long tagHash(String tag) {
         long h = 0;
@@ -38,6 +46,6 @@ public abstract class LamaTagHashBuiltinNode extends LamaBuiltinNode {
                 );
             h = (h << 6) | pos;
         }
-        return h;
+        return h & WORD_MASK;
     }
 }
