@@ -67,8 +67,8 @@
                -Xss64m
                --add-exports=java.base/jdk.internal.module=truffle.tck
                --add-opens=org.graalvm.truffle/com.oracle.truffle.polyglot=ALL-UNNAMED
-               --add-opens=org.graalvm.truffle/com.oracle.truffle.runtime=ALL-UNNAMED
-               --add-opens=org.graalvm.truffle/com.oracle.truffle.runtime.hotspot=ALL-UNNAMED
+               --enable-native-access=org.graalvm.truffle,ALL-UNNAMED
+               --sun-misc-unsafe-memory-access=allow
             </argLine>
             <includes>
               <include>**/*TestSuite.java</include>
