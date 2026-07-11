@@ -54,7 +54,7 @@ class LamaPatternTranslator {
             case LamaParser.CharPatternContext c ->
                     LongLiteralPatternNodeGen.create(LamaTranslator.parseCharLiteral(c.CHAR().getText()));
             case LamaParser.StringPatternContext c ->
-                    StringLiteralPatternNodeGen.create(LamaTranslator.parseStringLiteral(c.STRING().getText()));
+                    StringLiteralPatternNodeGen.create(LamaTranslator.parseStringLiteral(c.STRING().getText(), c.STRING().getSymbol()));
             case LamaParser.TruePatternContext c -> LongLiteralPatternNodeGen.create(1L);
             case LamaParser.FalsePatternContext c -> LongLiteralPatternNodeGen.create(0L);
             case LamaParser.SExprPatternContext c -> {

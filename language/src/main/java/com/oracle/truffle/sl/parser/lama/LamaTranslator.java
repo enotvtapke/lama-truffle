@@ -419,7 +419,7 @@ public class LamaTranslator {
             case LamaParser.ForPrimaryContext c -> parseForExpression(c.forExpression());
             case LamaParser.SkipPrimaryContext c -> setSrc(new LamaLongLiteralNode(0L), c);
             case LamaParser.ArrayPrimaryContext c -> parseArrayExpression(c.arrayExpression());
-            case LamaParser.StringPrimaryContext c -> setSrc(new LamaStringLiteralNode(parseStringLiteral(c.STRING().getText())), c);
+            case LamaParser.StringPrimaryContext c -> setSrc(new LamaStringLiteralNode(parseStringLiteral(c.STRING().getText(), c.STRING().getSymbol())), c);
             case LamaParser.CharPrimaryContext c -> setSrc(new LamaLongLiteralNode(parseCharLiteral(c.CHAR().getText())), c);
             case LamaParser.SExprPrimaryContext c -> parseSExpression(c.sExpression());
             case LamaParser.ListPrimaryContext c -> parseListExpression(c.listExpression());
@@ -461,17 +461,7 @@ public class LamaTranslator {
         ), ctx);
     }
 
-    static String parseStringLiteral(String rawText) {
-        // Reference Lama's runtime semantics (see X86_64.ml, `method string`):
-        // the assembler interprets `\n`, `\t`, `\r` inside `.string`
-        // directives as the corresponding control bytes, but any other
-        // `\X` sequence is emitted with an escaped backslash — i.e. it
-        // stays as two characters at runtime. So `"var\b"` is a 5-byte
-        // string at runtime (the `\b` stays literal, which the POSIX /
-        // Java regex engine then treats as a word boundary), while
-        // `"a\nb"` is a 3-byte string (newline between `a` and `b`).
-        //
-        // `""` escapes a single double quote (Ostap string-lexer rule).
+    static String parseStringLiteral(String rawText, Token token) {
         String inner = rawText.substring(1, rawText.length() - 1);
         StringBuilder out = new StringBuilder(inner.length());
         int i = 0;
@@ -482,14 +472,21 @@ public class LamaTranslator {
                 i += 2;
                 continue;
             }
-            if (c == '\\' && i + 1 < inner.length()) {
+            if (c == '\\') {
+                if (i + 1 >= inner.length()) {
+                    throw createParseError(null, token.getLine(), token.getCharPositionInLine(), token,
+                                    "invalid escape sequence: lone '\\' at the end of a string literal");
+                }
                 char next = inner.charAt(i + 1);
                 switch (next) {
-                    case 'n' -> { out.append('\n'); i += 2; continue; }
-                    case 't' -> { out.append('\t'); i += 2; continue; }
-                    case 'r' -> { out.append('\r'); i += 2; continue; }
-                    default  -> { /* preserve both chars verbatim */ }
+                    case 'n' -> out.append('\n');
+                    case 't' -> out.append('\t');
+                    case '\\' -> out.append('\\');
+                    default -> throw createParseError(null, token.getLine(), token.getCharPositionInLine(), token,
+                                    "invalid escape sequence \"\\" + next + "\" in string literal");
                 }
+                i += 2;
+                continue;
             }
             out.append(c);
             i++;

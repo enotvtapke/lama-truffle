@@ -405,6 +405,7 @@ static StringBuf stringBuf;
 
 static void createStringBuf () {
   stringBuf.contents = (char*) malloc (STRINGBUF_INIT);
+  stringBuf.contents[0] = 0;
   stringBuf.ptr      = 0;
   stringBuf.len      = STRINGBUF_INIT;
 }
@@ -635,11 +636,16 @@ extern struct re_pattern_buffer* STD(regexp) (char *regexp) {
   regex_t *b = (regex_t*) malloc (sizeof (regex_t));
 
   memset (b, 0, sizeof (regex_t));
-  
-  int n = (int) re_compile_pattern (regexp, strlen (regexp), b);
-  
-  if (n != 0) {
-    failure ("%", strerror (n));
+
+  /* Lama regexps are written in POSIX ERE syntax ('(...|...)' groups,
+     '\(' literal paren), matching the Truffle interpreter's engine; the
+     GNU default (Emacs syntax: literal '(', '\(' group) is the opposite. */
+  re_syntax_options = RE_SYNTAX_POSIX_EXTENDED;
+
+  const char *err = re_compile_pattern (regexp, strlen (regexp), b);
+
+  if (err != 0) {
+    failure ("regexp: %s in pattern \"%s\"\n", (char*) err, regexp);
   };
 
   return b;

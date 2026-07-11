@@ -307,6 +307,7 @@ fun makeEnv (unitName, stack, stackSlots, globals, strings, stringIndex, barrier
         for skip, i < s.length, i := i+1 do
           case s[i] of
             '"'  -> escaped [j] :='\'; escaped [j+1] := '"'; j := j+2
+          | '\'  -> escaped [j] :='\'; escaped [j+1] := '\'; j := j+2
           | '\n' -> escaped [j] :='\'; escaped [j+1] := 'n'; j := j+2
           | '\t' -> escaped [j] :='\'; escaped [j+1] := 't'; j := j+2
           | c    -> escaped [j] := c; j := j+1
