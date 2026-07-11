@@ -22,7 +22,7 @@ import java.util.Locale;
  * plus the driver's own parse / stack-machine / x86 phase timings, and a grand
  * total at the end.
  */
-public class LamaBootstrappedCompilerBenchmarkTest {
+public class LamaSelfHostedCompilerBootstrappingBenchmarkTest {
 
     private static final Path IMPORTS_DIR = Paths.get("tests", "lama", "imports");
     private static final Path COMPILER_DIR = Paths.get("tests", "lama", "compilerSrc");
