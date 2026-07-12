@@ -42,23 +42,66 @@ package com.oracle.truffle.sl.nodes.lama;
 
 import com.oracle.truffle.api.dsl.TypeSystemReference;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.instrumentation.GenerateWrapper;
+import com.oracle.truffle.api.instrumentation.InstrumentableNode;
+import com.oracle.truffle.api.instrumentation.ProbeNode;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import com.oracle.truffle.api.strings.TruffleString;
 
 /**
- * Base class for all SL nodes that produce a value and therefore benefit from type specialization.
- * The annotation {@link TypeSystemReference} specifies the SL types. Specifying it here defines the
- * type system for all subclasses.
+ * Base class for all Lama nodes that produce a value. Every Lama expression can also be used as a
+ * statement (its value is simply discarded), so this single base class carries the instrumentation
+ * support used by the debugger, profiler, coverage and tracing tools.
  */
 @TypeSystemReference(LamaTypes.class)
-@NodeInfo(description = "The abstract base node for all expressions")
-public abstract class LamaExpressionNode extends LamaNode {
+@NodeInfo(language = "Lama", description = "The abstract base node for all expressions")
+@GenerateWrapper
+public abstract class LamaExpressionNode extends LamaNode implements InstrumentableNode {
+
+    private boolean hasStatementTag;
+    private boolean hasRootTag;
+    private boolean hasExpressionTag;
 
     public abstract Object executeGeneric(VirtualFrame frame);
 
     public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
         return LamaTypesGen.expectLong(executeGeneric(frame));
+    }
+
+    @Override
+    public boolean isInstrumentable() {
+        return hasSource();
+    }
+
+    @Override
+    public WrapperNode createWrapper(ProbeNode probe) {
+        return new LamaExpressionNodeWrapper(this, probe);
+    }
+
+    @Override
+    public boolean hasTag(Class<? extends Tag> tag) {
+        if (tag == StandardTags.StatementTag.class) {
+            return hasStatementTag;
+        } else if (tag == StandardTags.RootTag.class || tag == StandardTags.RootBodyTag.class) {
+            return hasRootTag;
+        } else if (tag == StandardTags.ExpressionTag.class) {
+            return hasExpressionTag;
+        }
+        return false;
+    }
+
+    public final void addStatementTag() {
+        hasStatementTag = true;
+    }
+
+    public final void addRootTag() {
+        hasRootTag = true;
+    }
+
+    // TODO mark statements in parser like in SL
+    public final void addExpressionTag() {
+        hasExpressionTag = true;
     }
 }

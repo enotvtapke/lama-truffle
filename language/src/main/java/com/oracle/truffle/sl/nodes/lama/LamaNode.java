@@ -1,14 +1,22 @@
 package com.oracle.truffle.sl.nodes.lama;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.frame.Frame;
+import com.oracle.truffle.api.interop.NodeLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 
 /**
- * Common base for all Lama AST nodes. Provides lazy source section support.
+ * Common base for all Lama AST nodes. Provides lazy source section support and, via
+ * {@link NodeLibrary}, exposes the local variables of the enclosing function frame to tools such as
+ * the debugger. The scope lists the frame's declared variables (function parameters and locals) and
+ * reads their current values from the frame.
  */
+@ExportLibrary(NodeLibrary.class)
 public abstract class LamaNode extends Node {
 
     private static final int NO_SOURCE = -1;
@@ -64,6 +72,16 @@ public abstract class LamaNode extends Node {
             return source.createUnavailableSection();
         }
         return source.createSection(sourceCharIndex, sourceLength);
+    }
+
+    @ExportMessage
+    public boolean hasScope(@SuppressWarnings("unused") Frame frame) {
+        return true;
+    }
+
+    @ExportMessage
+    public Object getScope(Frame frame, @SuppressWarnings("unused") boolean nodeEnter) {
+        return new LamaScope(this, frame);
     }
 
     @Override

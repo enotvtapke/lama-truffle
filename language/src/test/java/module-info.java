@@ -47,6 +47,7 @@ open module org.graalvm.sl.test {
   requires org.graalvm.sl;
   requires org.antlr.antlr4.runtime;
   requires truffle.tck;
+  requires com.oracle.truffle.tools.profiler;
   requires hamcrest.core;
   exports com.oracle.truffle.sl.test;
 
@@ -59,5 +60,6 @@ open module org.graalvm.sl.test {
            com.oracle.truffle.sl.test.SLInstrumentTestIncreaseArgOnErrorInstrumentProvider,
            com.oracle.truffle.sl.test.SLInstrumentTestNewReplacedInstrumentProvider,
            com.oracle.truffle.sl.test.SLInstrumentTestTestRedoIOProvider,
-           com.oracle.truffle.sl.test.SLSharedCodeSeparatedEnvTestCaptureOutputProvider;
+           com.oracle.truffle.sl.test.SLSharedCodeSeparatedEnvTestCaptureOutputProvider,
+           com.oracle.truffle.sl.test.LamaInstrumentationTestTagCounterInstrumentProvider;
 }

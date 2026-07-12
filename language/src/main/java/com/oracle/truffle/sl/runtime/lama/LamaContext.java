@@ -228,9 +228,12 @@ public final class LamaContext {
 
     private void registerBuiltIn(LamaBuiltinNode builtin) {
         String name = lookupNodeInfo(builtin.getClass()).shortName();
+        LamaBuiltinAstNode body = new LamaBuiltinAstNode(builtin);
+        body.setUnavailableSourceSection();
+        body.addRootTag();
         LamaRootNode lamaRootNode = new LamaRootNode(
                 language, new FrameDescriptor(),
-                new LamaBuiltinAstNode(builtin),
+                body,
                 Source.newBuilder(LamaLanguage.ID, "", "<builtin> " + name).build().createUnavailableSection(),
                 name
         );

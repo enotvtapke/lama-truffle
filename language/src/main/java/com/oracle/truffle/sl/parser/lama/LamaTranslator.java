@@ -65,7 +65,7 @@ public class LamaTranslator {
             processInterfaceFile(importToken.getText());
         }
         var imports = ctx.UIDENT().stream().map(it -> setSrc(LamaImportNodeGen.create(it.getText()), it.getSymbol())).toList();
-        var block = parseScopeExpression(ctx.scopeExpression());
+        var block = markRoot(parseScopeExpression(ctx.scopeExpression()));
         return new LamaModuleRootNode(language, scopeManager.buildFrame(), block, imports.toArray(new LamaImportNode[0]), source.createSection(0, source.getLength()));
     }
 
@@ -111,6 +111,28 @@ public class LamaTranslator {
         return setSrc(new LamaBlockNode(expressions.toArray(new LamaExpressionNode[0])), ctx);
     }
 
+    /**
+     * Marks a node as a statement for instrumentation (debugger stepping, statement coverage). Only
+     * nodes with a source section are instrumentable, so nodes without one are left untouched.
+     */
+    private static LamaExpressionNode markStatement(LamaExpressionNode node) {
+        if (node != null && node.hasSource()) {
+            node.addStatementTag();
+        }
+        return node;
+    }
+
+    /**
+     * Marks the body of a function or module as the root for instrumentation (call-stack frames,
+     * step-into/out, CPU sampling).
+     */
+    private static LamaExpressionNode markRoot(LamaExpressionNode node) {
+        if (node != null && node.hasSource()) {
+            node.addRootTag();
+        }
+        return node;
+    }
+
     private LamaExpressionNode parseScopeExpression(LamaParser.ScopeExpressionContext ctx) {
         List<LamaExpressionNode> expressions = parseScopeExpressionToList(ctx);
         if (expressions.size() == 1) {
@@ -128,9 +150,10 @@ public class LamaTranslator {
         }
         var declarations = definitions.stream().map((d) -> declareVariable(d.name, d.isPublic, d.ctx)).toList();
         var result = new ArrayList<>(declarations);
-        var initializers = definitions.stream().map((d) -> setSrc(writeVariable(d.name, d.initializer.get()), d.ctx)).toList();
+        var initializers = definitions.stream().map((d) -> markStatement(setSrc(writeVariable(d.name, d.initializer.get()), d.ctx))).toList();
         result.addAll(initializers);
         List<LamaExpressionNode> expressions = ctx.expression() != null ? parseExpressionToList(ctx.expression()) : List.of();
+        expressions.forEach(LamaTranslator::markStatement);
         result.addAll(expressions);
         return result;
     }
@@ -319,7 +342,7 @@ public class LamaTranslator {
         var frame = scopeManager.buildFrame();
         scopeManager.exitFunction();
 
-        var funcLiteral = new LamaFunctionLiteralNode(new LamaRootNode(language, frame, toExpression(allNodes, fbody), functionSrc, name).getCallTarget());
+        var funcLiteral = new LamaFunctionLiteralNode(new LamaRootNode(language, frame, markRoot(toExpression(allNodes, fbody)), functionSrc, name).getCallTarget());
         funcLiteral.setSourceSection(functionSrc.getCharIndex(), functionSrc.getCharLength());
         return funcLiteral;
     }
@@ -712,7 +735,7 @@ public class LamaTranslator {
         }
         var declarations = definitions.stream().map((d) -> declareVariable(d.name, d.isPublic, d.ctx)).toList();
         var result = new ArrayList<>(declarations);
-        var initializers = definitions.stream().map((d) -> setSrc(writeVariable(d.name, d.initializer.get()), d.ctx)).toList();
+        var initializers = definitions.stream().map((d) -> markStatement(setSrc(writeVariable(d.name, d.initializer.get()), d.ctx))).toList();
         result.addAll(initializers);
         if (ctx.noPipeExpression() != null) {
             result.addAll(ctx.noPipeExpression().noPipeBasicExpression().stream()
