@@ -1,5 +1,5 @@
-# The simple language standalone build
+# The Lama standalone build
 
-By default building with `mvn package` will build a jvm standalone version of simple language that uses the JDK on the JAVA_HOME.
+By default building with `mvn package` will build a jvm standalone version of Lama that uses the JDK on the JAVA_HOME.
 By running `mvn package -Pnative` it will also automatically create a native image of the language.
-To use the standalone build either run `target/sl` or `target/slnative` depending on whether the native build was created.
+To use the standalone build either run `target/lama` or `target/lamanative` depending on whether the native build was created.

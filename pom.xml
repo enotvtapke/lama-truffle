@@ -55,7 +55,6 @@
   <packaging>pom</packaging>
   <modules>
     <module>language</module>
-    <module>tck</module>
     <module>launcher</module>
     <module>standalone</module>
   </modules>

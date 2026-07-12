@@ -20,7 +20,7 @@ To run simple language using a JDK from JAVA_HOME run `./sl`.
 # Building a Native Image
 
 Build the project with `mvn package -Pnative`.
-To run simple language natively run `./standalone/target/slnative`.
+To run Lama natively run `./standalone/target/lamanative`.
 
 # Lama
 

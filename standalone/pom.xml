@@ -88,7 +88,7 @@
                   <filtering>true</filtering>
                   <directory>${project.basedir}/</directory>
                   <includes>
-                    <include>sl</include>
+                    <include>lama</include>
                   </includes>
                 </resource>
               </resources>
@@ -124,7 +124,7 @@
                                         -p %classpath
                                         -H:+ReportExceptionStackTraces
                                         -m ${launcherClass}
-                                        -o ${project.build.directory}/slnative
+                                        -o ${project.build.directory}/lamanative
                                     </commandlineArgs>
                                 </configuration>
                             </execution>
