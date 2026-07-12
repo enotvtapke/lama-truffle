@@ -118,11 +118,8 @@ public final class LamaMain implements Callable<Integer> {
                 int eqIdx = body.indexOf('=');
                 String key = eqIdx < 0 ? body : body.substring(0, eqIdx);
                 String value = eqIdx < 0 ? "true" : body.substring(eqIdx + 1);
-                // Only forward grouped, GraalVM-style options (e.g. lama.X, engine.X, compiler.X).
-                if (key.indexOf('.') > 0) {
-                    options.put(key, value);
-                    continue;
-                }
+                options.put(key, value);
+                continue;
             }
             System.err.println("Unknown argument: " + arg);
             ok = false;
