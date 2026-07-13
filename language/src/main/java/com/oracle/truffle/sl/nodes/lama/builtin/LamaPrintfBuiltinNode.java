@@ -1,6 +1,5 @@
 package com.oracle.truffle.sl.nodes.lama.builtin;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.SLException;
@@ -16,9 +15,7 @@ public final class LamaPrintfBuiltinNode extends LamaBuiltinNode {
         if (args.length < 1 || !(args[0] instanceof LamaString fmt)) {
             throw SLException.typeError(this, args.length > 0 ? args[0] : null);
         }
-        LamaContext ctx = LamaContext.get(this);
-        ctx.getOutput().print(LamaFormat.format(fmt.toString(), args, 1));
-        ctx.getOutput().flush();
+        LamaContext.get(this).print(LamaFormat.format(fmt.toString(), args, 1));
         return 0L;
     }
 }

@@ -120,12 +120,15 @@
                                 <configuration>
                                     <executable>
                                         ${env.JAVA_HOME}/bin/native-image</executable>
-                                    <commandlineArgs>
-                                        -p %classpath
-                                        -H:+ReportExceptionStackTraces
-                                        -m ${launcherClass}
-                                        -o ${project.build.directory}/lamanative
-                                    </commandlineArgs>
+                                    <arguments>
+                                        <argument>-p</argument>
+                                        <classpath/>
+                                        <argument>-H:+ReportExceptionStackTraces</argument>
+                                        <argument>-m</argument>
+                                        <argument>${launcherClass}</argument>
+                                        <argument>-o</argument>
+                                        <argument>${project.build.directory}/lamanative</argument>
+                                    </arguments>
                                 </configuration>
                             </execution>
                         </executions>

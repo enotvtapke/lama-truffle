@@ -1,5 +1,6 @@
 package com.oracle.truffle.sl.nodes.lama;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -31,7 +32,7 @@ public final class LamaModuleRootNode extends RootNode {
     @Override
     public Object execute(VirtualFrame frame) {
         LamaContext context = LamaContext.get(this);
-        String moduleName = stripFileExtension(getName());
+        String moduleName = moduleName();
         var module = context.registerModule(moduleName);
         for (var lamaImport : imports) {
             module.imports.add(lamaImport.moduleName);
@@ -40,6 +41,11 @@ public final class LamaModuleRootNode extends RootNode {
         var result = body.executeGeneric(frame);
         context.markEvaluated(moduleName);
         return result;
+    }
+
+    @TruffleBoundary
+    private String moduleName() {
+        return stripFileExtension(getName());
     }
 
     @Override

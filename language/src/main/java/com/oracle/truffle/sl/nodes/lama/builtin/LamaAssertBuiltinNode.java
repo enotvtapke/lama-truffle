@@ -1,5 +1,6 @@
 package com.oracle.truffle.sl.nodes.lama.builtin;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.SLException;
@@ -20,14 +21,18 @@ public final class LamaAssertBuiltinNode extends LamaBuiltinNode {
         if (cond != 0) {
             return 0L;
         }
+        throw fail(args);
+    }
 
+    @TruffleBoundary
+    private RuntimeException fail(Object[] args) {
         if (args.length == 1) {
-            throw SLException.create("assertion failed", this);
+            return SLException.create("assertion failed", this);
         }
         if (!(args[1] instanceof LamaString fmt)) {
-            throw SLException.typeError(this, args[1]);
+            return SLException.typeError(this, args[1]);
         }
         String msg = LamaFormat.format(fmt.toString(), args, 2);
-        throw SLException.create("*** FAILURE: " + msg, this);
+        return SLException.create("*** FAILURE: " + msg, this);
     }
 }

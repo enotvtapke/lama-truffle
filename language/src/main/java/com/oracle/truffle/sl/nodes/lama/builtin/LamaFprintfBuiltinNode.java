@@ -15,8 +15,7 @@ public final class LamaFprintfBuiltinNode extends LamaBuiltinNode {
         if (args.length < 2 || !(args[0] instanceof LamaFileHandle fh) || !(args[1] instanceof LamaString fmt)) {
             throw SLException.typeError(this, args.length > 0 ? args[0] : null);
         }
-        fh.writer().print(LamaFormat.format(fmt.toString(), args, 2));
-        fh.writer().flush();
+        fh.print(LamaFormat.format(fmt.toString(), args, 2));
         return 0L;
     }
 }

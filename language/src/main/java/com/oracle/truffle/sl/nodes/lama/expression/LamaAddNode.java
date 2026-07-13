@@ -9,11 +9,8 @@ import com.oracle.truffle.sl.SLException;
 import com.oracle.truffle.sl.nodes.lama.LamaBinaryExpressionNode;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
-import java.nio.ByteBuffer;
-
 
 @NodeInfo(shortName = "+")
-//@OperationProxy.Proxyable(allowUncached = true)
 public abstract class LamaAddNode extends LamaBinaryExpressionNode {
 
     @Specialization
@@ -23,8 +20,7 @@ public abstract class LamaAddNode extends LamaBinaryExpressionNode {
 
     @Specialization
     public static LamaString doString(LamaString left, LamaString right) {
-        return new LamaString(ByteBuffer.allocate(left.length() + right.length())
-                .put(left.getBytes()).put(right.getBytes()).array());
+        return LamaString.concat(left, right);
     }
 
     @Fallback

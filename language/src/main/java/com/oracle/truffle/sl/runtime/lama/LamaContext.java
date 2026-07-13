@@ -66,6 +66,17 @@ public final class LamaContext {
         return output;
     }
 
+    @TruffleBoundary
+    public void print(String s) {
+        output.print(s);
+        output.flush();
+    }
+
+    @TruffleBoundary
+    public void println(long value) {
+        output.println(value);
+    }
+
     public BufferedReader getInput() {
         return input;
     }

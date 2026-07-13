@@ -19,13 +19,25 @@ public final class LamaString implements TruffleObject {
         this.bytes = bytes;
     }
 
+    @TruffleBoundary
     public static LamaString from(TruffleString ts) {
         return new LamaString(ts.copyToByteArrayUncached(TruffleString.Encoding.US_ASCII));
     }
 
+    @TruffleBoundary
     public static LamaString from(String s) {
         return new LamaString(s.getBytes(StandardCharsets.US_ASCII));
     }
+
+    public static LamaString concat(LamaString left, LamaString right) {
+        byte[] l = left.getBytes();
+        byte[] r = right.getBytes();
+        byte[] result = new byte[l.length + r.length];
+        System.arraycopy(l, 0, result, 0, l.length);
+        System.arraycopy(r, 0, result, l.length, r.length);
+        return new LamaString(result);
+    }
+
 
     public int length() {
         return bytes.length;
@@ -33,16 +45,21 @@ public final class LamaString implements TruffleObject {
 
     public long readByte(int index) {
         if (index < 0 || index >= bytes.length) {
-            throw LamaException.create("String index " + index + " out of bounds for length " + bytes.length, null);
+            throw outOfBounds(index);
         }
         return bytes[index] & 0xFF;
     }
 
     public void writeByte(int index, byte value) {
         if (index < 0 || index >= bytes.length) {
-            throw LamaException.create("String index " + index + " out of bounds for length " + bytes.length, null);
+            throw outOfBounds(index);
         }
         bytes[index] = value;
+    }
+
+    @TruffleBoundary
+    private RuntimeException outOfBounds(int index) {
+        return LamaException.create("String index " + index + " out of bounds for length " + bytes.length, null);
     }
 
     public byte[] getBytes() {

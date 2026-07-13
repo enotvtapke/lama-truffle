@@ -1,5 +1,6 @@
 package com.oracle.truffle.sl.nodes.lama.builtin;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.sl.SLException;
@@ -14,7 +15,12 @@ public final class LamaFailureBuiltinNode extends LamaBuiltinNode {
         if (args.length < 1 || !(args[0] instanceof LamaString fmt)) {
             throw SLException.typeError(this, args.length > 0 ? args[0] : null);
         }
+        throw fail(fmt, args);
+    }
+
+    @TruffleBoundary
+    private RuntimeException fail(LamaString fmt, Object[] args) {
         String body = LamaFormat.format(fmt.toString(), args, 1);
-        throw SLException.create("*** FAILURE: " + body, this);
+        return SLException.create("*** FAILURE: " + body, this);
     }
 }

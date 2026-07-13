@@ -16,8 +16,10 @@ public final class LamaFileHandle extends Node {
         this.writer = writer;
     }
 
-    public PrintWriter writer() {
-        return writer;
+    @TruffleBoundary
+    public void print(String s) {
+        writer.print(s);
+        writer.flush();
     }
 
     @TruffleBoundary
