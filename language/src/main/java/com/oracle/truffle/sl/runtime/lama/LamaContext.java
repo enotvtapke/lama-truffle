@@ -202,7 +202,6 @@ public final class LamaContext {
         registerBuiltIn(new LamaPrintfBuiltinNode());
         registerBuiltIn(new LamaSprintfBuiltinNode());
         registerBuiltIn(new LamaFailureBuiltinNode());
-        registerBuiltIn(new LamaFprintfBuiltinNode());
         registerBuiltIn(LamaTimeBuiltinNodeFactory.create());
         registerBuiltIn(LamaMakeArrayBuiltinNodeFactory.create());
         registerBuiltIn(LamaMakeStringBuiltinNodeFactory.create());
@@ -217,8 +216,6 @@ public final class LamaContext {
         registerBuiltIn(LamaFlatCompareBuiltinNodeFactory.create());
         registerBuiltIn(LamaRegexpBuiltinNodeFactory.create());
         registerBuiltIn(LamaRegexpMatchBuiltinNodeFactory.create());
-        registerBuiltIn(LamaFopenBuiltinNodeFactory.create());
-        registerBuiltIn(LamaFcloseBuiltinNodeFactory.create());
         registerBuiltIn(LamaGetEnvBuiltinNodeFactory.create());
         registerBuiltIn(LamaRandomBuiltinNodeFactory.create());
         registerBuiltIn(LamaMakeLazyBuiltinNodeFactory.create());
