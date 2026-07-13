@@ -8,7 +8,7 @@ import com.oracle.truffle.sl.runtime.lama.LamaContext;
 @NodeInfo(shortName = "write")
 public abstract class LamaWriteBuiltinNode extends LamaBuiltinNode {
     @Specialization
-    public long doWrite(long arg, @Bind LamaContext context) {
+    public static long doWrite(long arg, @Bind LamaContext context) {
         context.println(arg);
         return 0;
     }

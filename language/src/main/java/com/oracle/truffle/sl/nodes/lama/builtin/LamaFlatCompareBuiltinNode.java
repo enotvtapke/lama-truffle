@@ -8,7 +8,7 @@ import com.oracle.truffle.sl.runtime.lama.LamaComparisonHashingLib;
 public abstract class LamaFlatCompareBuiltinNode extends LamaBuiltinNode {
 
     @Specialization
-    public long compare(Object a, Object b) {
+    public static long compare(Object a, Object b) {
         return LamaComparisonHashingLib.flatCompare(a, b);
     }
 }

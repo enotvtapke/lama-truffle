@@ -10,7 +10,7 @@ import static com.oracle.truffle.sl.runtime.lama.Utils.packScopeIntoArguments;
 public abstract class LamaForceBuiltinNode extends LamaBuiltinNode {
 
     @Specialization
-    public Object force(LamaFunction f) {
+    public static Object force(LamaFunction f) {
         return f.callTarget.call(packScopeIntoArguments(new Object[0], f.lexicalScope));
     }
 }

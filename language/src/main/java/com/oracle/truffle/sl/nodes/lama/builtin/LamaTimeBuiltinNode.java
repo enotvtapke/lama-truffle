@@ -9,7 +9,7 @@ import com.oracle.truffle.sl.runtime.lama.LamaContext;
 public abstract class LamaTimeBuiltinNode extends LamaBuiltinNode {
 
     @Specialization
-    public long time(@Bind LamaContext ctx) {
+    public static long time(@Bind LamaContext ctx) {
         return ctx.elapsedMicrosSinceStart();
     }
 }
