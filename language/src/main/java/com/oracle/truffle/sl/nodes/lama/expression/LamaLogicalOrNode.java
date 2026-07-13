@@ -4,7 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 
 @NodeInfo(shortName = "!!")
@@ -25,7 +25,7 @@ public final class LamaLogicalOrNode extends LamaExpressionNode {
         try {
             leftValue = leftNode.executeLong(frame);
         } catch (UnexpectedResultException e) {
-            throw SLException.typeError(this, "!!", e.getResult());
+            throw LamaException.typeError(this, "!!", e.getResult());
         }
         if (conditionProfile.profile(leftValue != 0L)) {
             return leftValue;

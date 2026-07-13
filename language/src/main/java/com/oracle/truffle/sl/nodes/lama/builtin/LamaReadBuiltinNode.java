@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
 
 import java.io.IOException;
@@ -22,11 +22,11 @@ public abstract class LamaReadBuiltinNode extends LamaBuiltinNode {
         try {
             String line = context.getInput().readLine();
             if (line == null) {
-                throw SLException.create("read: unexpected end of input", this);
+                throw LamaException.create("read: unexpected end of input", this);
             }
             return Long.parseLong(line.trim());
         } catch (IOException e) {
-            throw SLException.create("read: " + e.getMessage(), this);
+            throw LamaException.create("read: " + e.getMessage(), this);
         }
     }
 }

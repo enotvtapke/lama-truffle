@@ -5,7 +5,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaContext;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
@@ -58,7 +58,7 @@ public abstract class LamaSystemBuiltinNode extends LamaBuiltinNode {
             exit = process.waitFor();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw SLException.create("system: interrupted while waiting for child", this);
+            throw LamaException.create("system: interrupted while waiting for child", this);
         }
         // Match the Linux `wait(2)` encoding used by the reference runtime:
         // low 8 bits carry signal info (unavailable via Process#waitFor, always 0),

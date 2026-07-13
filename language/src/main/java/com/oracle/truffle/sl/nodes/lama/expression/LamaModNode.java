@@ -6,7 +6,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.nodes.lama.LamaBinaryExpressionNode;
 import com.oracle.truffle.sl.runtime.lama.LamaException;
 
@@ -24,6 +24,6 @@ public abstract class LamaModNode extends LamaBinaryExpressionNode {
 
     @Fallback
     public static Object typeError(Object left, Object right, @Bind Node node) {
-        throw SLException.typeError(node, "%", left, right);
+        throw LamaException.typeError(node, "%", left, right);
     }
 }

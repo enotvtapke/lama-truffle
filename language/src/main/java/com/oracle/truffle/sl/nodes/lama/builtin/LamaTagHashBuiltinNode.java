@@ -3,7 +3,7 @@ package com.oracle.truffle.sl.nodes.lama.builtin;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
 @NodeInfo(shortName = "tagHash")
@@ -17,7 +17,7 @@ public abstract class LamaTagHashBuiltinNode extends LamaBuiltinNode {
         try {
             return tagHash(s.toString());
         } catch (IllegalArgumentException e) {
-            throw SLException.create("tagHash: " + e.getMessage(), this);
+            throw LamaException.create("tagHash: " + e.getMessage(), this);
         }
     }
 

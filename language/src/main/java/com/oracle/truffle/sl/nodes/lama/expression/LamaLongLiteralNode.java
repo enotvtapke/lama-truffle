@@ -3,7 +3,6 @@ package com.oracle.truffle.sl.nodes.lama.expression;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import com.oracle.truffle.sl.nodes.SLExpressionNode;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 
 @NodeInfo(shortName = "const")

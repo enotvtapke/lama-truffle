@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.nodes.lama.LamaUnaryExpressionNode;
 
 @NodeInfo(shortName = "-")
@@ -18,6 +18,6 @@ public abstract class LamaNegNode extends LamaUnaryExpressionNode {
 
     @Fallback
     public static Object typeError(Object operand, @Bind Node node) {
-        throw SLException.typeError(node, "-", operand);
+        throw LamaException.typeError(node, "-", operand);
     }
 }

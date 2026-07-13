@@ -41,7 +41,7 @@
 package com.oracle.truffle.sl.lama;
 
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.sl.SLLanguage;
+import com.oracle.truffle.sl.LamaLanguage;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -52,7 +52,7 @@ public final class LamaFileDetector implements TruffleFile.FileTypeDetector {
     public String findMimeType(TruffleFile file) throws IOException {
         String name = file.getName();
         if (name != null && name.endsWith(".lama")) {
-            return SLLanguage.MIME_TYPE;
+            return LamaLanguage.MIME_TYPE;
         }
         return null;
     }

@@ -41,4 +41,4 @@
 #
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-"$DIR/standalone/target/sl" "$@"
+"$DIR/standalone/target/lama" "$@"

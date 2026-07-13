@@ -30,8 +30,7 @@ public abstract class ReadModuleVariableNode extends LamaExpressionNode {
     ) {
         // The declaring table is per-context, so it can be cached in this
         // (potentially shared, ContextPolicy.SHARED) node ONLY while there is a
-        // single context; otherwise resolve it per execution. See
-        // SLFunctionLiteralNode for the same idiom.
+        // single context; otherwise resolve it per execution.
         DynamicObject module = cachedTable != null
                 ? cachedTable
                 : context.findModuleDeclaringVariable(currentModule, variableName, node);

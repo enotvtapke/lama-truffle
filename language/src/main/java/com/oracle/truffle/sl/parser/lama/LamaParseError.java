@@ -9,8 +9,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-import com.oracle.truffle.sl.parser.SLParseError;
-import org.antlr.v4.runtime.Token;
 
 @ExportLibrary(InteropLibrary.class)
 public class LamaParseError extends AbstractTruffleException {

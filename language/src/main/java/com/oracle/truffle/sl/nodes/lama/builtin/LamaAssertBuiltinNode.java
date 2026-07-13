@@ -3,7 +3,7 @@ package com.oracle.truffle.sl.nodes.lama.builtin;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaFormat;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
@@ -13,10 +13,10 @@ public final class LamaAssertBuiltinNode extends LamaBuiltinNode {
     @Override
     public Object execute(VirtualFrame frame, Object... args) {
         if (args.length < 1) {
-            throw SLException.create("assert: missing condition", this);
+            throw LamaException.create("assert: missing condition", this);
         }
         if (!(args[0] instanceof Long cond)) {
-            throw SLException.typeError(this, args[0]);
+            throw LamaException.typeError(this, args[0]);
         }
         if (cond != 0) {
             return 0L;
@@ -27,12 +27,12 @@ public final class LamaAssertBuiltinNode extends LamaBuiltinNode {
     @TruffleBoundary
     private RuntimeException fail(Object[] args) {
         if (args.length == 1) {
-            return SLException.create("assertion failed", this);
+            return LamaException.create("assertion failed", this);
         }
         if (!(args[1] instanceof LamaString fmt)) {
-            return SLException.typeError(this, args[1]);
+            return LamaException.typeError(this, args[1]);
         }
         String msg = LamaFormat.format(fmt.toString(), args, 2);
-        return SLException.create("*** FAILURE: " + msg, this);
+        return LamaException.create("*** FAILURE: " + msg, this);
     }
 }

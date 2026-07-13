@@ -1,6 +1,6 @@
 package com.oracle.truffle.sl.nodes.lama.patterns;
 
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.nodes.lama.LamaExpressionNode;
 
 import com.oracle.truffle.api.CompilerDirectives;
@@ -33,6 +33,6 @@ public final class LamaCaseNode extends LamaExpressionNode {
         }
 
         CompilerDirectives.transferToInterpreter();
-        throw SLException.create("No case branch matched the value: " + targetValue, this);
+        throw LamaException.create("No case branch matched the value: " + targetValue, this);
     }
 }

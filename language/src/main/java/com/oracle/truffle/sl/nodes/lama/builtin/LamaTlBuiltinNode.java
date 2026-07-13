@@ -3,7 +3,7 @@ package com.oracle.truffle.sl.nodes.lama.builtin;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
@@ -18,13 +18,13 @@ public abstract class LamaTlBuiltinNode extends LamaBuiltinNode {
 
     @Specialization(guards = "value == 0")
     public Object tlEmpty(@SuppressWarnings("unused") long value) {
-        throw SLException.create("tl: empty list", this);
+        throw LamaException.create("tl: empty list", this);
     }
 
     @Specialization
     public long tlString(LamaString s) {
         if (s.length() < 2) {
-            throw SLException.create("tl: string too short", this);
+            throw LamaException.create("tl: string too short", this);
         }
         return s.readByte(1);
     }
@@ -32,7 +32,7 @@ public abstract class LamaTlBuiltinNode extends LamaBuiltinNode {
     @Specialization
     public Object tlArray(LamaArray a) {
         if (a.getSize() < 2) {
-            throw SLException.create("tl: array too short", this);
+            throw LamaException.create("tl: array too short", this);
         }
         return a.readElement(1);
     }
@@ -40,13 +40,13 @@ public abstract class LamaTlBuiltinNode extends LamaBuiltinNode {
     @Specialization
     public Object tlSExpr(LamaSExpr e) {
         if (e.elements.length < 2) {
-            throw SLException.create("tl: expected cons cell or non-empty s-expression", this);
+            throw LamaException.create("tl: expected cons cell or non-empty s-expression", this);
         }
         return e.elements[1];
     }
 
     @Fallback
     public Object tlBad(@SuppressWarnings("unused") Object value) {
-        throw SLException.create("tl: expected non-empty list", this);
+        throw LamaException.create("tl: expected non-empty list", this);
     }
 }

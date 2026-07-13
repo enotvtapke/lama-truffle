@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaFunction;
 import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
@@ -57,6 +57,6 @@ public abstract class LamaCloneBuiltinNode extends LamaBuiltinNode {
     @Fallback
     @TruffleBoundary
     public Object doUnsupported(@SuppressWarnings("unused") Object value) {
-        throw SLException.create("clone: unsupported value", this);
+        throw LamaException.create("clone: unsupported value", this);
     }
 }

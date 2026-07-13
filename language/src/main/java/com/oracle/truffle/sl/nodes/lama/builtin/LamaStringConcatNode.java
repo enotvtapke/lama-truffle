@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
 
 @NodeInfo(shortName = "infix_++")
@@ -18,6 +18,6 @@ public abstract class LamaStringConcatNode extends LamaBuiltinNode {
 
     @Fallback
     public static Object typeError(Object left, Object right, @Bind Node node) {
-        throw SLException.typeError(node, "infix_++", left, right);
+        throw LamaException.typeError(node, "infix_++", left, right);
     }
 }

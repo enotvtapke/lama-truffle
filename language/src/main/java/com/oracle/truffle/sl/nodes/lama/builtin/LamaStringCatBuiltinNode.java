@@ -4,7 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.sl.SLException;
+import com.oracle.truffle.sl.runtime.lama.LamaException;
 import com.oracle.truffle.sl.runtime.lama.LamaArray;
 import com.oracle.truffle.sl.runtime.lama.LamaSExpr;
 import com.oracle.truffle.sl.runtime.lama.LamaString;
@@ -44,7 +44,7 @@ public abstract class LamaStringCatBuiltinNode extends LamaBuiltinNode {
     @Fallback
     @TruffleBoundary
     public LamaString catInvalid(@SuppressWarnings("unused") Object value) {
-        throw SLException.create("stringcat: expected list of strings", this);
+        throw LamaException.create("stringcat: expected list of strings", this);
     }
 
     protected static boolean isConsStringList(LamaSExpr e) {
