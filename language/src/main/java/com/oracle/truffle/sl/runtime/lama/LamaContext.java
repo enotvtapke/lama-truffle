@@ -199,6 +199,7 @@ public final class LamaContext {
         registerBuiltIn(LamaFreadBuiltinNodeFactory.create());
         registerBuiltIn(LamaFexistsBuiltinNodeFactory.create());
         registerBuiltIn(LamaFwriteBuiltinNodeFactory.create());
+        registerBuiltIn(LamaFdeleteBuiltinNodeFactory.create());
         registerBuiltIn(new LamaPrintfBuiltinNode());
         registerBuiltIn(new LamaSprintfBuiltinNode());
         registerBuiltIn(new LamaFailureBuiltinNode());

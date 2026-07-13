@@ -3,4 +3,6 @@ var path;
 path := "test818_fio.tmp";
 fwrite (path, "abc");
 printf ("%s\n", fread (path));
-printf ("%s\n", fread (path))
+printf ("%d\n", fexists (path));
+fdelete (path);
+printf ("%d\n", fexists (path))
