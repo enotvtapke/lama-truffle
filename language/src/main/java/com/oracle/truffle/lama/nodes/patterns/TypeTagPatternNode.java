@@ -1,0 +1,36 @@
+package com.oracle.truffle.lama.nodes.patterns;
+
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.lama.runtime.LamaArray;
+import com.oracle.truffle.lama.runtime.LamaFunction;
+import com.oracle.truffle.lama.runtime.LamaString;
+import com.oracle.truffle.lama.runtime.LamaSExpr;
+
+@NodeInfo(shortName = "typeTagPattern")
+public final class TypeTagPatternNode extends LamaPatternNode {
+
+    public enum Tag { VAL, BOX, STR, ARRAY, SEXP, FUN }
+
+    private final Tag tag;
+
+    public TypeTagPatternNode(Tag tag) {
+        this.tag = tag;
+    }
+
+    @Override
+    public boolean executeMatch(Object target) {
+        return switch (tag) {
+            case VAL -> target instanceof Long;
+            case STR -> target instanceof LamaString;
+            case ARRAY -> target instanceof LamaArray;
+            case SEXP -> target instanceof LamaSExpr;
+            case FUN -> target instanceof LamaFunction;
+            case BOX -> !(target instanceof Long);
+        };
+    }
+
+    @Override
+    public void executeBind(VirtualFrame frame, Object target) {
+    }
+}

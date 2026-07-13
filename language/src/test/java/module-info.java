@@ -38,19 +38,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-open module org.graalvm.sl.test {
+open module org.graalvm.lama.test {
   requires java.logging;
   requires jdk.unsupported;
   requires org.graalvm.polyglot;
   requires junit;
   requires org.graalvm.truffle;
-  requires org.graalvm.sl;
+  requires org.graalvm.lama;
   requires org.antlr.antlr4.runtime;
   requires truffle.tck;
   requires com.oracle.truffle.tools.profiler;
   requires hamcrest.core;
-  exports com.oracle.truffle.sl.test;
+  exports com.oracle.truffle.lama.test;
 
   provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider
-      with com.oracle.truffle.sl.test.LamaInstrumentationTestTagCounterInstrumentProvider;
+      with com.oracle.truffle.lama.test.LamaInstrumentationTestTagCounterInstrumentProvider;
 }

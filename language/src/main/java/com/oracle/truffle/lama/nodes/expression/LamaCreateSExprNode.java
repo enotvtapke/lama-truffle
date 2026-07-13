@@ -1,0 +1,26 @@
+package com.oracle.truffle.lama.nodes.expression;
+
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.lama.nodes.LamaExpressionNode;
+import com.oracle.truffle.lama.runtime.LamaSExpr;
+
+public class LamaCreateSExprNode extends LamaExpressionNode {
+    private final String tag;
+    @Children private final LamaExpressionNode[] elementNodes;
+
+    public LamaCreateSExprNode(String tag, LamaExpressionNode[] elementNodes) {
+        this.tag = tag;
+        this.elementNodes = elementNodes;
+    }
+
+    @ExplodeLoop
+    @Override
+    public LamaSExpr executeGeneric(VirtualFrame frame) {
+        Object[] elements = new Object[elementNodes.length];
+        for (int i = 0; i < elementNodes.length; i++) {
+            elements[i] = elementNodes[i].executeGeneric(frame);
+        }
+        return new LamaSExpr(tag, elements);
+    }
+}
