@@ -50,6 +50,7 @@ open module org.graalvm.lama.test {
   requires com.oracle.truffle.tools.profiler;
   requires hamcrest.core;
   exports com.oracle.truffle.lama.test;
+  exports com.oracle.truffle.lama.test.selfhsoted;
 
   provides com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider
       with com.oracle.truffle.lama.test.LamaInstrumentationTestTagCounterInstrumentProvider;

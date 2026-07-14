@@ -1,4 +1,4 @@
-package com.oracle.truffle.lama.test;
+package com.oracle.truffle.lama.test.selfhsoted;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;

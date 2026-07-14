@@ -1,4 +1,4 @@
-package com.oracle.truffle.lama.test;
+package com.oracle.truffle.lama.test.selfhsoted;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
