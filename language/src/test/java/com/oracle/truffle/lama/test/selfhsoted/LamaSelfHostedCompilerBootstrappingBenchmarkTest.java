@@ -5,10 +5,12 @@ import org.junit.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
+
+import static com.oracle.truffle.lama.test.LamaInterpreterTest.STDLIB_DIR;
+import static com.oracle.truffle.lama.test.selfhsoted.LamaSelfHostedDriver.COMPILER_DIR;
 
 /**
  * Bootstrap benchmark: the self-hosted Lama compiler (running on the Truffle
@@ -23,10 +25,6 @@ import java.util.Locale;
  * total at the end.
  */
 public class LamaSelfHostedCompilerBootstrappingBenchmarkTest {
-
-    private static final Path IMPORTS_DIR = Paths.get("tests", "lama", "imports");
-    private static final Path COMPILER_DIR = Paths.get("tests", "lama", "compilerSrc");
-
     private static final List<String> STDLIB_MODULES = List.of(
             "List", "Ref", "Matcher", "Timer", "Fun", "Array", "Buffer", "Lazy",
             "Collection", "Data", "STM", "Ostap");
@@ -51,7 +49,7 @@ public class LamaSelfHostedCompilerBootstrappingBenchmarkTest {
 
             System.out.println("[standard library]");
             for (String module : STDLIB_MODULES) {
-                compileModule(workDir, IMPORTS_DIR, module);
+                compileModule(workDir, STDLIB_DIR, module);
             }
 
             System.out.println("[self-hosted compiler]");
@@ -79,7 +77,7 @@ public class LamaSelfHostedCompilerBootstrappingBenchmarkTest {
         Path unitCopy = workDir.resolve(module + ".lama");
         Files.copy(source, unitCopy, StandardCopyOption.REPLACE_EXISTING);
 
-        String importsPath = IMPORTS_DIR.toAbsolutePath().normalize().toString();
+        String importsPath = STDLIB_DIR.toAbsolutePath().normalize().toString();
         String compilerPath = COMPILER_DIR.toAbsolutePath().normalize().toString();
 
         long t0 = System.nanoTime();

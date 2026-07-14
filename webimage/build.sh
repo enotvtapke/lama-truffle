@@ -49,7 +49,7 @@ javac -p "$MP" -d "$WORK/out" "$HERE/module-info.java" "$HERE/LamaWasm.java"
 
 # Embed the standard-library units as resources inside the lamawasm module so
 # they can be served to the interpreter through the in-memory FileSystem.
-STDLIB_SRC="$PROJECT/language/tests/lama/imports"
+STDLIB_SRC="$PROJECT/lama/stdlib"
 RES="$WORK/out/lamastd"
 mkdir -p "$RES"
 : > "$RES/index.txt"

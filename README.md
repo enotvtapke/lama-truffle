@@ -6,7 +6,7 @@ built on Truffle for GraalVM.
 # Building for a JVM
 
 Build the project with `mvn package`.
-To run Lama using a JDK from JAVA_HOME run `./lama <file>.lama`.
+To run Lama using a JDK from JAVA_HOME run `./lama.sh <file>.lama`.
 
 # Building a Native Image
 

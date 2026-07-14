@@ -14,21 +14,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import static com.oracle.truffle.lama.test.LamaInterpreterTest.STDLIB_DIR;
 
 final class LamaSelfHostedDriver {
 
     static final String LANGUAGE_ID = "lama";
 
-    static final Path LAMA_IMPORTS_DIR = Paths.get("tests", "lama", "imports");
-    static final Path COMPILER_DIR = Paths.get("tests", "lama", "compilerSrc");
-    static final Path BUNDLED_RUNTIME_DIR = Paths.get("..", "runtime").toAbsolutePath().normalize();
+    static final Path COMPILER_DIR = Paths.get("..", "lama", "src");
+    static final Path RUNTIME_DIR = Paths.get("..", "runtime").toAbsolutePath().normalize();
 
     private static Engine engine;
     private static Source driverSource;
@@ -56,7 +52,7 @@ final class LamaSelfHostedDriver {
 
         Path driverFile = COMPILER_DIR.resolve("Driver.lama").toAbsolutePath().normalize();
         String unitSearchPath = String.join(File.pathSeparator,
-                LAMA_IMPORTS_DIR.toAbsolutePath().normalize().toString(),
+                STDLIB_DIR.toAbsolutePath().normalize().toString(),
                 COMPILER_DIR.toAbsolutePath().normalize().toString());
 
         // Driver.lama drops sysargs[0] (the program name), so the input file
@@ -73,7 +69,7 @@ final class LamaSelfHostedDriver {
                 .err(captured)
                 .currentWorkingDirectory(workDir.toAbsolutePath())
                 .options(Map.of("lama.UnitSearchPath", unitSearchPath))
-                .environment("LAMA", BUNDLED_RUNTIME_DIR.toString())
+                .environment("LAMA", RUNTIME_DIR.toString())
                 .allowIO(IOAccess.ALL)
                 .allowAllAccess(true)
                 .arguments(LANGUAGE_ID, appArgs.toArray(new String[0]))

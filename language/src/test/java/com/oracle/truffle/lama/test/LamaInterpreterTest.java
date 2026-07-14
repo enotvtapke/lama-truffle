@@ -22,6 +22,7 @@ import java.util.*;
 
 @RunWith(Parameterized.class)
 public class LamaInterpreterTest {
+    public static final Path STDLIB_DIR = Paths.get("..", "lama", "stdlib").toAbsolutePath().normalize();
 
     private static final Path TESTS_DIR = Paths.get("tests", "lama");
     private static final List<String> IGNORED_TESTS = List.of("test054", "test110", "test803");
@@ -67,7 +68,7 @@ public class LamaInterpreterTest {
                 .in(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
                 .out(out)
                 .options(Map.of(
-                    "lama.UnitSearchPath", lamaFile.getParent().resolve("imports").toAbsolutePath().toString(),
+                    "lama.UnitSearchPath", STDLIB_DIR.toString(),
                     "lama.ReadPrompt", "true"
                 ))
                 .environment("EXISTING_ENV_VAR", "42")

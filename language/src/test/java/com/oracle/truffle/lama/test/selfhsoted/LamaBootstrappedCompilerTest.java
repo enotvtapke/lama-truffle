@@ -19,6 +19,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.oracle.truffle.lama.test.LamaInterpreterTest.STDLIB_DIR;
+import static com.oracle.truffle.lama.test.selfhsoted.LamaSelfHostedDriver.*;
+
 /**
  * Bootstrap end-to-end test: first the self-hosted compiler (running on the
  * Truffle interpreter) compiles the standard library and its own sources and
@@ -34,9 +37,6 @@ import java.util.concurrent.TimeUnit;
 public class LamaBootstrappedCompilerTest {
 
     private static final Path TESTS_DIR = Paths.get("tests", "lama", "compiler");
-    private static final Path IMPORTS_DIR = Paths.get("tests", "lama", "imports");
-    private static final Path COMPILER_DIR = Paths.get("tests", "lama", "compilerSrc");
-    private static final Path RUNTIME_DIR = Paths.get("..", "runtime").toAbsolutePath().normalize();
 
     private static final List<String> STDLIB_MODULES = List.of(
             "List", "Ref", "Matcher", "Timer", "Fun", "Array", "Buffer", "Lazy",
@@ -96,7 +96,7 @@ public class LamaBootstrappedCompilerTest {
 
         long t0 = System.nanoTime();
         for (String module : STDLIB_MODULES) {
-            compileUnit(IMPORTS_DIR, module, "-c", "-I", buildPath);
+            compileUnit(STDLIB_DIR, module, "-c", "-I", buildPath);
         }
         for (String module : COMPILER_MODULES) {
             compileUnit(COMPILER_DIR, module, "-c", "-I", buildPath);

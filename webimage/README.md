@@ -86,7 +86,7 @@ EA_SETTINGS=/path/to/ea-settings.xml \
 ## Known limitations / next steps
 
 - **Stdlib units are a snapshot.** The embedded units come from
-  `language/tests/lama/imports/*.lama` at build time; rerun `build.sh` to refresh
+  `lama/stdlib/*.lama` at build time; rerun `build.sh` to refresh
   them. Units that rely on builtins not implemented in the interpreter will fail
   at eval time (not all of them are exercised).
 - **~16 MB** download; needs a recent browser (WASM exception-handling / GC —
