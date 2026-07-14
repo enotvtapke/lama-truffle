@@ -5,16 +5,42 @@ import com.oracle.truffle.lama.parser.InfixTable.Associativity;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class InterfaceFileParser {
+/**
+ * Structured representation of a Lama unit's interface ({@code .i} file): its imports, public
+ * variables, public functions (with arity) and infix-operator declarations.
+ */
+public record InterfaceFile(List<String> imports, List<String> variables, List<FunctionEntry> functions, List<InfixEntry> infixEntries) {
 
     public enum Position { AT, BEFORE, AFTER }
 
     public record InfixEntry(Associativity associativity, String operator, Position position, String referenceOperator) {}
 
-    public record InterfaceFile(List<String> imports, List<InfixEntry> infixEntries) {}
+    public record FunctionEntry(String name, int arity) {}
 
-    public static InterfaceFile parse(String content) {
+    public String toInterfaceString() {
+        StringBuilder sb = new StringBuilder();
+        for (String imp : imports) {
+            sb.append("I,").append(imp).append(";\n");
+        }
+        for (String variable : variables) {
+            sb.append("V,").append(variable).append(";\n");
+        }
+        for (FunctionEntry function : functions) {
+            sb.append("F,").append(function.name()).append(",").append(function.arity()).append(";\n");
+        }
+        for (InfixEntry infix : infixEntries) {
+            sb.append(associativityLetter(infix.associativity()))
+              .append(",\"").append(infix.operator()).append("\",")
+              .append(positionLetter(infix.position()))
+              .append(",\"").append(infix.referenceOperator()).append("\";\n");
+        }
+        return sb.toString();
+    }
+
+    public static InterfaceFile fromInterfaceString(String content) {
         List<String> imports = new ArrayList<>();
+        List<String> variables = new ArrayList<>();
+        List<FunctionEntry> functions = new ArrayList<>();
         List<InfixEntry> infixEntries = new ArrayList<>();
 
         for (String line : content.split("\n")) {
@@ -31,6 +57,16 @@ public final class InterfaceFileParser {
                 case "I" -> {
                     if (fields.size() >= 2) {
                         imports.add(fields.get(1));
+                    }
+                }
+                case "V" -> {
+                    if (fields.size() >= 2) {
+                        variables.add(unquote(fields.get(1)));
+                    }
+                }
+                case "F" -> {
+                    if (fields.size() >= 3) {
+                        functions.add(new FunctionEntry(unquote(fields.get(1)), Integer.parseInt(fields.get(2).trim())));
                     }
                 }
                 case "N", "L", "R" -> {
@@ -51,13 +87,27 @@ public final class InterfaceFileParser {
                         infixEntries.add(new InfixEntry(assoc, op, pos, refOp));
                     }
                 }
-                default -> {
-                    // F (function), V (variable), and other entries are not needed at parse time
-                }
+                default -> throw new RuntimeException(String.format("Wrong .i format. Unexpected key %s in interface file:\n%s", fields.getFirst(), content));
             }
         }
 
-        return new InterfaceFile(imports, infixEntries);
+        return new InterfaceFile(imports, variables, functions, infixEntries);
+    }
+
+    private static String associativityLetter(Associativity associativity) {
+        return switch (associativity) {
+            case LEFT -> "L";
+            case RIGHT -> "R";
+            case NONE -> "N";
+        };
+    }
+
+    private static String positionLetter(Position position) {
+        return switch (position) {
+            case AT -> "T";
+            case BEFORE -> "B";
+            case AFTER -> "A";
+        };
     }
 
     private static List<String> splitFields(String line) {

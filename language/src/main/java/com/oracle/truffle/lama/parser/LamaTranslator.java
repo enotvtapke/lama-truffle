@@ -60,6 +60,18 @@ public class LamaTranslator {
         return parseCompilationUnit(parser.lama().compilationUnit());
     }
 
+    public String generateInterface() {
+        LamaLexer lexer = new LamaLexer(CharStreams.fromString(source.getCharacters().toString()));
+        LamaParser parser = new LamaParser(new CommonTokenStream(lexer));
+        lexer.removeErrorListeners();
+        parser.removeErrorListeners();
+        BailoutErrorListener listener = new BailoutErrorListener(source);
+        lexer.addErrorListener(listener);
+        parser.addErrorListener(listener);
+
+        return InterfaceExtractor.fromProgram(parser.lama().compilationUnit()).toInterfaceString();
+    }
+
     private LamaModuleRootNode parseCompilationUnit(LamaParser.CompilationUnitContext ctx) {
         for (var importToken : ctx.UIDENT()) {
             processInterfaceFile(importToken.getText());
@@ -76,13 +88,13 @@ public class LamaTranslator {
         String content = readInterfaceFile(importedModuleName);
         if (content == null) return;
 
-        InterfaceFileParser.InterfaceFile interfaceFile = InterfaceFileParser.parse(content);
+        InterfaceFile interfaceFile = InterfaceFile.fromInterfaceString(content);
         // Infix entries may be declared relative to operators coming from the modules
         // this interface imports, so imported interfaces must be processed first
         for (String dependency : interfaceFile.imports()) {
             processInterfaceFile(dependency);
         }
-        for (InterfaceFileParser.InfixEntry entry : interfaceFile.infixEntries()) {
+        for (InterfaceFile.InfixEntry entry : interfaceFile.infixEntries()) {
             switch (entry.position()) {
                 case AT -> scopeManager.addInfixAt(entry.operator(), entry.referenceOperator());
                 case BEFORE -> scopeManager.addInfixBefore(entry.operator(), entry.referenceOperator(), entry.associativity());

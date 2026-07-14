@@ -42,6 +42,9 @@ public final class LamaMain implements Callable<Integer> {
     @Option(names = "--disable-launcher-output", description = "Suppress the launcher's own diagnostic output.")
     private boolean disableLauncherOutput;
 
+    @Option(names = "-i", description = "Generate the interface (.i) file for the program (written next to the source) instead of running it.")
+    private boolean generateInterface;
+
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help message and exit.")
     private boolean helpRequested;
 
@@ -70,6 +73,9 @@ public final class LamaMain implements Callable<Integer> {
         Map<String, String> options = new HashMap<>();
         if (!collectForwardedOptions(options)) {
             return 1;
+        }
+        if (generateInterface) {
+            options.put("lama.GenerateInterface", "true");
         }
 
         List<String> unitSearchPaths = new ArrayList<>(includeDirs);
@@ -102,7 +108,7 @@ public final class LamaMain implements Callable<Integer> {
             programArgs.addAll(splitArgString(programArgsString));
         }
 
-        return executeSource(source, System.in, System.out, options, !disableLauncherOutput, programArgs.toArray(new String[]{}));
+        return executeSource(source, System.in, System.out, options, !disableLauncherOutput && !generateInterface, programArgs.toArray(new String[]{}));
     }
 
     /**

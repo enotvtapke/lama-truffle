@@ -1,21 +1,18 @@
 package com.oracle.truffle.lama;
 
-import com.oracle.truffle.api.Assumption;
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Option;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.TruffleLanguage.ContextPolicy;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.StandardTags.RootBodyTag;
 import com.oracle.truffle.api.instrumentation.StandardTags.RootTag;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.strings.TruffleString;
-import com.oracle.truffle.lama.LamaFileDetector;
 import com.oracle.truffle.lama.parser.LamaTranslator;
 import com.oracle.truffle.lama.runtime.LamaContext;
 import org.graalvm.options.OptionCategory;
@@ -24,6 +21,9 @@ import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionStability;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +47,9 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
 
     @Option(help = "Print the interactive prompt before each read(). Disable for non-interactive/batch use.", category = OptionCategory.USER, stability = OptionStability.STABLE) //
     public static final OptionKey<Boolean> ReadPrompt = new OptionKey<>(false);
+
+    @Option(help = "Generate the interface (.i) file for the program instead of running it. The file is written next to the source (or to stdout for stdin input).", category = OptionCategory.USER, stability = OptionStability.STABLE) //
+    public static final OptionKey<Boolean> GenerateInterface = new OptionKey<>(false);
 
     private Env currentEnv;
 
@@ -83,8 +86,32 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
     protected CallTarget parse(ParsingRequest request) throws Exception {
         Source source = request.getSource();
         String moduleName = stripFileExtension(source.getName());
-        var root = new LamaTranslator(moduleName, this, source, currentEnv).parseLama();
-        return root.getCallTarget();
+        LamaTranslator translator = new LamaTranslator(moduleName, this, source, currentEnv);
+        if (GenerateInterface.getValue(currentEnv.getOptions())) {
+            writeInterface(source, moduleName, translator.generateInterface());
+            return new RootNode(this) {
+                @Override
+                public Object execute(VirtualFrame frame) {
+                    return 0L;
+                }
+            }.getCallTarget();
+        }
+        return translator.parseLama().getCallTarget();
+    }
+
+    private void writeInterface(Source source, String moduleName, String iface) throws IOException {
+        String path = source.getPath();
+        if (path != null) {
+            TruffleFile sourceFile = currentEnv.getPublicTruffleFile(path);
+            TruffleFile parent = sourceFile.getParent();
+            TruffleFile out = (parent != null ? parent : currentEnv.getPublicTruffleFile(".")).resolve(moduleName + ".i");
+            try (var writer = out.newBufferedWriter(StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+                writer.write(iface);
+            }
+        } else {
+            currentEnv.out().write(iface.getBytes(StandardCharsets.US_ASCII));
+            currentEnv.out().flush();
+        }
     }
 
     public static List<String> buildUnitSearchPaths(TruffleLanguage.Env env) {
