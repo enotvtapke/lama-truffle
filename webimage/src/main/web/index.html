@@ -22,9 +22,7 @@
       <div class="pane-head">
         <span class="head-label">Program</span>
         <div class="spacer"></div>
-        <select id="examples" title="Load an example">
-          <option value="">Examples…</option>
-        </select>
+        <select id="examples" title="Load an example"></select>
       </div>
       <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
     </section>
@@ -121,10 +119,10 @@ write (a)`
       codeEl.value = ex.code;
       stdinEl.value = ex.stdin;
     }
+    examplesEl.value = '0';
     loadExample(0);
     examplesEl.addEventListener('change', () => {
-      if (examplesEl.value !== '') loadExample(Number(examplesEl.value));
-      examplesEl.value = '';
+      loadExample(Number(examplesEl.value));
     });
 
     function setStatus(text, kind) {
