@@ -64,7 +64,7 @@
         <version>3.1.2</version>
         <configuration>
            <argLine>
-               -Xss64m
+               -Xss96m
                --add-exports=java.base/jdk.internal.module=truffle.tck
                --add-opens=org.graalvm.truffle/com.oracle.truffle.polyglot=ALL-UNNAMED
                --enable-native-access=org.graalvm.truffle,ALL-UNNAMED

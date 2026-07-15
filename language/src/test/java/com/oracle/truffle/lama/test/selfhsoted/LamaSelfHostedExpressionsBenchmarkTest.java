@@ -12,12 +12,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.IntStream;
 
 @RunWith(Parameterized.class)
 public class LamaSelfHostedExpressionsBenchmarkTest {
 
     /** Expression sizes (number of leaf terms) to benchmark. */
-    private static final int[] SIZES = {100, 250, 500, 1000, 2000, 4000, 8000};
+    private static final int[] SIZES = IntStream.iterate(200, x -> x * 2)
+            .limit(8)
+            .toArray();
 
     private static final long RUN_TIMEOUT_SECONDS = 60;
 
@@ -64,8 +67,8 @@ public class LamaSelfHostedExpressionsBenchmarkTest {
             long runNs = System.nanoTime() - r0;
 
             System.out.printf(Locale.ROOT,
-                    "[expr size=%d depth=%d] parse=%.1fms sm=%.1fms x86=%.1fms compile=%s run=%s result=%s%n",
-                    size, parenDepth(exprString),
+                    "[expr n=%d size=%d depth=%d] parse=%.1fms sm=%.1fms x86=%.1fms compile=%s run=%s result=%s%n",
+                    size, exprString.length(), parenDepth(exprString),
                     LamaSelfHostedDriver.timeMillis(driverOutput, "Parsing time"),
                     LamaSelfHostedDriver.timeMillis(driverOutput, "SM compile time"),
                     LamaSelfHostedDriver.timeMillis(driverOutput, "X86 compile time"),

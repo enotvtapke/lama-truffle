@@ -14,6 +14,7 @@ import java.util.Arrays;
 public final class LamaString implements TruffleObject {
 
     private final byte[] bytes;
+    private String cachedString;
 
     public LamaString(byte[] bytes) {
         this.bytes = bytes;
@@ -55,6 +56,7 @@ public final class LamaString implements TruffleObject {
             throw outOfBounds(index);
         }
         bytes[index] = value;
+        cachedString = null;
     }
 
     @TruffleBoundary
@@ -84,7 +86,10 @@ public final class LamaString implements TruffleObject {
     @ExportMessage
     @TruffleBoundary
     String asString() {
-        return new String(bytes, StandardCharsets.US_ASCII);
+        if (cachedString == null) {
+            cachedString = new String(bytes, StandardCharsets.US_ASCII);
+        }
+        return cachedString;
     }
 
     @TruffleBoundary
