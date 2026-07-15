@@ -59,41 +59,80 @@ several needles:
 
 ## Toolchain setup (one-time)
 
+There is no build script; you pass three toolchain locations to Maven as `-D`
+properties (see Build). None of them resolve automatically — all three are
+GitHub-release downloads, because this path is off the beaten track:
+
+| `-D` property  | What it is | Why it's needed |
+| -------------- | ---------- | --------------- |
+| `graalvm.home` | GraalVM **Early Access** JDK `25.1.0-dev+10.1` (tag `jdk-25e1-25.0.2-ea.26`) | Provides `native-image --tool:svm-wasm` (the Web Image backend). Stable GraalVM 25.0.2 does not ship it. |
+| `ea.repo.url`  | Local maven repo of the `25.1.0-SNAPSHOT` Truffle/polyglot/SDK artifacts | These EA snapshots are **not on Maven Central**, and the Truffle ABI must match the EA JDK's built-in Truffle SVM feature — building against the stable 25.0.2 jars fails native-image (e.g. `canBeInlined`). |
+| `binaryen.home`| Binaryen `wasm-as` (version 130; ≥ 119) | native-image's wasm backend shells out to `wasm-as` to assemble the final `.wasm`; it is not bundled in the JDK. |
+
+Download everything into `wasm-toolchain/` under the repo root (gitignored,
+~1.6 GB). Run from the project root; Linux x64 (for other OS/arch swap the asset
+names — e.g. `binaryen-version_130-arm64-macos.tar.gz`, the `macos-aarch64` JDK):
+
 ```bash
-# 1. EA JDK with Web Image (≈385 MB) and its matching maven bundle (≈800 MB):
-#    https://github.com/graalvm/oracle-graalvm-ea-builds/releases
-#    tag jdk-25e1-25.0.2-ea.26
-#      - graalvm-jdk-25e1-25.0.2-ea.26_linux-x64_bin.tar.gz   -> $EA_JDK
-#      - maven-resource-bundle-25.1.0-ea.26.zip               -> unzip to $EA_REPO
-unzip -q maven-resource-bundle-25.1.0-ea.26.zip -d /path/to/ea-repo
+DEPS="$PWD/wasm-toolchain" && mkdir -p "$DEPS" && cd "$DEPS"
+GVM=https://github.com/graalvm/oracle-graalvm-ea-builds/releases/download/jdk-25e1-25.0.2-ea.26
 
-# 2. Binaryen >= 119 (wasm-as):
-#    https://github.com/WebAssembly/binaryen/releases  -> $BINARYEN/wasm-as
+# 1. EA JDK with Web Image
+curl -L -O "$GVM/graalvm-jdk-25e1-25.0.2-ea.26_linux-x64_bin.tar.gz"
+tar xzf graalvm-jdk-25e1-25.0.2-ea.26_linux-x64_bin.tar.gz
 
-# 3. settings.xml exposing the EA repo as a file:// repository (so maven can
-#    resolve 25.1.0-SNAPSHOT). Minimal example in this dir: ea-settings.xml.tmpl
+# 2. Matching 25.1.0-SNAPSHOT maven artifacts -> local repo
+curl -L -O "$GVM/maven-resource-bundle-25.1.0-ea.26.zip"
+mkdir -p ea-repo && unzip -q maven-resource-bundle-25.1.0-ea.26.zip -d ea-repo
+
+# 3. Binaryen (wasm-as)
+curl -L -O https://github.com/WebAssembly/binaryen/releases/download/version_130/binaryen-version_130-x86_64-linux.tar.gz
+tar xzf binaryen-version_130-x86_64-linux.tar.gz
+cd ..
 ```
+
+Asset filenames drift between releases — if a link 404s, take the newest
+`jdk-25e1-*` tag and its matching `maven-resource-bundle`.
 
 ## Build
 
-```bash
-EA_JDK=/path/to/graalvm-25.1.0-dev+10.1 \
-BINARYEN=/path/to/binaryen/bin \
-EA_SETTINGS=/path/to/ea-settings.xml \
-./webimage/build.sh
-```
+The build is a pure Maven module (`webimage/pom.xml`), pulled into the reactor by
+the root pom's `wasm` profile. No shell script — run from the project root, with
+the three flags pointing at what you downloaded above (the JDK dir is auto-found
+since its extracted name varies; `ea.repo.url` needs spaces as `%20`):
+
+Run `build.sh`.
+
+This builds the whole reactor under the profile. Don't add `-pl webimage`: that
+module is contributed by the `wasm` profile, and Maven's `--projects` selection
+doesn't reliably see profile-added modules (fails with "Could not find the
+selected project in the reactor: webimage" on some Maven versions).
+
+What the profile / module do:
+
+- `wasm` profile sets `graalvm.version=25.1.0-SNAPSHOT` + `skipTests`, adds the
+  `webimage` module, and registers the EA maven repo at `${ea.repo.url}`.
+- `language` is rebuilt against the EA Truffle artifacts (webimage depends on it).
+- `webimage` embeds the stdlib, runs `native-image --tool:svm-wasm` (the EA
+  binary at `${graalvm.home}`, with `${binaryen.home}` prepended to its `PATH`),
+  and stages `dist/` (`lama.js`, `lama.js.wasm`, `index.html`, `styles.css`).
+
+The `native-image` binary is taken from `${graalvm.home}`, independent of the JDK
+running Maven — but Maven must run on a GraalVM/JDK 21+ (this repo pins one via
+`.sdkmanrc`). Browser sources live under `webimage/src/main/`.
+
+Two module-path subtleties are handled in the pom and worth knowing if you touch
+it: deps are passed to `native-image` as **individual jars** (a bare directory is
+not scanned for the `native-image.properties` that loads the Truffle svm macro),
+and as **relative paths** (the absolute project path contains spaces, which the
+`native-image` driver word-splits).
 
 ## Known limitations / next steps
 
 - **Stdlib units are a snapshot.** The embedded units come from
-  `lama/stdlib/*.lama` at build time; rerun `build.sh` to refresh
-  them. Units that rely on builtins not implemented in the interpreter will fail
-  at eval time (not all of them are exercised).
+  `lama/stdlib/*.lama` at build time; rebuild to refresh them. Units that rely on
+  builtins not implemented in the interpreter will fail at eval time (not all of
+  them are exercised).
 - **~16 MB** download; needs a recent browser (WASM exception-handling / GC —
   Chrome ≥ ~137, recent Firefox). Older Node needs `--experimental-wasm-exnref`.
 
-## To build on my machine run
-
-cd "/home/enotvtapke/study/virtual machines/simplelanguage"
-set -a; source "/home/enotvtapke/study/virtual machines/lama-wasm-deps/.env"; set +a
-./webimage/build.sh

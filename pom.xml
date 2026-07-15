@@ -58,4 +58,39 @@
     <module>launcher</module>
     <module>standalone</module>
   </modules>
+  <profiles>
+    <!-- Compiles the Lama interpreter to WebAssembly (browser sandbox). Kept out
+         of the default reactor because it needs the GraalVM 25e1+ EA toolchain
+         (the svm-wasm native-image backend) and the matching 25.1.0-SNAPSHOT
+         Truffle artifacts. See webimage/README.md. Build with:
+
+           mvn -Pwasm package \
+               -Dgraalvm.home=/path/to/graalvm-25.1.0-dev \
+               -Dbinaryen.home=/path/to/binaryen/bin \
+               -Dea.repo.url=file:///path/to/ea-repo
+
+         (Build the whole reactor; do not pass -pl webimage — Maven's project
+         selection does not reliably see profile-contributed modules.) -->
+    <profile>
+      <id>wasm</id>
+      <properties>
+        <graalvm.version>25.1.0-SNAPSHOT</graalvm.version>
+        <!-- Skip test COMPILATION too (not just execution): language's test
+             module-info requires the profiler tool, which isn't resolvable at
+             the EA 25.1.0-SNAPSHOT version and is irrelevant to the wasm build. -->
+        <maven.test.skip>true</maven.test.skip>
+      </properties>
+      <modules>
+        <module>webimage</module>
+      </modules>
+      <repositories>
+        <repository>
+          <id>graalvm-ea-local</id>
+          <url>${ea.repo.url}</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled><updatePolicy>never</updatePolicy></snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
 </project>

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Builds the Lama Truffle interpreter into a WebAssembly module (GraalVM Web
+ Image) that runs the sandbox entirely client-side. See README.md.
+
+ Requires the GraalVM 25e1+ Early Access toolchain, so this module is NOT part
+ of the default reactor: the root pom only pulls it in under the `wasm` profile.
+ Build the whole reactor from the project root (see README.md for the toolchain):
+   mvn -Pwasm package -Dgraalvm.home=... -Dbinaryen.home=... -Dea.repo.url=file://...
+ Do not pass -pl webimage: Maven's project selection does not reliably see
+ profile-contributed modules.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.oracle</groupId>
+        <artifactId>lama-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>webimage</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+        <!-- Output directory for the deployable sandbox (index.html + lama.js
+             + lama.js.wasm). Kept at webimage/dist so deploy.sh finds it. -->
+        <dist.dir>${project.basedir}/dist</dist.dir>
+        <stdlib.dir>${project.basedir}/../lama/stdlib</stdlib.dir>
+    </properties>
+
+    <dependencies>
+        <!-- The Lama language. Transitively provides org.graalvm.polyglot,
+             truffle-api and (via nativeimage) the org.graalvm.webimage.api
+             module used by LamaWasm, plus the shared runtime deps (json, ...).
+             The optimizing Truffle runtime/compiler are pulled in here but
+             dropped from the native-image module path below (see the
+             collect-modules step) — under WASM there is no JIT, so only the
+             interpreter-only DefaultTruffleRuntime works and keeping them in
+             makes RuntimeCompilationFeature NPE. -->
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>lama</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- The Truffle polyglot implementation needs the shadowed JSON module
+             on the module path; it is not in lama's dependency tree (the old
+             build only got it transitively via the launcher's profiler dep).
+             Without it, Context.eval fails at runtime with "No language and
+             polyglot implementation was found on the module-path". -->
+        <dependency>
+            <groupId>org.graalvm.shadowed</groupId>
+            <artifactId>json</artifactId>
+            <version>${graalvm.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- native-image's truffle-svm macro pulls in org.graalvm.truffle.runtime.svm,
+             which requires org.graalvm.nativebridge (and its jniutils) on the
+             module path. These are declared by truffle-api's POM, but they get
+             dropped on a clean resolve when a central mirror mangles the EA
+             SNAPSHOT POMs — so stage them explicitly. (collections/word/
+             nativeimage are provided by the EA JDK as system modules, so they
+             don't need to be here.) Without nativebridge, native-image aborts:
+             "Module org.graalvm.nativebridge not found, required by
+             org.graalvm.truffle.runtime.svm". -->
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>nativebridge</artifactId>
+            <version>${graalvm.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>jniutils</artifactId>
+            <version>${graalvm.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Stage the runtime module path into target/modules. Excludes the
+                 optimizing Truffle runtime + compiler (no JIT under WASM) while
+                 KEEPING their shared transitive deps (json, ...) that the
+                 polyglot implementation needs — dropping those makes eval fail
+                 with "No language and polyglot implementation was found". -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>collect-modules</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/modules</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                            <excludeArtifactIds>truffle-runtime,truffle-compiler</excludeArtifactIds>
+                            <stripVersion>true</stripVersion>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <!-- Embed the standard-library units as classpath resources
+                         under lamastd/, plus an index.txt listing them (WASM has
+                         no directory listing over embedded resources, so the
+                         in-memory FS in LamaWasm reads the index). -->
+                    <execution>
+                        <id>embed-stdlib</id>
+                        <phase>process-classes</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <copy todir="${project.build.outputDirectory}/lamastd">
+                                    <fileset dir="${stdlib.dir}" includes="*.lama"/>
+                                </copy>
+                                <fileset dir="${project.build.outputDirectory}/lamastd"
+                                         id="stdlib.units" includes="*.lama"/>
+                                <pathconvert property="stdlib.index" refid="stdlib.units"
+                                             pathsep="${line.separator}">
+                                    <mapper type="flatten"/>
+                                </pathconvert>
+                                <echo file="${project.build.outputDirectory}/lamastd/index.txt"
+                                      message="${stdlib.index}${line.separator}"/>
+                            </target>
+                        </configuration>
+                    </execution>
+
+                    <!-- Make sure dist/ exists before native-image writes into it. -->
+                    <execution>
+                        <id>prepare-dist</id>
+                        <phase>prepare-package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${dist.dir}"/>
+                            </target>
+                        </configuration>
+                    </execution>
+
+                    <!-- native-image with the svm-wasm backend. Two subtleties:
+
+                         1. The module path is passed as INDIVIDUAL jars, not the
+                            target/modules directory. native-image only scans a
+                            jar's META-INF/native-image/.../native-image.properties
+                            when the jar is listed explicitly; truffle-api's
+                            properties carry the truffle-svm macro plus
+                            TruffleBaseFeature that register the language. Given a
+                            bare directory, that macro never loads and eval fails
+                            with "No language and polyglot implementation found".
+
+                         2. Run from the module dir with RELATIVE paths: the
+                            absolute project path contains spaces ("virtual
+                            machines"), which the native-image driver word-splits,
+                            silently dropping every module-path entry.
+
+                         pathconvert builds the space-free relative jar list. -->
+                    <execution>
+                        <id>make-wasm</id>
+                        <phase>package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <fail message="Set -Dgraalvm.home=/path/to/graalvm-25.1.0-dev (EA JDK with Web Image)">
+                                    <condition><not><isset property="graalvm.home"/></not></condition>
+                                </fail>
+                                <fail message="Set -Dbinaryen.home=/path/to/binaryen/bin (dir containing wasm-as >= 119)">
+                                    <condition><not><isset property="binaryen.home"/></not></condition>
+                                </fail>
+                                <fileset dir="${project.build.directory}/modules" id="wasm.modules" includes="*.jar"/>
+                                <pathconvert property="wasm.modulepath" refid="wasm.modules" pathsep=":">
+                                    <map from="${project.basedir}/" to=""/>
+                                </pathconvert>
+                                <!-- native-image is the EA one (${graalvm.home}), independent of the
+                                     JDK running Maven; wasm-as (Binaryen) must be on its PATH. -->
+                                <exec executable="${graalvm.home}/bin/native-image"
+                                      dir="${project.basedir}" failonerror="true">
+                                    <env key="PATH" value="${binaryen.home}:${env.PATH}"/>
+                                    <arg value="--tool:svm-wasm"/>
+                                    <arg value="-Dpolyglot.engine.allowUnsupportedPlatform=true"/>
+                                    <arg value="-Dpolyglot.engine.WarnInterpreterOnly=false"/>
+                                    <arg value="-H:IncludeResources=lamastd/.*"/>
+                                    <arg value="-p"/>
+                                    <arg value="${wasm.modulepath}:target/classes"/>
+                                    <arg value="-m"/>
+                                    <arg value="lamawasm/lamawasm.LamaWasm"/>
+                                    <arg value="-o"/>
+                                    <arg value="dist/lama"/>
+                                </exec>
+                            </target>
+                        </configuration>
+                    </execution>
+
+                    <!-- After native-image: stage the sandbox page and drop the
+                         large .wat debug artifact (not needed to run). -->
+                    <execution>
+                        <id>finish-dist</id>
+                        <phase>package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <copy todir="${dist.dir}">
+                                    <fileset dir="${project.basedir}/src/main/web"/>
+                                </copy>
+                                <delete file="${dist.dir}/lama.js.wat" quiet="true"/>
+                                <echo>Sandbox staged in ${dist.dir}</echo>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
