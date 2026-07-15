@@ -7,9 +7,9 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
-import com.oracle.truffle.lama.LamaLanguage;
 import com.oracle.truffle.lama.nodes.LamaExpressionNode;
 import com.oracle.truffle.lama.runtime.LamaContext;
+import com.oracle.truffle.lama.runtime.LamaContext.VarTableRef;
 
 public abstract class ReadModuleVariableNode extends LamaExpressionNode {
     protected final String variableName;
@@ -25,22 +25,14 @@ public abstract class ReadModuleVariableNode extends LamaExpressionNode {
             @CachedLibrary(limit = "3") DynamicObjectLibrary dynamicObjects,
             @Bind LamaContext context,
             @Bind Node node,
-            @Cached(value = "resolveTableCached(context, currentModule, variableName, node)")
-            DynamicObject cachedTable
+            @Cached(value = "resolveRef(context, currentModule, variableName, node)")
+            VarTableRef ref
     ) {
-        // The declaring table is per-context, so it can be cached in this
-        // (potentially shared, ContextPolicy.SHARED) node ONLY while there is a
-        // single context; otherwise resolve it per execution.
-        DynamicObject module = cachedTable != null
-                ? cachedTable
-                : context.findModuleDeclaringVariable(currentModule, variableName, node);
+        DynamicObject module = context.varTableFor(ref);
         return dynamicObjects.getOrDefault(module, variableName, null);
     }
 
-    static DynamicObject resolveTableCached(LamaContext context, String currentModule, String variableName, Node node) {
-        if (LamaLanguage.get(node).isSingleContext()) {
-            return context.findModuleDeclaringVariable(currentModule, variableName, node);
-        }
-        return null;
+    static LamaContext.VarTableRef resolveRef(LamaContext context, String currentModule, String variableName, Node node) {
+        return context.resolveTableRef(currentModule, variableName, node);
     }
 }

@@ -136,28 +136,46 @@ public final class LamaContext {
         return entry.module;
     }
 
-    @TruffleBoundary
-    public DynamicObject findModuleDeclaringVariable(String currentModuleName, String variableName, Node node) {
-        LamaModule currentModule = getModule(currentModuleName);
-        if (DynamicObjectLibrary.getUncached().containsKey(currentModule.locals, variableName)) {
-            return currentModule.locals;
-        }
-        if (DynamicObjectLibrary.getUncached().containsKey(currentModule.exports, variableName)) {
-            return currentModule.exports;
-        }
+    public enum VarTableKind { LOCALS, EXPORTS, BUILTINS }
 
+    /**
+     * A context-independent description of where a module variable lives. For a
+     * given source-level read/write the answer is determined solely by the
+     * program text, so it is identical across every
+     * context created from the same sources and can be cached in the (shared)
+     * AST node.
+     */
+    public record VarTableRef(VarTableKind kind, String moduleName) {}
+
+    @TruffleBoundary
+    public DynamicObject varTableFor(VarTableRef ref) {
+        return switch (ref.kind()) {
+            case BUILTINS -> builtins;
+            case LOCALS -> getModule(ref.moduleName()).locals;
+            case EXPORTS -> getModule(ref.moduleName()).exports;
+        };
+    }
+
+    @TruffleBoundary
+    public VarTableRef resolveTableRef(String currentModuleName, String variableName, Node node) {
+        DynamicObjectLibrary lib = DynamicObjectLibrary.getUncached();
+        LamaModule currentModule = getModule(currentModuleName);
+        if (lib.containsKey(currentModule.locals, variableName)) {
+            return new VarTableRef(VarTableKind.LOCALS, currentModuleName);
+        }
+        if (lib.containsKey(currentModule.exports, variableName)) {
+            return new VarTableRef(VarTableKind.EXPORTS, currentModuleName);
+        }
         List<String> wildcards = currentModule.imports;
         for (int i = wildcards.size() - 1; i >= 0; i--) {
-            LamaModule importedModule = getModule(wildcards.get(i));
-            if (DynamicObjectLibrary.getUncached().containsKey(importedModule.exports, variableName)) {
-                return importedModule.exports;
+            String imported = wildcards.get(i);
+            if (lib.containsKey(getModule(imported).exports, variableName)) {
+                return new VarTableRef(VarTableKind.EXPORTS, imported);
             }
         }
-
-        if (DynamicObjectLibrary.getUncached().containsKey(builtins, variableName)) {
-            return builtins;
+        if (lib.containsKey(builtins, variableName)) {
+            return new VarTableRef(VarTableKind.BUILTINS, null);
         }
-
         throw LamaException.create("Undefined variable '" + variableName + "'", node);
     }
 
