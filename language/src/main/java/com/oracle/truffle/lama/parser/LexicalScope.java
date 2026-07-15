@@ -4,23 +4,30 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.lama.parser.InfixTable.OperatorInfo;
 import com.oracle.truffle.lama.parser.VariableRef.LocalVariable;
+import com.oracle.truffle.lama.runtime.CapturedSlots;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class LexicalScope {
     public final LexicalScope parent;
     private final Map<String, Integer> variables = new HashMap<>();
     private final Set<String> functionVariables = new HashSet<>();
     private final FrameDescriptor.Builder frameBuilder;
+    /**
+     * Slots of THIS frame that are read/written from a nested closure
+     */
+    private final Set<Integer> capturedSlots;
     private final int depth;
     private final InfixTable infixTable;
 
     public LexicalScope(LexicalScope parent) {
         this.parent = parent;
         this.frameBuilder = parent.frameBuilder;
+        this.capturedSlots = parent.capturedSlots;
         this.depth = parent.depth;
         this.infixTable = parent.infixTable;
     }
@@ -28,6 +35,7 @@ public class LexicalScope {
     public LexicalScope(LexicalScope parent, FrameDescriptor.Builder frameBuilder) {
         this.parent = parent;
         this.frameBuilder = frameBuilder;
+        this.capturedSlots = new TreeSet<>();
         if (parent == null) {
             this.depth = 0;
             this.infixTable = InfixTable.createDefault();
@@ -77,6 +85,12 @@ public class LexicalScope {
     }
 
     public FrameDescriptor buildFrame() {
+        int[] slots = new int[capturedSlots.size()];
+        int i = 0;
+        for (int slot : capturedSlots) {
+            slots[i++] = slot;
+        }
+        frameBuilder.info(new CapturedSlots(slots));
         return frameBuilder.build();
     }
 
@@ -89,7 +103,12 @@ public class LexicalScope {
                 return null;
             }
         }
-        return new LocalVariable(scope.variables.get(name), depth - scope.depth);
+        int slotIndex = scope.variables.get(name);
+        int lexicalDepth = depth - scope.depth;
+        if (lexicalDepth > 0) {
+            scope.capturedSlots.add(slotIndex);
+        }
+        return new LocalVariable(slotIndex, lexicalDepth);
     }
 
     public void markAsFunction(String name) {

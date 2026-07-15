@@ -1,9 +1,8 @@
 package com.oracle.truffle.lama.runtime;
 
+import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.strings.TruffleString;
-import com.oracle.truffle.lama.LamaLanguage;
 
 public class Utils {
     public static Object[] packScopeIntoArguments(Object[] userArgs, Object lexicalScope) {
@@ -15,11 +14,21 @@ public class Utils {
 
     @ExplodeLoop
     public static Object[] capture(VirtualFrame frame) {
-        int numberOfSlots = frame.getFrameDescriptor().getNumberOfSlots();
+        FrameDescriptor descriptor = frame.getFrameDescriptor();
+        int numberOfSlots = descriptor.getNumberOfSlots();
         Object[] captured = new Object[numberOfSlots + 1];
-        captured[0] = frame.getArguments().length > 0 ? frame.getArguments()[0] : null;
-        for (int i = 0; i < numberOfSlots; i++) {
-            captured[i + 1] = frame.getValue(i);
+        Object[] arguments = frame.getArguments();
+        captured[0] = arguments.length > 0 ? arguments[0] : null;
+        Object info = descriptor.getInfo();
+        if (info instanceof CapturedSlots capturedSlots) {
+            int[] slots = capturedSlots.slots;
+            for (int slot : slots) {
+                captured[slot + 1] = frame.getValue(slot);
+            }
+        } else {
+            for (int i = 0; i < numberOfSlots; i++) {
+                captured[i + 1] = frame.getValue(i);
+            }
         }
         return captured;
     }
@@ -27,10 +36,6 @@ public class Utils {
     public static String stripFileExtension(String fileName) {
         int dotIndex = fileName.lastIndexOf('.');
         return (dotIndex > 0) ? fileName.substring(0, dotIndex) : fileName;
-    }
-
-    public static TruffleString fromJavaString(String s) {
-        return TruffleString.fromJavaStringUncached(s, LamaLanguage.STRING_ENCODING);
     }
 
     public static String displayElement(Object value) {
