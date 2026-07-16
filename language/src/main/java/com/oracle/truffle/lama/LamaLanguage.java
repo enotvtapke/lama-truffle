@@ -73,8 +73,8 @@ public final class LamaLanguage extends TruffleLanguage<LamaContext> {
         singleContext.invalidate();
     }
 
-    public boolean isSingleContext() {
-        return singleContext.isValid();
+    public Assumption getSingleContextAssumption() {
+        return singleContext;
     }
 
     @Override
