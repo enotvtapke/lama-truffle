@@ -27,3 +27,7 @@ To materialize closure of `fun f() { ... }` immediately one can do `var f1 = f`.
 
 Infix references to builtin operations (like +, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||) are not supported. Only references
 to custom infix operators are supported.
+
+# TODO
+
+Shared context global variables read and write should be refactored. Now it works much slower than single context read and write.
