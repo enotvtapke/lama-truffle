@@ -80,8 +80,11 @@ public class LamaSelfHostedCompilerBootstrappingBenchmarkTest {
         String importsPath = STDLIB_DIR.toAbsolutePath().normalize().toString();
         String compilerPath = COMPILER_DIR.toAbsolutePath().normalize().toString();
 
+        // Use a fresh, single-context engine per module so the benchmark
+        // reflects real `lama` usage (one process/context per file) rather than
+        // the multi-context timings of a shared engine.
         long t0 = System.nanoTime();
-        String driverOutput = LamaSelfHostedDriver.compileWithSelfHostedDriver(
+        String driverOutput = LamaSelfHostedDriver.compileWithSelfHostedDriverIsolated(
                 workDir, unitCopy, module, "-c", "-dt", "-I", importsPath, "-I", compilerPath);
         double wallMs = (System.nanoTime() - t0) / 1_000_000.0;
 

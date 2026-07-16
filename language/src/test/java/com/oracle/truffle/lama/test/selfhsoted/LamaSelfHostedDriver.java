@@ -47,9 +47,31 @@ final class LamaSelfHostedDriver {
         engine = Engine.newBuilder().build();
     }
 
+    /**
+     * Compiles a unit reusing the shared engine (the compiler is parsed/JIT-ed
+     * once and shared across calls). Fast for correctness suites, but it makes
+     * every compile run multi-context — do NOT use it for timing.
+     */
     static String compileWithSelfHostedDriver(Path workDir, Path unitFile, String label, String... extraArgs) {
         ensureInitialized();
+        return evalDriver(engine, workDir, unitFile, label, extraArgs);
+    }
 
+    /**
+     * Compiles a unit in a fresh, single-use engine, so each compilation runs
+     * fully single-context — matching how the real {@code lama} launcher is
+     * used (one process, one context per file). This is what benchmarks should
+     * measure; the shared-engine variant would report multi-context timings
+     * that no real invocation ever pays.
+     */
+    static String compileWithSelfHostedDriverIsolated(Path workDir, Path unitFile, String label, String... extraArgs) {
+        ensureInitialized();
+        try (Engine freshEngine = Engine.newBuilder().build()) {
+            return evalDriver(freshEngine, workDir, unitFile, label, extraArgs);
+        }
+    }
+
+    private static String evalDriver(Engine engine, Path workDir, Path unitFile, String label, String... extraArgs) {
         Path driverFile = COMPILER_DIR.resolve("Driver.lama").toAbsolutePath().normalize();
         String unitSearchPath = String.join(File.pathSeparator,
                 STDLIB_DIR.toAbsolutePath().normalize().toString(),
