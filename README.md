@@ -1,7 +1,8 @@
 # Lama
 
-An implementation of the [Lama](https://github.com/PLTools/Lama) programming language
-built on Truffle for GraalVM.
+An implementation of the [Lama](https://github.com/PLTools/Lama) programming language built on Truffle for GraalVM. 
+You can try out this implementation online at [Lama Sandbox](https://enotvtapke.github.io/lama-truffle/). Notice that an 
+online version uses experimental WebAssembly support; hence it is less performant than the offline version.
 
 # Building for a JVM
 
