@@ -18,7 +18,7 @@ public fun toSeconds (t) {
   var s = sprintf ("%d", t);
 
   while s.length < 7 do
-    s := "0" + s
+    s := "0" ++ s
   od;
 
   sprintf ("%s.%s", substring (s, 0, s.length - 6), substring (s, s.length - 6, 6))
