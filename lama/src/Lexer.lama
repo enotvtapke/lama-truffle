@@ -92,9 +92,7 @@ var keywords =
            "syntax"});
 
 -- Regular expression definitions.
--- NOTE: patterns use POSIX ERE syntax (as compiled by regcomp with REG_EXTENDED
--- in Lama's runtime). GNU ERE extensions used here: \b = word boundary.
-public rWhiteSpace  = createRegexp ("((([ \n\t]*)|(--[^\n]*[ \n\t]*))*|(\(\*([^*]|\*[^)])*\*\)))*", "whitespace"),
+public rWhiteSpace  = createRegexp ("([ \n\t]|--[^\n]*|\(\*([^*]|\*[^)])*\*\))*", "whitespace"),
        rComment     = createRegexp ("\(\*([^*]|\*[^)])*\*\)", "comment"),
        rSkip        = createRegexp ("skip\b", "skip"),
        rDecimal     = createRegexp ("-?[0-9]+", "decimal constant"),
@@ -224,7 +222,7 @@ public kSkip    = s (rSkip),
                                           | '\' -> case x [i+1] of
                                                      'n' -> y [j] := '\n'; i := i + 2
                                                    | 't' -> y [j] := '\t'; i := i + 2
-                                                   -- Any other backslash stays literal (lamac keeps
+                                                   -- Any other backslash stays literal (lamac/Truffle keep
                                                    -- '\X' as backslash + X), e.g. regex escapes \( \* \).
                                                    | _   -> y [j] := '\'; i := i + 1
                                                    esac

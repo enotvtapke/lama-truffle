@@ -508,19 +508,17 @@ public class LamaTranslator {
                 continue;
             }
             if (c == '\\') {
-                if (i + 1 >= inner.length()) {
-                    throw createParseError(null, token.getLine(), token.getCharPositionInLine(), token,
-                                    "invalid escape sequence: lone '\\' at the end of a string literal");
+                // Match lamac's string escaping: only \n and \t are escapes;
+                // every other backslash (including \\, \(, and a lone trailing
+                // \) stays literal. This keeps the self-hosted compiler's regex
+                // literals identical whether decoded here or by lamac.
+                if (i + 1 < inner.length()) {
+                    char next = inner.charAt(i + 1);
+                    if (next == 'n') { out.append('\n'); i += 2; continue; }
+                    if (next == 't') { out.append('\t'); i += 2; continue; }
                 }
-                char next = inner.charAt(i + 1);
-                switch (next) {
-                    case 'n' -> out.append('\n');
-                    case 't' -> out.append('\t');
-                    case '\\' -> out.append('\\');
-                    default -> throw createParseError(null, token.getLine(), token.getCharPositionInLine(), token,
-                                    "invalid escape sequence \"\\" + next + "\" in string literal");
-                }
-                i += 2;
+                out.append('\\');
+                i += 1;
                 continue;
             }
             out.append(c);
