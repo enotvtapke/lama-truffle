@@ -210,9 +210,13 @@ fun makeEnv (unitName, stack, stackSlots, globals, strings, stringIndex, barrier
     publics.elements
   }  
   
-  -- Gets an interface file
+  -- Gets an interface file.
+  -- NB: call stringcat directly rather than `stringcat $ reverse $ iface`.
+  -- stringcat is a builtin, and builtins are not first-class values, so
+  -- passing it to `$` yields empty under lamac (silently produced empty .i
+  -- files). A direct call works under both lamac and the Truffle interpreter.
   fun getInterface () {
-    stringcat $ reverse $ iface
+    stringcat (reverse (iface))
   }
   
   -- References an allocation

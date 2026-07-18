@@ -74,7 +74,10 @@ void __post_gc_subst () {}
 # define STDV(x) GStd_##x
 
 /* GC extra roots */
-# define MAX_EXTRA_ROOTS_NUMBER 32
+/* Bumped from 32: array/sexp/closure constructors push one root per element,
+   so any structure with >31 elements (e.g. the self-hosted compiler's 71-slot
+   makeEnv record) overflowed the pool during a native (lamac) bootstrap. */
+# define MAX_EXTRA_ROOTS_NUMBER (1 << 20)
 typedef struct {
   int current_free;
   void ** roots[MAX_EXTRA_ROOTS_NUMBER];

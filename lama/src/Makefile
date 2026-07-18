@@ -6,8 +6,9 @@ LAMAC=lamac -g
 
 .PHONY: all clean
 
-all: Parser.o Lexer.o Interface.o SM.o SMOptimizer.o X86.o Manifest.o Infix.o 
+all: Parser.o Lexer.o Interface.o SM.o SMOptimizer.o X86.o Manifest.o Infix.o
 	$(LAMAC) -I . -o lama-impl Driver.lama
+	./link.sh
 
 SMOptimizer.o: Manifest.o SM.o Interface.o
 

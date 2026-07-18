@@ -92,58 +92,60 @@ var keywords =
            "syntax"});
 
 -- Regular expression definitions.
-public rWhiteSpace  = createRegexp ("([ \n\t]|--[^\n]*|\\(\\*([^*]|\\*[^)])*\\*\\))*", "whitespace"),
-       rComment     = createRegexp ("\\(\\*([^*]|\\*[^)])*\\*\\)", "comment"),
-       rSkip        = createRegexp ("skip\\b", "skip"),
+-- NOTE: patterns use POSIX ERE syntax (as compiled by regcomp with REG_EXTENDED
+-- in Lama's runtime). GNU ERE extensions used here: \b = word boundary.
+public rWhiteSpace  = createRegexp ("((([ \n\t]*)|(--[^\n]*[ \n\t]*))*|(\(\*([^*]|\*[^)])*\*\)))*", "whitespace"),
+       rComment     = createRegexp ("\(\*([^*]|\*[^)])*\*\)", "comment"),
+       rSkip        = createRegexp ("skip\b", "skip"),
        rDecimal     = createRegexp ("-?[0-9]+", "decimal constant"),
        rStrlit      = createRegexp ("""([^""]|"""")*""", "string constant"),
-       rChar        = createRegexp ("'([^']|''|\\\\n|\\\\t)'", "character constant"),
+       rChar        = createRegexp ("'([^']|''|\\[nt])'", "character constant"),
        rLident      = createRegexp ("[a-z][a-z_A-Z0-9']*", "lowercase identifier"),
        rUident      = createRegexp ("[A-Z][a-z_A-Z0-9']*", "uppercase identifier"),
-       rIf          = createRegexp ("if\\b", """if"""),
-       rThen        = createRegexp ("then\\b", """then"""),
-       rElse        = createRegexp ("else\\b", """else"""),
-       rElif        = createRegexp ("elif\\b", """elif"""),
-       rFi          = createRegexp ("fi\\b", """fi"""),
-       rWhile       = createRegexp ("while\\b", """while"""),
-       rDo          = createRegexp ("do\\b", """do"""),
-       rOd          = createRegexp ("od\\b", """od"""),
-       rFor         = createRegexp ("for\\b", """for"""),
-       rVar         = createRegexp ("var\\b", """var"""),
-       rVal         = createRegexp ("val\\b", """val"""),
-       rFun         = createRegexp ("fun\\b", """fun"""),
-       rCase        = createRegexp ("case\\b", """case"""),
-       rOf          = createRegexp ("of\\b", """of"""),
-       rEsac        = createRegexp ("esac\\b", """esac"""),
-       rAt          = createRegexp ("at\\b", """at"""),
-       rAfter       = createRegexp ("after\\b", """after"""),
-       rBefore      = createRegexp ("before\\b", """before"""),
-       rInfix       = createRegexp ("infix\\b", """infix"""),
-       rInfixl      = createRegexp ("infixl\\b", """infixl"""),
-       rInfixr      = createRegexp ("infixr\\b", """infixr"""),
-       rTrue        = createRegexp ("true\\b", """true"""),
-       rFalse       = createRegexp ("false\\b", """false"""),
-       rStr         = createRegexp ("str\\b", """str"""),
-       rSexp        = createRegexp ("sexp\\b", """sexp"""),
-       rArray       = createRegexp ("array\\b", """array"""),
-       rBox         = createRegexp ("box\\b", """box"""),
+       rIf          = createRegexp ("if\b", """if"""),
+       rThen        = createRegexp ("then\b", """then"""),
+       rElse        = createRegexp ("else\b", """else"""),
+       rElif        = createRegexp ("elif\b", """elif"""),
+       rFi          = createRegexp ("fi\b", """fi"""),
+       rWhile       = createRegexp ("while\b", """while"""),
+       rDo          = createRegexp ("do\b", """do"""),
+       rOd          = createRegexp ("od\b", """od"""),
+       rFor         = createRegexp ("for\b", """for"""),
+       rVar         = createRegexp ("var\b", """var"""),
+       rVal         = createRegexp ("val\b", """val"""),
+       rFun         = createRegexp ("fun\b", """fun"""),
+       rCase        = createRegexp ("case\b", """case"""),
+       rOf          = createRegexp ("of\b", """of"""),
+       rEsac        = createRegexp ("esac\b", """esac"""),
+       rAt          = createRegexp ("at\b", """at"""),
+       rAfter       = createRegexp ("after\b", """after"""),
+       rBefore      = createRegexp ("before\b", """before"""),
+       rInfix       = createRegexp ("infix\b", """infix"""),
+       rInfixl      = createRegexp ("infixl\b", """infixl"""),
+       rInfixr      = createRegexp ("infixr\b", """infixr"""),
+       rTrue        = createRegexp ("true\b", """true"""),
+       rFalse       = createRegexp ("false\b", """false"""),
+       rStr         = createRegexp ("str\b", """str"""),
+       rSexp        = createRegexp ("sexp\b", """sexp"""),
+       rArray       = createRegexp ("array\b", """array"""),
+       rBox         = createRegexp ("box\b", """box"""),
        rInfixx      = createRegexp ("[-+*/%$#@!|&^~?<>:=]+", """infix operator"""),
-       rLazy        = createRegexp ("lazy\\b", """lazy"""),
-       rEta         = createRegexp ("eta\\b", """eta"""),
-       rLet         = createRegexp ("let\\b", """let"""),
-       rIn          = createRegexp ("in\\b", """in"""),
-       rPublic      = createRegexp ("public\\b", """public"""),
-       rImport      = createRegexp ("import\\b", """import"""),
-       rSyntax      = createRegexp ("syntax\\b", """syntax"""),
-       rLABEL       = createRegexp ("LABEL\\b", """LABEL"""),
-       rDUP         = createRegexp ("DUP\\b", """DUP"""),
-       rDROP        = createRegexp ("DROP\\b", """DROP"""),
-       rJMP         = createRegexp ("JMP\\b", """JMP"""),
-       rLDA         = createRegexp ("LDA\\b", """LDA"""),
-       rLD          = createRegexp ("LD\\b", """LD"""),
-       rSTI         = createRegexp ("STI\\b", """STI"""),
-       rSTA         = createRegexp ("STA\\b", """STA"""),
-       rST          = createRegexp ("ST\\b", """ST""");
+       rLazy        = createRegexp ("lazy\b", """lazy"""),
+       rEta         = createRegexp ("eta\b", """eta"""),
+       rLet         = createRegexp ("let\b", """let"""),
+       rIn          = createRegexp ("in\b", """in"""),
+       rPublic      = createRegexp ("public\b", """public"""),
+       rImport      = createRegexp ("import\b", """import"""),
+       rSyntax      = createRegexp ("syntax\b", """syntax"""),
+       rLABEL       = createRegexp ("LABEL\b", """LABEL"""),
+       rDUP         = createRegexp ("DUP\b", """DUP"""),
+       rDROP        = createRegexp ("DROP\b", """DROP"""),
+       rJMP         = createRegexp ("JMP\b", """JMP"""),
+       rLDA         = createRegexp ("LDA\b", """LDA"""),
+       rLD          = createRegexp ("LD\b", """LD"""),
+       rSTI         = createRegexp ("STI\b", """STI"""),
+       rSTA         = createRegexp ("STA\b", """STA"""),
+       rST          = createRegexp ("ST\b", """ST""");
 
 
 var comment = syntax (-token["(*"] -token[rComment] -token["*)"]);
@@ -220,13 +222,12 @@ public kSkip    = s (rSkip),
                                           case x [i] of
                                             '"' -> y [j] := '"'; i := i + 2
                                           | '\' -> case x [i+1] of
-                                                     'n' -> y [j] := '\n'
-                                                   | 't' -> y [j] := '\t'
-                                                   | '\' -> y [j] := '\'
-                                                   | _   -> failure ("invalid escape sequence ""%s"" in string literal %s\n",
-                                                                     substring (x, i, 2), x)
-                                                   esac;
-                                                   i := i + 2
+                                                     'n' -> y [j] := '\n'; i := i + 2
+                                                   | 't' -> y [j] := '\t'; i := i + 2
+                                                   -- Any other backslash stays literal (lamac keeps
+                                                   -- '\X' as backslash + X), e.g. regex escapes \( \* \).
+                                                   | _   -> y [j] := '\'; i := i + 1
+                                                   esac
                                           | c   -> y [j] := c; i := i + 1
                                           esac
                                         od;
