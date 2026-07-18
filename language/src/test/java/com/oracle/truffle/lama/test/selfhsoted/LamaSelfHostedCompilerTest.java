@@ -18,7 +18,7 @@ import java.util.*;
 @RunWith(Parameterized.class)
 public class LamaSelfHostedCompilerTest {
 
-    private static final Path TESTS_DIR = Paths.get("tests", "lama", "compiler");
+    private static final Path TESTS_DIR = Paths.get("testData", "correctness", "selfhosted");
 
     private static final List<String> IGNORED_TESTS = List.of(
             "test045"

@@ -29,7 +29,7 @@ public class LamaParserTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() throws IOException {
-        Path testsDir = Paths.get("tests", "lama");
+        Path testsDir = Paths.get("testData", "correctness", "truffle");
         List<Object[]> params = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir, "*.lama")) {
             for (Path file : stream) {

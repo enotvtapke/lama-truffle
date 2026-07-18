@@ -16,7 +16,7 @@ import java.nio.file.Paths;
 public class LamaBenchmarkTest {
 
     private static final String LAMA = "lama";
-    private static final Path BENCHMARKS_DIR = Paths.get("tests", "benchmarks");
+    private static final Path BENCHMARKS_DIR = Paths.get("testData", "benchmarks");
     private static final int WARMUP = 3;
     private static final int RUNS = 5;
     private static final int INTERP_RUNS = 2;

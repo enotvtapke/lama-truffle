@@ -11,7 +11,7 @@ import java.util.Locale;
 
 public class LamaSelfHostedSuiteBenchmarkTest {
 
-    private static final Path BENCHMARKS_DIR = Paths.get("tests", "benchmarks");
+    private static final Path BENCHMARKS_DIR = Paths.get("testData", "benchmarks");
     private static final long RUN_TIMEOUT_SECONDS = 120;
 
     @Test

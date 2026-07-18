@@ -36,7 +36,7 @@ import static com.oracle.truffle.lama.test.selfhsoted.LamaSelfHostedDriver.*;
 @RunWith(Parameterized.class)
 public class LamaBootstrappedCompilerTest {
 
-    private static final Path TESTS_DIR = Paths.get("tests", "lama", "compiler");
+    private static final Path TESTS_DIR = Paths.get("testData", "correctness", "selfhosted");
 
     private static final List<String> STDLIB_MODULES = List.of(
             "List", "Ref", "Matcher", "Timer", "Fun", "Array", "Buffer", "Lazy",

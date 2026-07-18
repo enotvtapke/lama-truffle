@@ -24,7 +24,7 @@ import java.util.*;
 public class LamaInterpreterTest {
     public static final Path STDLIB_DIR = Paths.get("..", "lama", "stdlib").toAbsolutePath().normalize();
 
-    private static final Path TESTS_DIR = Paths.get("tests", "lama");
+    private static final Path TESTS_DIR = Paths.get("testData", "correctness", "truffle");
     private static final List<String> IGNORED_TESTS = List.of("test054", "test110", "test803");
 
     private final Path lamaFile;
