@@ -68,6 +68,7 @@ public class LamaLamacCompilerBootstrappingBenchmarkTest {
         if (!Files.isExecutable(binary) && commandAvailable("lamac", "-v")) {
             // Not built yet — build it once (compiles lama/src with lamac and
             // links it against the patched 64-bit runtime via link.sh).
+            System.out.println("Self-hosted compiler isn't built yet, building...");
             runMake(COMPILER_DIR);
         }
         if (!Files.isExecutable(binary)) {
@@ -178,7 +179,7 @@ public class LamaLamacCompilerBootstrappingBenchmarkTest {
         try {
             Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
             p.getInputStream().readAllBytes();
-            return p.waitFor(15, TimeUnit.SECONDS) && p.exitValue() == 0;
+            return p.waitFor(15, TimeUnit.SECONDS) && p.exitValue() == 255;
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) Thread.currentThread().interrupt();
             return false;
